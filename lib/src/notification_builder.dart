@@ -1,4 +1,5 @@
-part of notifier;
+part of notifier_plugin;
+
 /// NotifiableChild Widget
 class NotifiableChild extends StatefulWidget {
   final Iterable<Notifier> notifier;

@@ -1,4 +1,4 @@
-part of notifier;
+part of notifier_plugin;
 
 class Notifier extends Iterable<Notifier> {
   List<Function> _listeners = <Function>[]; // Auto-init
@@ -1064,7 +1064,7 @@ class HttpNotifier extends ValNotifier {
 
   /// A buffer that stores the encoding (for sync)
   Encoding _encoding;
-  
+
   get encoding {
     if(_isNotDisposed){
       if(HttpRequestType.values.indexOf(requestType) <= 4) throw "$runtimeType#$hashCode has not been set to a type that requires a body. Therefore the body couldn't be retrieved.\n";
@@ -1077,18 +1077,13 @@ class HttpNotifier extends ValNotifier {
       _encoding = encoding;
     }
   }
-  
+
   /// A function that can transform the return value of an HTTP request into something that your listeners might
   /// actually need or be designed for.
   dynamic Function(dynamic) _parseResponse;
 
-  get parseResponse {
-
-  }
-
-  set parseResponse(Function(dynamic) parseResponse){
-
-  }
+  get parseResponse => _isNotDisposed?_parseResponse:null;
+  set parseResponse(Function(dynamic) parseResponse) => _isNotDisposed?_parseResponse = parseResponse:null;
 
   bool _isLoading = false;
 
@@ -1494,7 +1489,7 @@ class HttpNotifier extends ValNotifier {
     if (body != null) assert(body is String || body is Map<String, dynamic>, "$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
     if (url!=null&&!RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url)) throw Exception("Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case).");
 
-    // 
+    //
     if (requestType == null) requestType = this._requestType;
     if (url == null) url = this._url;
     if (headers == null) headers = this._headers;

@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:http/src/response.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:notifier/notifier.dart';
+import 'package:notifier/notifier_plugin.dart';
 
 void main() async => runApp(TestApp());
 

@@ -14,14 +14,20 @@ Imagine if you could `setState`(rebuild) a part of your widget tree without actu
   int i = 0;
   
   // [...]
-  ~(n)=> RaisedButton(child: Text((++i).toString()), onPressed: n) // n is a callable object
+  ~(n)=>RaisedButton(
+      child: Text((++i).toString()),
+      onPressed: n,
+    ) // n is a callable object
   //[...] 
 ```
 
 Or even better, be able to dynamically pass a value to that part of the tree,
 ```Dart
   // [...]
-  ~(n,v)=> RaisedButton(child: Text(v?.toString()??"0"), onPressed: ()=>n((v??0)+1)) // Something similar to the counter app
+  ~(n,v)=>RaisedButton(
+      child: Text(v?.toString()??"0"),
+      onPressed: ()=>n((v??0)+1),
+    ) // Something similar to the counter app
   // [...]
 ```
 
@@ -33,12 +39,15 @@ Or maybe control that part of the tree from another dimension altogether?
   // Dimension 1
   int i = 0;
   // [...]
-    n-()=> Text((++i).toString())
+    n-()=>Text((++i).toString())
   // [...]
   
   // Dimension 2
   // [...]
-    RaisedButton(child: Text("Refresh Me"), onPressed: n)
+    RaisedButton(
+      child: Text("Refresh Me"),
+      onPressed: n,
+    )
   // [...]
 ```
 (Note: The Notifier could be declared within the same class to sync between two widgets of the same tree)
@@ -54,7 +63,10 @@ or maybe even pass a value to that dimension.
   
   // Dimension 2
   // [...]
-    RaisedButton(child: Text("Increment"), onPressed: ()=> n(n.val+1)),
+    RaisedButton(
+      child: Text("Increment"),
+      onPressed: ()=> n(n.val+1),
+    ),
   // [...]
 ```
 (Note: `~(n,v)=>` can be attached to a Widget that can hold both the above widgets to avoid declaring a ValNotifier for the same)

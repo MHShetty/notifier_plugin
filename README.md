@@ -132,7 +132,7 @@ If you have been overwhelemed by seeing all the example codes in one go, then ju
 
 (Read the introduction section to understand how the plugin works from scratch)
 
-Introduction (Pending needs formatting)
+Introduction (Pending; Needs formatting)
 ---
 
 `notifier_plugin` is a plugin that provides different classes and extension methods + operator overloading (for widgets), in order to enable developers to swiftly develop dynamic user-interfaces (in Flutter) with minimal effort. The plugin can then be combined with (custom classes that contain) simple/complex declarations to manage the state of your app in your own way. The plugin was purely made with the intention of doing things in the most simple and efficient way possible, while using minimal or no (extra) resources to implement different concepts. For now, this plugin mainly four types of Notifiers: `Notifier`, `ValNotifier`, `SelfNotifier`, `HttpNotifier`.

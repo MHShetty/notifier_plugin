@@ -135,5 +135,12 @@ If you have been overwhelemed by seeing all the example codes in one go, then ju
 Introduction
 ---
 
-To be added soon!
+`notifier_plugin` is a plugin that provides different classes and extension methods + operator overloading (for widgets), in order to enable developers to swiftly develop dynamic user-interfaces (in Flutter) with minimal effort. The plugin can then be combined with (custom classes that contain) simple/complex declarations to manage the state of your app in your own way. The plugin was purely made with the intention of doing things in the most simple and efficient way possible, while using minimal or no (extra) resources to implement different concepts. For now, this plugin mainly four types of Notifiers: `Notifier`, `ValNotifier`, `SelfNotifier`, `HttpNotifier`.
 
+Notifier: It's a simple object that can maintain and notify a set of listeners. One could even attach a `Notifier` to it or listen to another `Notifier`. (Note: One cannot attach a Notifier to itself or listen to itself, as that would lead to infinite recursion).
+
+ValNotifier: It is a Notifier that decides to take a step ahead and maintain it's own buffer and actually pass the value to it's listeners (if it can accept one). (Note: A `Notifier` can be called with a value, but it's listeners won't get that value or get null, if they can accept one. This was done to ensure that `ValNotifier` can actually extend `Notifier` while overriding the same set of methods that are used to notify a `Notifier`)
+
+SelfNotifier: It is ValNotifier, that just notifies itself (passes itself to the listeners) when called.
+
+HttpNotifier: It is a special Notifier that maintains a separate buffer for the parameters of a HTTP request so as to avoid boiler-plate code, while performing those requests with same or similar parameters, in different sections of the same app. Since a `HttpNotifier` is a `ValNotifier`, the (extension) methods of ValNotifier can be used with the HttpNotifier. The real benefit of using an (Http)Notifier can come by using it as a `Stream`. (Note: A `Notifier` is not a `Stream`)

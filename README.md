@@ -149,7 +149,7 @@ These `Notifier`(s) and the extension methods used on certain pre-defined types,
 
 Not sure with how you can use this plugin for state management? [This section](#state-management-with) might be a small help you. 
 
-Also, it might be worth reading the [special case of Notifier extends Iterable\<Notifier>](#the-special-case-of-notifier-extends-iterable-notifier) used in this plugin.
+Also, it might be worth reading the [special case of Notifier extends Iterable\<Notifier>](#the-special-case-of-notifier-extends-iterablenotifier) used in this plugin.
 
 ## Notifier
 

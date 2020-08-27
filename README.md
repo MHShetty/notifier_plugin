@@ -229,7 +229,7 @@ Other examples:
 
 **Atomic calls on a List\<Notifier>**: An atomic call is a method that interfaces it's corresponding existing method to check if all the Notifiers in the Iterable are disposed or not, before trying to notify all of them. 
 
-If you're still wondering how is this all still working..then the secret lies in the method/getter that was implemented while extending Iterable<Notifier>,
+If you're still wondering how is all this still working..then the secret lies in the method/getter that was implemented while extending Iterable<Notifier>,
 ```
   get iterator => {this}.iterator;
 ```

@@ -1,6 +1,6 @@
 # notifier_plugin
 
-A Flutter plugin makes state management easier and more efficient than ever!
+A Flutter plugin makes state management and building dynamic UIs easier and more efficient than ever!
 
 Please don't use this plugin in production code (until this line is removed).
 

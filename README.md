@@ -6,8 +6,7 @@ Please don't use this plugin in production code (until this line is removed).
 
 (The complete documentation will soon be added!)
 
-Overview
----
+## Overview
 
 Imagine if you could `setState`(rebuild) a part of your widget tree without actually designing a new class,
 ```Dart
@@ -132,15 +131,68 @@ If you have been overwhelemed by seeing all the example codes in one go, then ju
 
 (Read the introduction section to understand how the plugin works from scratch)
 
-Introduction (Pending; Needs formatting)
----
+## Introduction
 
-`notifier_plugin` is a plugin that provides different classes and extension methods + operator overloading (for widgets), in order to enable developers to swiftly develop dynamic user-interfaces (in Flutter) with minimal effort. The plugin can then be combined with (custom classes that contain) simple/complex declarations to manage the state of your app in your own way. The plugin was purely made with the intention of doing things in the most simple and efficient way possible, while using minimal or no (extra) resources to implement different concepts. For now, this plugin mainly four types of Notifiers: `Notifier`, `ValNotifier`, `SelfNotifier`, `HttpNotifier`.
+`notifier_plugin` is a plugin that provides different classes and extension methods + operator overloading (for widgets), in order to enable developers to swiftly develop dynamic user-interfaces (in Flutter) with minimal effort. The plugin can then be combined with (custom classes that contain) simple/complex declarations to manage the state of your app in your own way. The plugin was purely made with the intention of doing things in the most simple and efficient way possible, while using minimal or no (extra) resources to implement different concepts.
 
-**Notifier**: It's a simple object that can maintain and notify a set of listeners. One could even attach a `Notifier` to it or listen to another `Notifier`. (Note: One cannot attach a Notifier to itself or listen to itself, as that would lead to infinite recursion).
+For now, this plugin mainly four types of Notifiers: `Notifier`, `ValNotifier`, `SelfNotifier`, `HttpNotifier`.
 
-**ValNotifier**: It is a `Notifier` that decides to take a step ahead and maintain it's own buffer and actually pass the value to it's listeners (if it can accept one). (Note: A `Notifier` can be called with a value, but it's listeners won't get that value or get null, if they can accept one. This was done to ensure that `ValNotifier` can actually extend `Notifier` while overriding the same set of methods that are used to notify a `Notifier`)
+[Notifier](#notifier): It's a simple object that can maintain and notify a set of listeners. One could even attach a `Notifier` to it or listen to another `Notifier`. (Note: One cannot attach a Notifier to itself or listen to itself, as that would lead to infinite recursion).
 
-**SelfNotifier**: It is `ValNotifier`, that just notifies itself (passes itself to the listeners) when called.
+[ValNotifier](#valnotifier): It is a `Notifier` that decides to take a step ahead and maintain it's own buffer and actually pass the value to it's listeners (if it can accept one). (Note: A `Notifier` can be called with a value, but it's listeners won't get that value or get null, if they can accept one. This was done to ensure that `ValNotifier` can actually extend `Notifier` while overriding the same set of methods that are used to notify a `Notifier`)
 
-**HttpNotifier**: It is a special `Notifier` that maintains a separate buffer for the parameters of a HTTP request so as to avoid boiler-plate code, while performing those requests with same or similar parameters, in different sections of the same app. Since a `HttpNotifier` is a `ValNotifier`, the (extension) methods of `ValNotifier` can still be used, while using a `HttpNotifier`. The real benefit of using an (Http)Notifier can come by using it as a `Stream`. (Note: A `Notifier` is not a `Stream`)
+[SelfNotifier](#selfnotifier): It is `ValNotifier`, that just notifies itself (passes itself to the listeners) when called.
+
+[HttpNotifier](#httpnotifier): It is a special `Notifier` that maintains a separate buffer for the parameters of a HTTP request so as to avoid boiler-plate code, while performing those requests with same or similar parameters in different sections of the same app. Since a `HttpNotifier` is a `ValNotifier`, the  methods of `ValNotifier` can still be used, while using a `HttpNotifier`. The real benefit of using an (Http)Notifier can come by using it as a `Stream`. (Note: A `Notifier` is not a `Stream`)
+
+These `Notifier`(s) and the extension methods used on certain pre-defined types, overload certain operator methods in a specific way to help developers quickly implement dynamic UI in Flutter in a scalable manner with minimal effort/code. (Read more about it in [this section](#the-magic-of-extension-methods-and-operator-overloading).)
+
+Not sure with how you can use this plugin for state management? [This section](#state-management-with) might be a small help you. 
+
+Also, it might be worth reading the [special case of Notifier extends Iterable\<Notifier>](#the-special-case-of-notifier-extends-iterable-notifier) used in this plugin.
+
+## Notifier
+
+## ValNotifier
+
+## SelfNotifier
+
+## HttpNotifier
+
+## State management with notifier_plugin
+
+## The magic of extension methods and operator overloading
+
+For example you could,
+
+Update the Text of a RaisedButton, when the user clicks on it (without re-building the rest of the UI tree),
+```
+int i = 0;
+~(n)=>RaisedButton(child: Text((++i).toString()), onPressed: n) // A Notifier is callable just like a Function is.
+```
+
+or maybe even pass a value to that part of a tree while re-building it,
+```
+~(n,i)=>RaisedButton(child: Text((i==null?i=1:++i).toString()), onPressed: ()=>n(i)) // A ValNotifier was used here
+```
+
+or even rebuild the UI by explicitly defining a Notifier,
+```
+Notifier n = Notifier();
+int i = 0;
+// [...]
+n - ()=>Text((++i).toString())
+// [...]
+RaisedButton(child: Text("Increment"), onPressed: n)
+```
+
+or even a ValNotifier.
+```
+ValNotifier n = ValNotifier(initialVal: 0); // Supports explicit type-check through type-param<>, while notify a value.
+// [...]
+n - (i)=>Text(i.toString())
+// [...]
+RaisedButton(child: Text("Increment"), onPressed: ()=>n(n.val))
+```
+
+## The special case of Notifier extends Iterable\<Notifier>

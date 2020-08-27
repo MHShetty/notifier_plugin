@@ -163,6 +163,8 @@ Also, it might be worth reading the [special case of Notifier extends Iterable\<
 
 ## The magic of extension methods and operator overloading
 
+[...]
+
 For example you could,
 
 Update the Text of a RaisedButton, when the user clicks on it (without re-building the rest of the UI tree),
@@ -195,4 +197,43 @@ n - (i)=>Text(i.toString())
 RaisedButton(child: Text("Increment"), onPressed: ()=>n(n.val))
 ```
 
-## The special case of Notifier extends Iterable\<Notifier>
+## The special case of "Notifier extends Iterable\<Notifier>"
+
+Notifier extends Iterable<Notifier>
+  
+Wait what? Is that even possible?
+
+Yes, it is.
+
+Hmm...But why did you use it in this plugin?
+
+Well, I was finding a way to accept one/multiple Notifier(s) through the same constructor parameter with type-check (for the `NotificationBuilder` widget). Initially, I had spend quite some time trying to find a way to make a Notifier variable accept multiple Notifier(s) through different ways, but didn't really succeed. Then I tried searching for a solution online (StackOverflow, GitHub, [pub.dev](https://www.pub.dev)), but still couldn't get anywhere close to what I was looking for. I tried using one of the plugins on pub.dev for making a single variable accept two types with type-check, but it didn't really work as expected. At the end, instead of looking for a Dart specific solution, I just started re-thinking the way OOP emulates the behavior, I was looking for and then...some light fell from nowhere and I just imagined an hierarchy (inheritance)...smiled for a while...and then implemented the solution..and it worked! For a moment, I felt that I broke OOP...but that wasn't surely something that my conscious mind would readily agree upon. I just extended Iterable<Notifier> to Notifier, implemented a method and now every variable of type `Iterable<Notifier>` can even accept a `Notifier` and work as though nothing had happened. To take things to a whole new level, I added an extension method on Iterable<Notifier> and had re-implemented all the methods available for a Notifier along with a few additional methods that could only be specific to an Iterable. This might sound silly and even funny for now, but it has proved to be useful in increasing flexibility different ways.
+  
+For eg. You could attach two Notifier(s) to the same widget without actually instantiating a new one that **dynamically** keeps track of the two,
+```
+[notifier1, notifier2] - ()=> Inbox([...])
+```
+Actually implementing something like that would add unwanted complexity to the code, increase the learning curve and would need a bit of extra resources than the Iterable that custom object would internally hold.
+
+Other examples:
+```
+[notifier1, notifier2](); // notifies all the notifiers
+[notifier1, notifierN].addListener(()=>print("Smile!")); // Adds a listener to all the notifiers 
+[notifier1, notifierN].attach(notifier2); // attaches notifier2 to all the notifiers
+[notifier1, notifierN].dispose(); // disposes all the notifiers in the list
+[valNotifier1, notifier1](3); // Passes 3 to the ValNotifier and just notifies notifier1
+
+// Side Note: Please don't try to enter the complexity of Iterable<Notifier> and Notifier at a **deeper level** unless you are not really developing a plugin/package that depends on this or are just spending some time with this plugin/Flutter. If you're developing an real application, there should always be an easier way of doing things. (Keeping the main intention of this plugin in mind)
+// For example: Trying to notify a List of Notifiers that contains a disposed Notifier, dealing with atomic calls, attaching a Notifier to List of Notifiers that already contains that Notifier, and so on...
+```
+
+**Atomic calls on a List\<Notifier>**: An atomic call is a method that interfaces it's corresponding existing method to check if all the Notifiers in the Iterable are disposed or not, before trying to notify all of them. 
+
+If you're still wondering how is this all still working..then the secret lies in the method/getter that was implemented while extending Iterable<Notifier>,
+```
+  get iterator => {this}.iterator;
+```
+  
+So if you assign a Notifier to an Iterable<Notifier> it treats it as an Iterable...and that's how this magic seems to work.
+  
+## Last Section

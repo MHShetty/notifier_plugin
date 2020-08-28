@@ -137,7 +137,7 @@ If you have been overwhelemed by seeing all the example codes in one go, then ju
 
 For now, this plugin mainly four types of Notifiers: `Notifier`, `ValNotifier`, `SelfNotifier`, `HttpNotifier`.
 
-[Notifier](#notifier): It's a simple object that can maintain and notify a set of listeners. One could even attach a `Notifier` to it or listen to another `Notifier`. (Note: One cannot attach a Notifier to itself or listen to itself, as that would lead to infinite recursion).
+[Notifier](#notifier): It's a simple object that can maintain and notify a set of listeners. One could even attach a `Notifier` to it or listen to another `Notifier`. One could  even poll it for a fixed number of times, or over a certain duration. 
 
 [ValNotifier](#valnotifier): It is a `Notifier` that decides to take a step ahead and maintain it's own buffer and actually pass the value to it's listeners (if it can accept one). (Note: A `Notifier` can be called with a value, but it's listeners won't get that value or get null, if they can accept one. This was done to ensure that `ValNotifier` can actually extend `Notifier` while overriding the same set of methods that are used to notify a `Notifier`)
 
@@ -196,19 +196,67 @@ n.addListeners([()=>print(1),(v)=>print("This is $v.")]); // Adding multiple lis
 
 ### Calling a Notifier
 
+Whenever you want to notify all the listeners of a Notifier, you just call it. `MyNotifier()` Yeah, that's it.
+
+```
+Notifier n = Notifier();
+n.addListener(()=>print("Notified!"));
+n();
+n(1); // Listeners won't get it, since this is not a ValNotifier
+n();
+
+// Prints "Notified!" thrice/
+```
+
+So what does a Notifier return? Just itself.
+
+Hmm...what does that mean?
+
+It means that the above code can be re-written as...
+
+```
+Notifier n = Notifier();
+n.addListener(()=>print("Notified!"));
+n()(1)();
+```
+
+But what if my listeners were made to perform a long list operations and I can't just afford to wait until every listeners get notified?
+
+```
+n.asyncNotify(); // returns Future<Notifier>
+```
+
+The `asyncNotify` method was made just for you!
+
+Other ways of notifying/calling the listener, (they too just return a `Notifier`)
+```
+~n;
+n.notify();
+n.notifyListeners();
+n.sendNotification();
+```
+
 ### Polling a Notifier
+
+Polling a Notifier
 
 ### Attaching a Notifier
 
+Attaching a Notifier
+
 ### Listening to a Notifier
 
+Listening to a Notifier
+
 ### Calling a specific listener
+
+Calling a specific listener
 
 ### Removing listener(s) from a Notifier
 
 A listener can be removed from a Notifier in two ways:
 
- a. By reference(s)
+**a. By reference(s)**
  
  You could just simply use the `removeListener()` method while passing the listener itself to remove it from an undisposed Notifier. (Removing multiple listeners by reference is supported)
  
@@ -236,7 +284,7 @@ A listener can be removed from a Notifier in two ways:
  n.removeListeners([null,print]); // Removing multiple listeners (returns (false, true))
  ```
  
- b. By hashcode(s)
+ **b. By hashcode(s)**
  
  A listener of a Notifier can be removed, even if only it's hashCode is known. (Removing multiple listeners by hashCodes is supported)
  
@@ -252,7 +300,6 @@ A listener can be removed from a Notifier in two ways:
  n.removeListenersByHashCodes(hashCodes); // removes 
  ```
  
-
 ### Clearing the listener(s) of the Notifier
 
 You could simply clear the listeners of a Notifier by using the `clearListeners()` method. It simply just clears the List of listeners maintained by the Notifier. 
@@ -393,7 +440,7 @@ Other examples:
 
 If you're still wondering how is all this still working..then the secret lies in the method/getter that was implemented while extending Iterable<Notifier>,
 ```Dart
-  get iterator => {this}.iterator;
+get iterator => {this}.iterator;
 ```
   
 So if you assign a Notifier to an Iterable<Notifier> it treats it as an Iterable...and that's how this magic seems to work.

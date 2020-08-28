@@ -153,15 +153,13 @@ Also, it might be worth reading the [special case of Notifier extends Iterable\<
 
 ## Notifier
 
-#### Short Introduction
-
 A `Notifier` is a simple object that maintains and notifies a set of listeners, whenever they are asked to do so. One can attach a Notifier to another Notifier, listen to the notification events of another Notifier, or even poll a Notifier for over a fixed duration or for fixed number of times.
 
 #### Instantiating a Notifier
 
-```
-// Notifier({Iterable<Notifier> attachNotifiers, Iterable<Notifier> listenToNotifiers, Iterable<Notifier> mergeNotifiers, Iterable<Function> initialListeners, bool removeListenerOnError(Error)}); // Main Constructor
-```
+Main Constructor (Default way):
+
+**Notifier({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)});**
 
 **attachNotifiers**: Attach these Notifier(s) to the Notifier that's being instantiated.
 **listenToNotifiers**: Make the Notifier that is being instantiated listen to these Notifier(s).
@@ -170,6 +168,14 @@ A `Notifier` is a simple object that maintains and notifies a set of listeners, 
 **removeListenerOnError**: A special parameter that accepts a function that can be used to handle anything that gets thrown while notifying the listeners/even remove them (if needed) (if this function returns `true` the listener gets removed; if it returns `false` then nothing really happens; and if it returns `null`, the error simply gets `rethrown`)
 
 The constructor automatically initializes the Notifier. (init)
+
+Copy Constructor (By cloning):
+
+**Notifier.from(Notifier)**
+
+It accepts an Notifier and just clones it into a new Notifier that would then need to be separately maintained. A disposed Notifier cannot be cloned.
+
+Other ways: There are numerous ways to instantiate a Notifier. For example, one could use the instance/static method merge, to merge one/multiple Notifiers into one, or use an overloaded operator or some extension method to do the same.
 
 #### Adding listener(s) to a Notifier
 

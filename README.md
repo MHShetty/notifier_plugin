@@ -6,7 +6,7 @@ Please don't use this plugin in production code (until this line is removed).
 
 (The complete documentation will soon be added!)
 
-## Random examples (to soon be removed)
+## Random examples (temporary)
 
 Imagine if you could `setState`(rebuild) a part of your widget tree without actually designing a new class,
 ```Dart
@@ -157,8 +157,7 @@ A `Notifier` is a simple object that maintains and notifies a set of listeners, 
 
 ### Instantiating a Notifier
 
-Main Constructor (Default way):
-
+Main Constructor (Default way): 
 **Notifier({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)});**
 
 **attachNotifiers**: Attach these Notifier(s) to the Notifier that's being instantiated.
@@ -171,8 +170,7 @@ Main Constructor (Default way):
 
 **removeListenerOnError**: A special parameter that accepts a function that can be used to handle anything that gets thrown while notifying the listeners/even remove them (if needed) (if this function returns `true` the listener gets removed; if it returns `false` then nothing really happens; and if it returns `null`, the error simply gets `rethrown`)
 
-Copy Constructor (By cloning):
-
+Copy Constructor (By cloning): 
 **Notifier.from(Notifier)**
 
 It accepts an Notifier and just clones it into a new Notifier that would then need to be separately maintained. A disposed Notifier cannot be cloned.

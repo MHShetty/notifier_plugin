@@ -177,7 +177,8 @@ Adding a listener to a notifier is just as good as just adding a function to a l
 
 This can be done with the help of two methods, namely,
 
-  a. **addListener**  (Accepts a Listener/Function; returns the hashCode of that listener if the function gets successfully added, else null)
+  a. **addListener**  (Accepts a Listener/Function; returns the hashCode of that listener if it gets successfully added, else null)
+  
   b. **addListeners** (Accepts an Iterable<Listener/Function>; returns an Iterable<int> of hashCodes. The success of adding of each method can be determined by the value at it's corresponding index in the Iterable)
 
 ```Dart
@@ -204,7 +205,8 @@ A listener can be removed from a Notifier in two ways:
 
  a. By reference(s)
  
- You could just simply use the `removeListener()` method while passing the listener itself to remove it from an undisposed Notifier.
+ You could just simply use the `removeListener()` method while passing the listener itself to remove it from an undisposed Notifier. (Removing multiple listeners by reference is supported)
+ 
  ```Dart
  Notifier n = Notifier();
  Function r = ()=>print("Notified");
@@ -229,7 +231,21 @@ A listener can be removed from a Notifier in two ways:
  n.removeListeners([null,print]); // Removing multiple listeners (returns (false, true))
  ```
  
- b.
+ b. By hashcode(s)
+ 
+ A listener of a Notifier can be removed, even if only it's hashCode is known. (Removing multiple listeners by hashCodes is supported)
+ 
+ ```
+ Notifier n = Notifier();
+ 
+ /// Removing a single listener
+ int hashCode = n.addListener(()=>print("Hmm...something's brewing.."));
+ n.removeListenerByHashCode(hashCode); // removes the anonymous listener from the code
+ 
+ /// Removing multiple listeners
+ Iterable<int> hashCodes = n.addListeners([()=>print(123),()=>print(456)])
+ n.removeListenersByHashCodes(hashCodes); // removes 
+ ```
  
 
 #### Clearing the listener(s) of the Notifier

@@ -6,7 +6,7 @@ Please don't use this plugin in production code (until this line is removed).
 
 (The complete documentation will soon be added!)
 
-## Overview
+## Random examples (to soon be removed)
 
 Imagine if you could `setState`(rebuild) a part of your widget tree without actually designing a new class,
 ```Dart
@@ -155,19 +155,21 @@ Also, it might be worth reading the [special case of Notifier extends Iterable\<
 
 A `Notifier` is a simple object that maintains and notifies a set of listeners, whenever they are asked to do so. One can attach a Notifier to another Notifier, listen to the notification events of another Notifier, or even poll a Notifier for over a fixed duration or for fixed number of times.
 
-#### Instantiating a Notifier
+### Instantiating a Notifier
 
 Main Constructor (Default way):
 
 **Notifier({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)});**
 
 **attachNotifiers**: Attach these Notifier(s) to the Notifier that's being instantiated.
-**listenToNotifiers**: Make the Notifier that is being instantiated listen to these Notifier(s).
-**mergeNotifiers**: Merge the listeners of these Notifier(s) while instantiating this Notifier.
-**initialListeners**: Pass a set of listeners to be merged to the default set of listeners.
-**removeListenerOnError**: A special parameter that accepts a function that can be used to handle anything that gets thrown while notifying the listeners/even remove them (if needed) (if this function returns `true` the listener gets removed; if it returns `false` then nothing really happens; and if it returns `null`, the error simply gets `rethrown`)
 
-The constructor automatically initializes the Notifier. (init)
+**listenToNotifiers**: Make the Notifier that is being instantiated listen to these Notifier(s).
+
+**mergeNotifiers**: Merge the listeners of these Notifier(s) while instantiating this Notifier.
+
+**initialListeners**: Pass a set of listeners to be merged to the default set of listeners.
+
+**removeListenerOnError**: A special parameter that accepts a function that can be used to handle anything that gets thrown while notifying the listeners/even remove them (if needed) (if this function returns `true` the listener gets removed; if it returns `false` then nothing really happens; and if it returns `null`, the error simply gets `rethrown`)
 
 Copy Constructor (By cloning):
 
@@ -177,7 +179,7 @@ It accepts an Notifier and just clones it into a new Notifier that would then ne
 
 Other ways: There are numerous ways to instantiate a Notifier. For example, one could use the instance/static method merge, to merge one/multiple Notifiers into one, or use an overloaded operator or some extension method to do the same.
 
-#### Adding listener(s) to a Notifier
+### Adding listener(s) to a Notifier
 
 Adding a listener to a notifier is just as good as just adding a function to a list that can only hold functions. The two accepted types of `Function`s is a function that accepts nothing or function that accepts a single parameter. (Note: For the default type of Notifier, the parameter always recieves a null)
 
@@ -194,18 +196,17 @@ n.addListener((v)=>print("null==$v")); // Adding a single listener to the Notifi
 n.addListeners([()=>print(1),(v)=>print("This is $v.")]); // Adding multiple listeners to the same Notifier with the help of an Iterable
 ```
 
-#### Calling a Notifier
+### Calling a Notifier
 
+### Polling a Notifier
 
-#### Polling a Notifier
+### Attaching a Notifier
 
-#### Attaching a Notifier
+### Listening to a Notifier
 
-#### Listening to a Notifier
+### Calling a specific listener
 
-#### Calling a specific listener
-
-#### Removing listener(s) from a Notifier
+### Removing listener(s) from a Notifier
 
 A listener can be removed from a Notifier in two ways:
 
@@ -254,7 +255,7 @@ A listener can be removed from a Notifier in two ways:
  ```
  
 
-#### Clearing the listener(s) of the Notifier
+### Clearing the listener(s) of the Notifier
 
 You could simply clear the listeners of a Notifier by using the `clearListeners()` method. It simply just clears the List of listeners maintained by the Notifier. 
 
@@ -288,7 +289,7 @@ n1.clearListeners();
 n2(); // Doesn't really do anything
 ```
 
-#### Initializing a Notifier (init)
+### Initializing a Notifier (init)
 
 Generally, a disposed object cannot be used again. However, that's not the case with a Notifier. You can re-init a Notifier once it's disposed, and that's what that `init` method was made for. However, it's highly recommended that you don't dispose it until you are completely done with and use the instance method `clearListeners()` to clear all the listeners in one go. The `init()` method was just created with the intention of being able to bring the Notifier for whatever reasons.
 
@@ -302,7 +303,7 @@ n.dispose(); // Disposing the Notifier n
 n.init(/*[...]*/); // init()
 ```
 
-#### Disposing a Notifier
+### Disposing a Notifier
 
 Disposing a Notifier generally just sets all it's members to null and does not have any special case of resource de-allocation. Once the notifier is disposed, trying to call almost any method or getter on it would throw an (State)Error. A disposed Notifier can be re-init with the help of the init() method.
 

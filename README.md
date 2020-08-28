@@ -157,8 +157,7 @@ A `Notifier` is a simple object that maintains and notifies a set of listeners, 
 
 ### Instantiating a Notifier
 
-Main Constructor (Default way): 
-**Notifier({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)});**
+#### Main Constructor (Default way): Notifier({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)});
 
 **attachNotifiers**: Attach these Notifier(s) to the Notifier that's being instantiated.
 
@@ -170,8 +169,7 @@ Main Constructor (Default way):
 
 **removeListenerOnError**: A special parameter that accepts a function that can be used to handle anything that gets thrown while notifying the listeners/even remove them (if needed) (if this function returns `true` the listener gets removed; if it returns `false` then nothing really happens; and if it returns `null`, the error simply gets `rethrown`)
 
-Copy Constructor (By cloning): 
-**Notifier.from(Notifier)**
+#### Copy Constructor (By cloning): Notifier.from(Notifier)
 
 It accepts an Notifier and just clones it into a new Notifier that would then need to be separately maintained. A disposed Notifier cannot be cloned.
 
@@ -206,7 +204,7 @@ n.addListener((p)=>print(p)); // For a normal Notifier, only a null would be pas
 
 ### Calling a Notifier
 
-Whenever you want to notify all the listeners of a Notifier, you just call it. `MyNotifier()` Yeah, that's it.
+Whenever you want to notify all the listeners of a Notifier, just call it. `MyNotifier()` Yeah, that's it.
 
 ```Dart
 Notifier n = Notifier();
@@ -230,7 +228,7 @@ n.addListener(()=>print("Notified!"));
 n()(1)();
 ```
 
-But what if my listeners were made to perform a long list operations and I can't just afford to wait until every listeners get notified?
+But what if my listeners were made to perform a long list operations or I can't just afford to wait until every listeners get notified?
 
 ```Dart
 n.asyncNotify(); // returns Future<Notifier>
@@ -241,18 +239,61 @@ The `asyncNotify` method was made just for you!
 Other ways of notifying/calling the listener, (they too just return a `Notifier`)
 ```Dart
 ~n;
-n.notify();
+n.notify(1);
 n.notifyListeners();
 n.sendNotification();
 ```
 
 ### Polling a Notifier
 
-Polling a Notifier
+A Notifier supports polling itself (at least in this plugin). You could either poll a Notifier for a fixed number of times or poll it with notifications for over a certain duration.
+
+```Dart
+n.poll(100); // Calls the notifier thrice and returns the total Duration taken to notify the listeners for those many times as an Future
+n.pollFor(Duration(seconds: 10)); // Repeatedly notifies the listeners until the passed duration hasn't elapsed. Returns a Future<Notifier>
+```
 
 ### Attaching a Notifier
 
-Attaching a Notifier
+A Notifier can attach another Notifier to itself i.e. the attached notifier will get called whenever the main Notifier gets called. However, a notifier cannot attach itself to itself (as this would lead to an infinite loop of notifications) nor can it attach another Notifier that has attached the current notifier (for the same reason).
+
+```Dart
+Notifier n1 = Notifier();
+Notifier n2 = Notifier();
+
+n1.addListener(()=>print("N1"));
+n2.addListener(()=>print("N2"));
+
+n1(); // Prints "N1"
+n2(); // Prints "N2"
+
+n1.attach(n2); // works
+
+n1(); // Prints "N1" and then "N2"
+n2(); // Prints "N2"
+
+// n2.attach(n1); // throws an exception
+
+n1.detach(n2);
+n2.attach(n1);
+
+n1(); // Prints "N1"
+n2(); // Prints "N2" and then "N1"
+```
+
+You can attach/detach multiple listeners in one go.
+
+```
+Notifier n3 = Notifier();
+n1.attach([n2,n3]);
+n1.detach([n3,n2]);
+```
+
+For attach, the method will only return false if the passed parameter is null.
+
+Whereas for detach, it'll return false if the passed Notifier is not attached to the concerned Notifier.
+
+If anything unexpected happens, an exception shall be thrown.
 
 ### Listening to a Notifier
 
@@ -266,35 +307,35 @@ Calling a specific listener
 
 A listener can be removed from a Notifier in two ways:
 
-**a. By reference(s)**
+#### a. By reference(s)
  
- You could just simply use the `removeListener()` method while passing the listener itself to remove it from an undisposed Notifier. (Removing multiple listeners by reference is supported)
+You could just simply use the `removeListener()` method while passing the listener itself to remove it from an undisposed Notifier. (Removing multiple listeners by reference is supported)
  
  ```Dart
- Notifier n = Notifier();
- Function r = ()=>print("Notified");
+Notifier n = Notifier();
+Function r = ()=>print("Notified");
  
- /// Removing a single function by reference
+/// Removing a single function by reference
  
- n.addListener(r);    // Adding a listener (returns the hash_code_of_function_stored_in_r)
- n.removeListener(r); // Removing the same listener (returns true)
+n.addListener(r);    // Adding a listener (returns the hash_code_of_function_stored_in_r)
+n.removeListener(r); // Removing the same listener (returns true)
  
- n.addListener(()=>print("Notified"));    // Adding a listener (returns the hash_code_of_the_passed_anonymous_function)
- n.removeListener(()=>print("Notified")); // Trying to remove the same listener (returns false; since the method does not exist according to Dart, since there is no real way to compare two functions in Dart(Flutter), by their definition..at least for now)
+n.addListener(()=>print("Notified"));    // Adding a listener (returns the hash_code_of_the_passed_anonymous_function)
+n.removeListener(()=>print("Notified")); // Trying to remove the same listener (returns false; since the method does not exist according to Dart, since there is no real way to compare two functions in Dart(Flutter), by their definition..at least for now)
  
- n.addListener(print);    // Adding a listener 
- n.removeListener(print); // Removing the same listener (returns true; since the reference is same and known)
+n.addListener(print);    // Adding a listener 
+n.removeListener(print); // Removing the same listener (returns true; since the reference is same and known)
+
+/// Removing multiple listeners by reference
  
- /// Removing multiple listeners by reference
+n.addListeners([print,r]);    // Adding multiple listeners   (returns (hash_code_of_print_function, hash_code_of_function_stored_in_r))
+n.removeListeners([print,r]); // Removing multiple listeners (returns (true, true))
+
+n.addListeners([print,null]);    // Adding multiple listeners   (returns (hash_code_of_print_function, null))
+n.removeListeners([null,print]); // Removing multiple listeners (returns (false, true))
+```
  
- n.addListeners([print,r]);    // Adding multiple listeners   (returns (hash_code_of_print_function, hash_code_of_function_stored_in_r))
- n.removeListeners([print,r]); // Removing multiple listeners (returns (true, true))
- 
- n.addListeners([print,null]);    // Adding multiple listeners   (returns (hash_code_of_print_function, null))
- n.removeListeners([null,print]); // Removing multiple listeners (returns (false, true))
- ```
- 
- **b. By hashcode(s)**
+ #### b. By hashcode(s)
  
  A listener of a Notifier can be removed, even if only it's hashCode is known. (Removing multiple listeners by hashCodes is supported)
  
@@ -344,7 +385,7 @@ n1.clearListeners();
 n2(); // Doesn't really do anything
 ```
 
-### Initializing a Notifier (init)
+### Initializing a Notifier
 
 Generally, a disposed object cannot be used again. However, that's not the case with a Notifier. You can re-init a Notifier once it's disposed, and that's what that `init` method was made for. However, it's highly recommended that you don't dispose it until you are completely done with and use the instance method `clearListeners()` to clear all the listeners in one go. The `init()` method was just created with the intention of being able to bring the Notifier for whatever reasons.
 
@@ -371,6 +412,10 @@ n.dispose(); // Disposing the Notifier n
 
 n.clearListeners(); // throws a StateError
 ```
+
+### Extension methods and operator overloading
+
+Extension methods and operator overloading
 
 ## ValNotifier
 

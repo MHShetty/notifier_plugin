@@ -183,9 +183,9 @@ Adding a listener to a notifier is just as good as just adding a function to a l
 
 This can be done with the help of two methods, namely,
 
-  a. **addListener**  (Accepts a Listener/Function; returns the hashCode of that listener if it gets successfully added, else null)
+  **a. addListener**  (Accepts a Listener/Function; returns the hashCode of that listener if it gets successfully added, else null)
   
-  b. **addListeners** (Accepts an Iterable<Listener/Function>; returns an Iterable<int> of hashCodes. The success of adding of each method can be determined by the value at it's corresponding index in the Iterable)
+  **b. addListeners** (Accepts an Iterable<Listener/Function>; returns an Iterable<int> of hashCodes. The success of adding of each method can be determined by the value at it's corresponding index in the Iterable)
 
 ```Dart
 Notifier n = Notifier(); // Instantiating a Notifier
@@ -194,11 +194,21 @@ n.addListener((v)=>print("null==$v")); // Adding a single listener to the Notifi
 n.addListeners([()=>print(1),(v)=>print("This is $v.")]); // Adding multiple listeners to the same Notifier with the help of an Iterable
 ```
 
+**Exception cases**
+```
+n.addListener(n); // You cannot make a Notifier listen itself (it compiles)
+n.addListener(null); // Simply returns null
+n.addListener((p1,p2)=>print("$p1$p2")); // this listener won't get added, since only no/one parameter type of Listener is supported by any Notifier
+n.addListener(existingListener); // works for now ... but is very likely to turn into an Exception in the near future
+n.addListener((p)=>print(p)); // For a normal Notifier, only a null would be passed (irrespective of the value passed while calling)
+// However for a ValNotifier, things work as expected.
+```
+
 ### Calling a Notifier
 
 Whenever you want to notify all the listeners of a Notifier, you just call it. `MyNotifier()` Yeah, that's it.
 
-```
+```Dart
 Notifier n = Notifier();
 n.addListener(()=>print("Notified!"));
 n();
@@ -214,7 +224,7 @@ Hmm...what does that mean?
 
 It means that the above code can be re-written as...
 
-```
+```Dart
 Notifier n = Notifier();
 n.addListener(()=>print("Notified!"));
 n()(1)();
@@ -222,14 +232,14 @@ n()(1)();
 
 But what if my listeners were made to perform a long list operations and I can't just afford to wait until every listeners get notified?
 
-```
+```Dart
 n.asyncNotify(); // returns Future<Notifier>
 ```
 
 The `asyncNotify` method was made just for you!
 
 Other ways of notifying/calling the listener, (they too just return a `Notifier`)
-```
+```Dart
 ~n;
 n.notify();
 n.notifyListeners();

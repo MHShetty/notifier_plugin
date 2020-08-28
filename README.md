@@ -160,9 +160,7 @@ A `Notifier` is a simple object that maintains and notifies a set of listeners, 
 #### Instantiating a Notifier
 
 ```
-// Notifier (Constructor)
-// Notifier({Iterable<Notifier> attachNotifiers, Iterable<Notifier> listenToNotifiers, Iterable<Notifier> mergeNotifiers, Iterable<Function> initialListeners, bool removeListenerOnError(Error)});
-
+// Notifier({Iterable<Notifier> attachNotifiers, Iterable<Notifier> listenToNotifiers, Iterable<Notifier> mergeNotifiers, Iterable<Function> initialListeners, bool removeListenerOnError(Error)}); // Main Constructor
 ```
 
 **attachNotifiers**: Attach these Notifier(s) to the Notifier that's being instantiated.
@@ -182,7 +180,7 @@ This can be done with the help of two methods, namely,
   a. **addListener**  (Accepts a Listener/Function; returns the hashCode of that listener if the function gets successfully added, else null)
   b. **addListeners** (Accepts an Iterable<Listener/Function>; returns an Iterable<int> of hashCodes. The success of adding of each method can be determined by the value at it's corresponding index in the Iterable)
 
-```
+```Dart
 Notifier n = Notifier(); // Instantiating a Notifier
 n.addListener(()=>print("Notified!")); // Adding a single listener to the Notifier
 n.addListener((v)=>print("null==$v")); // Adding a single listener to the Notifier (that accepts a parameter)
@@ -198,7 +196,7 @@ n.addListeners([()=>print(1),(v)=>print("This is $v.")]); // Adding multiple lis
 
 #### Listening to a Notifier
 
-#### Deliberately calling a specific listener
+#### Calling a specific listener
 
 #### Removing listener(s) from a Notifier
 
@@ -207,7 +205,7 @@ A listener can be removed from a Notifier in two ways:
  a. By reference(s)
  
  You could just simply use the `removeListener()` method while passing the listener itself to remove it from an undisposed Notifier.
- ```
+ ```Dart
  Notifier n = Notifier();
  Function r = ()=>print("Notified");
  
@@ -242,7 +240,7 @@ You could simply clear the listeners of a Notifier by using the `clearListeners(
 
 An example to explain this phenomenon,
 
-```
+```Dart
 Notifier n1 = Notifier();
 Notifier n2 = Notifier();
 
@@ -272,7 +270,7 @@ n2(); // Doesn't really do anything
 
 Generally, a disposed object cannot be used again. However, that's not the case with a Notifier. You can re-init a Notifier once it's disposed, and that's what that `init` method was made for. However, it's highly recommended that you don't dispose it until you are completely done with and use the instance method `clearListeners()` to clear all the listeners in one go. The `init()` method was just created with the intention of being able to bring the Notifier for whatever reasons.
 
-```
+```Dart
 Notifier n = Notifier(); // auto-init()
 
 n.dispose(); // Disposing the Notifier n
@@ -286,7 +284,7 @@ n.init(/*[...]*/); // init()
 
 Disposing a Notifier generally just sets all it's members to null and does not have any special case of resource de-allocation. Once the notifier is disposed, trying to call almost any method or getter on it would throw an (State)Error. A disposed Notifier can be re-init with the help of the init() method.
 
-```
+```Dart
 Notifier n = Notifier();
 
 // Use the notifier for a while
@@ -311,18 +309,18 @@ n.clearListeners(); // throws a StateError
 For example you could,
 
 Update the Text of a RaisedButton, when the user clicks on it (without re-building the rest of the UI tree),
-```
+```Dart
 int i = 0;
 ~(n)=>RaisedButton(child: Text((++i).toString()), onPressed: n) // A Notifier is callable just like a Function is.
 ```
 
 or maybe even pass a value to that part of a tree while re-building it,
-```
+```Dart
 ~(n,i)=>RaisedButton(child: Text((i==null?i=1:++i).toString()), onPressed: ()=>n(i)) // A ValNotifier was used here
 ```
 
 or even rebuild the UI by explicitly defining a Notifier,
-```
+```Dart
 Notifier n = Notifier();
 int i = 0;
 // [...]
@@ -332,7 +330,7 @@ RaisedButton(child: Text("Increment"), onPressed: n)
 ```
 
 or even a ValNotifier.
-```
+```Dart
 ValNotifier n = ValNotifier(initialVal: 0); // Supports explicit type-check through type-param<>, while notify a value.
 // [...]
 n - (i)=>Text(i.toString())
@@ -353,13 +351,13 @@ Hmm...But why did you use it in this plugin?
 Well, I was finding a way to accept one/multiple Notifier(s) through the same constructor parameter with type-check (for the `NotificationBuilder` widget). Initially, I had spend quite some time trying to find a way to make a Notifier variable accept multiple Notifier(s) through different ways, but didn't really succeed. Then I tried searching for a solution online (StackOverflow, GitHub, [pub.dev](https://www.pub.dev)), but still couldn't get anywhere close to what I was looking for. I tried using one of the plugins on pub.dev for making a single variable accept two types with type-check, but it didn't really work as expected. At the end, instead of looking for a Dart specific solution, I just started re-thinking the way OOP emulates the behavior, I was looking for and then...some light fell from nowhere and I just imagined an hierarchy (inheritance)...smiled for a while...and then implemented the solution..and it worked! For a moment, I felt that I broke OOP...but that wasn't surely something that my conscious mind would readily agree upon. I just extended Iterable<Notifier> to Notifier, implemented a method and now every variable of type `Iterable<Notifier>` can even accept a `Notifier` and work as though nothing had happened. To take things to a whole new level, I added an extension method on Iterable<Notifier> and had re-implemented all the methods available for a Notifier along with a few additional methods that could only be specific to an Iterable. This might sound silly and even funny for now, but it has proved to be useful in increasing flexibility different ways.
   
 For eg. You could attach two Notifier(s) to the same widget without actually instantiating a new one that **dynamically** keeps track of the two,
-```
+```Dart
 [notifier1, notifier2] - ()=> Inbox([...])
 ```
 Actually implementing something like that would add unwanted complexity to the code, increase the learning curve and would need a bit of extra resources than the Iterable that custom object would internally hold.
 
 Other examples:
-```
+```Dart
 [notifier1, notifier2](); // notifies all the notifiers
 [notifier1, notifierN].addListener(()=>print("Smile!")); // Adds a listener to all the notifiers 
 [notifier1, notifierN].attach(notifier2); // attaches notifier2 to all the notifiers
@@ -373,7 +371,7 @@ Other examples:
 **Atomic calls on a List\<Notifier>**: An atomic call is a method that interfaces it's corresponding existing method to check if all the Notifiers in the Iterable are disposed or not, before trying to notify all of them. 
 
 If you're still wondering how is all this still working..then the secret lies in the method/getter that was implemented while extending Iterable<Notifier>,
-```
+```Dart
   get iterator => {this}.iterator;
 ```
   

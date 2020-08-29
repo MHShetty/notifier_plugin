@@ -141,9 +141,9 @@ For now, this plugin mainly four types of Notifiers: `Notifier`, `ValNotifier`, 
 
 [ValNotifier](#valnotifier): It is a `Notifier` that decides to take a step ahead and maintain it's own buffer and actually pass the value to it's listeners (if it can accept one). (Note: A `Notifier` can be called with a value, but it's listeners won't get that value or get null, if they can accept one. This was done to ensure that `ValNotifier` can actually extend `Notifier` while overriding the same set of methods that are used to notify a `Notifier`)
 
-[SelfNotifier](#selfnotifier): It is `ValNotifier`, that just notifies itself (passes itself to the listeners) when called.
-
 [HttpNotifier](#httpnotifier): It is a special `Notifier` that maintains a separate buffer for the parameters of a HTTP request so as to avoid boiler-plate code, while performing those requests with same or similar parameters in different sections of the same app. Since a `HttpNotifier` is a `ValNotifier`, the  methods of `ValNotifier` can still be used, while using a `HttpNotifier`. The real benefit of using an (Http)Notifier can come by using it as a `Stream`. (Note: A `Notifier` is not a `Stream`)
+
+[SelfNotifier](#selfnotifier): It is `ValNotifier`, that just notifies itself (passes itself to the listeners) when called.
 
 These `Notifier`(s) and the extension methods used on certain pre-defined types, overload certain operator methods in a specific way to help developers quickly implement dynamic UI in Flutter in a scalable manner with minimal effort/code. (Read more about it in [this section](#the-magic-of-extension-methods-and-operator-overloading).)
 
@@ -151,9 +151,7 @@ Not sure with how you can use this plugin for state management? [This section](#
 
 Also, it might be worth reading the [special case of Notifier extends Iterable\<Notifier>](#the-special-case-of-notifier-extends-iterablenotifier) used in this plugin.
 
-## Concepts used while writing the Notifier class
-
-A `Notifier` is a simple object that maintains and notifies a set of listeners, whenever they are asked to do so. One can attach a Notifier to another Notifier, listen to the notification events of another Notifier, or even poll a Notifier for over a fixed duration or for fixed number of times.
+## Concepts used while writing classes to implement different Notifiers
 
 ### Instantiating a Notifier
 
@@ -176,14 +174,21 @@ A `Notifier` is a simple object that maintains and notifies a set of listeners, 
 #### HttpNotifier({@required String url, HttpRequestType requestType, Map<String, String> headers, String body, Encoding encoding, dynamic initialVal, bool syncOnCreate=true, Function(dynamic) parseResponse, Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool Function(Error) removeListenerOnError})
 
 **url**: The url to which the HttpRequest needs to be performed. (needs to be a valid url/perhaps satisfy the regex used internally)
+
 **requestType**: The requestType determines the type of http request to be perfomed while the `sync()` method is called. (cannot be set to null)
+
 **headers**: The headers to be passed while performing an Http Request, through the HttpNotifier.
+
 **body**: The body to be passed while performing an Http Request that supports passing a body. (Trying to set/get body for an HttpRequestType that does not support holding a body leads to the failure of one of the assert statement)
+
 **encoding**: The encoding of the body to be passed. The rules for setting/getting a body applies to this parameter (encoding)
+
 **syncOnCreate**: A bool value that decides whether the `sync` method should be through the constructor.
+
 **parseResponse**:  A function that can be used to parse the response value, before it gets passed to all the listeners.
 
-Almost the above parameters can be retrieved/modified at a later stage, unless specified. (body and encoding are dependent on the type of HttpRequestType set)
+Almost the above parameters (for HttpNotifier) can be retrieved/modified at a later stage, unless specified. (body and encoding are dependent on the type of HttpRequestType set)
+These values are then persistently stored within the HttpNotifier, so if we try to sync,
 
 #### Copy Constructor (By cloning): Notifier.from(Notifier)
 
@@ -209,7 +214,7 @@ n.addListeners([()=>print(1),(v)=>print("This is $v.")]); // Adding multiple lis
 ```
 
 **Exception cases**
-```
+```Dart
 n.addListener(n); // You cannot make a Notifier listen itself (it compiles)
 n.addListener(null); // Simply returns null
 n.addListener((p1,p2)=>print("$p1$p2")); // this listener won't get added, since only no/one parameter type of Listener is supported by any Notifier
@@ -299,7 +304,7 @@ n2(); // Prints "N2" and then "N1"
 
 You can attach/detach multiple listeners in one go.
 
-```
+```Dart
 Notifier n3 = Notifier();
 n1.attach([n2,n3]);
 n1.detach([n3,n2]);
@@ -355,7 +360,7 @@ n.removeListeners([null,print]); // Removing multiple listeners (returns (false,
  
  A listener of a Notifier can be removed, even if only it's hashCode is known. (Removing multiple listeners by hashCodes is supported)
  
- ```
+ ```Dart
  Notifier n = Notifier();
  
  /// Removing a single listener
@@ -435,9 +440,9 @@ Extension methods and operator overloading
 
 ## ValNotifier
 
-## SelfNotifier
-
 ## HttpNotifier
+
+## SelfNotifier
 
 ## State management with notifier_plugin
 
@@ -517,3 +522,5 @@ get iterator => {this}.iterator;
 So if you assign a Notifier to an Iterable<Notifier> it treats it as an Iterable...and that's how this magic seems to work.
   
 ## Last Section
+
+A `Notifier` is a simple object that maintains and notifies a set of listeners, whenever they are asked to do so. One can attach a Notifier to another Notifier, listen to the notification events of another Notifier, or even poll a Notifier for over a fixed duration or for fixed number of times.

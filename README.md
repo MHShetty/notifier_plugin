@@ -196,9 +196,9 @@ It accepts an Notifier and just clones it into a new Notifier that would then ne
 
 Other ways: There are numerous ways to instantiate a Notifier. For example, one could use the instance/static method merge, to merge one/multiple Notifiers into one, or use an overloaded operator or some extension method to do the same.
 
-### Adding listener(s) to a Notifier
+### Adding listeners to a Notifier
 
-Adding a listener to a notifier is just as good as just adding a function to a list that can only hold functions. The two accepted types of `Function`s is a function that accepts nothing or function that accepts a single parameter. (Note: For the default type of Notifier, the parameter always recieves a null)
+Adding a listener to a notifier is just as good as just adding a function to a list that can only hold functions. The two accepted types of `Function`s is a function that accepts nothing or function that accepts a single parameter. (Note: For the default type of Notifier, a listener that accepts a parameter always recieves a null and a ValNotifier can accept a listener that does not accept a parameter)
 
 This can be done with the help of two methods, namely,
 
@@ -206,12 +206,23 @@ This can be done with the help of two methods, namely,
   
   **b. addListeners** (Accepts an Iterable<Listener/Function>; returns an Iterable<int> of hashCodes. The success of adding of each method can be determined by the value at it's corresponding index in the Iterable)
 
+An example for Notifier,
+
 ```Dart
 Notifier n = Notifier(); // Instantiating a Notifier
 n.addListener(()=>print("Notified!")); // Adding a single listener to the Notifier
-n.addListener((v)=>print("null==$v")); // Adding a single listener to the Notifier (that accepts a parameter)
+n.addListener((v)=>print("null==$v")); // Adding a single listener to the Notifier (that accepts a parameter) (the parameter will always return null for a
 n.addListeners([()=>print(1),(v)=>print("This is $v.")]); // Adding multiple listeners to the same Notifier with the help of an Iterable
 ```
+
+An example for ValNotifier,
+
+```Dart
+ValNotifier vn = ValNotifier();
+vn.addListener(()=>print("Notified! Yeah it's fine if I was never made to receive a value :)"));
+vn.addListener(print);
+```
+
 
 **Exception cases**
 ```Dart
@@ -265,16 +276,31 @@ n.notifyListeners();
 n.sendNotification();
 ```
 
-### Polling a Notifier
+And what about ValNotifier? Can it be called without an value like a Notifier? What value gets passed to the listeners in that case?
 
-A Notifier supports polling itself (at least in this plugin). You could either poll a Notifier for a fixed number of times or poll it with notifications for over a certain duration.
+Yes, it can be called without a passing a value. The last notified value gets passed in that case. (That's what the buffer was made for!)
 
 ```Dart
-n.poll(100); // Calls the notifier thrice and returns the total Duration taken to notify the listeners for those many times as an Future
+ValNotifier vn = ValNotifier(initialVal: "Hello World!");
+
+vn.addListener(()=>print("Notified! Yeah it's fine if I was never made to receive a value :)"));
+vn.addListener(print); // That was easy! lol.
+
+vn();  // Notifies all the listeners with "Hello World!" string (those who can accept it)
+vn(5); // Notifies all the listeners with the integer value 5 (those who can accept it)
+vn();  // Notifies all the listeners with the integer value 5 (those who can accept it)
+```
+
+### Polling a Notifier
+
+A Notifier supports polling itself (at least in this plugin). You could either poll a Notifier for a fixed number of times or poll it for over a certain Duration.
+
+```Dart
+n.poll(100); // Calls the notifier for 100 times and returns the total Duration taken to notify the listeners for those many times as an Future
 n.pollFor(Duration(seconds: 10)); // Repeatedly notifies the listeners until the passed duration hasn't elapsed. Returns a Future<Notifier>
 ```
 
-### Attaching a Notifier
+### Attaching Notifiers
 
 A Notifier can attach another Notifier to itself i.e. the attached notifier will get called whenever the main Notifier gets called. However, a notifier cannot attach itself to itself (as this would lead to an infinite loop of notifications) nor can it attach another Notifier that has attached the current notifier (for the same reason).
 
@@ -306,8 +332,8 @@ You can attach/detach multiple listeners in one go.
 
 ```Dart
 Notifier n3 = Notifier();
-n1.attach([n2,n3]);
-n1.detach([n3,n2]);
+n1.attachAll([n2,n3]);
+n1.detachAll([n3,n2]);
 ```
 
 For attach, the method will only return false if the passed parameter is null.
@@ -316,17 +342,66 @@ Whereas for detach, it'll return false if the passed Notifier is not attached to
 
 If anything unexpected happens, an exception shall be thrown.
 
-### Listening to a Notifier
+### Listening to Notifiers
 
-Listening to a Notifier
+A Notifier can easily listen to one/multiple notifiers by using the `startListeningTo`/`startListeningtoAll` method or stop listening to them using the `stopListeningTo`/`stopListeningToAll` method. However a Notifier cannot listen to a Notifier that is already listening to it or to a Notifier that is attached to it.
 
-### Calling a specific listener
+```
+Iterable<Notifier> n = List.generate(3,(i)=>Notifier()); // Instantiates 3 Notifiers n[0] n[1] n[2]
 
-Calling a specific listener
+n[0].startListeningTo(n[1]);
+n[0].stopListeningTo(n[1]);
 
-### Removing listener(s) from a Notifier
+n[1].startListeningTo(n[2]);
+n[1].stopListeningToAll(n); // Will return false for itself
 
-A listener can be removed from a Notifier in two ways:
+// n[2].startListeningTo(n[2]); // assert error (A Notifier cannot listen to itself (for the same infinite recursion reason)) 
+// n[2].startListeningTo(n);    // assert error (since n[2] is present in this list (infinite recursion))
+
+/// Magic of extension methods
+
+n.startListeningTo(n3); // makes all the notifiers in iterable n, listen to n3
+n.stopListeningTo(n3);  // makes all the notifiers in iterable n, listen to n3
+
+n.startListeningToAll([n3,n4]); // makes all the notifiers in n listen to n3 and n4
+n.startListeningToAll([n4,n3]); // makes all the notifiers in iterable n, stop listening to n4 and n3
+```
+
+When a Notifier listens to a ValNotifier, it does get called by the ValNotifier (but the value however is not passed to it's listeners) whereas when a ValNotifier listens to a Notifier, it just simply calls it like any other listener and hence the expected behavior will occur. However, when a ValNotifier<T> listens to another ValNotifier<T> it gets the value that's been notified. And if you are feeling that attaching a listener is similar to a Notifier listening to it, then....you are right :blush: In fact, it's the same thing, since all that a Notifier maintains is a list of listeners.
+  
+**(TODO: Implement a `CrossNotifier` that holds a seperate List\<Notifier> being attached/listened to)**
+
+### Notifying a specific listener (implemented as callByHashCode(s) for now)
+
+One can easily notify a specific listener of the notifier if it's `hashCode` is known.
+
+```
+Notifier n = Notifier();
+int hashCode = n.addListener(()=>print("It's never too late to smile..."));
+n.addListener(()=>print("Weird flex, but ok!"));
+
+n(); // notifies both the the listeners
+
+n.notifyByHashCode(hashCode); // Only notifies the listener whose hashCode is passed
+```
+
+or maybe multiple of such listeners
+
+```
+Notifier n = Notifier();
+
+int h0 = n.addListener(()=>print(1));
+n.addListeners(()=>print(1),()=>print(2));
+int h1 = n.addListener(()=>print(2));
+
+n(); // 1 1 2 1
+
+n.notifyByHashCodes([h1,h0]); // 2 1
+```
+
+### Removing listeners from a Notifier
+
+Listeners can be removed from a Notifier in two ways: 
 
 #### a. By reference(s)
  
@@ -437,6 +512,8 @@ n.clearListeners(); // throws a StateError
 ### Extension methods and operator overloading
 
 Extension methods and operator overloading
+
+## Notifier
 
 ## ValNotifier
 

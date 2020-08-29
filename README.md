@@ -133,7 +133,7 @@ If you have been overwhelemed by seeing all the example codes in one go, then ju
 
 ## Introduction and Overview
 
-`notifier_plugin` is a plugin that provides different classes and extension methods + operator overloading (for widgets), in order to enable developers to swiftly develop dynamic user-interfaces (in Flutter) with minimal effort. The plugin can then be combined with (custom classes that contain) simple/complex declarations to manage the state of your app in your own way. The plugin was purely made with the intention of doing things in the most simple and efficient way possible, while using minimal or no (extra) resources to implement different concepts.
+`notifier_plugin` is a plugin that provides different classes and extension methods while overloading certain operators for widgets, in order to enable developers to swiftly develop dynamic user-interfaces (in Flutter) with minimal effort. The plugin can then be combined with (custom classes that contain) simple/complex declarations to manage the state of your app in your way. The plugin was purely made with the intention of doing things in the most simple and efficient way possible, while using minimal or no (extra) resources to implement different concepts.
 
 For now, this plugin mainly four types of Notifiers: `Notifier`, `ValNotifier`, `SelfNotifier`, `HttpNotifier`.
 
@@ -151,13 +151,13 @@ Not sure with how you can use this plugin for state management? [This section](#
 
 Also, it might be worth reading the [special case of Notifier extends Iterable\<Notifier>](#the-special-case-of-notifier-extends-iterablenotifier) used in this plugin.
 
-## Notifier
+## Concepts used while writing the Notifier class
 
 A `Notifier` is a simple object that maintains and notifies a set of listeners, whenever they are asked to do so. One can attach a Notifier to another Notifier, listen to the notification events of another Notifier, or even poll a Notifier for over a fixed duration or for fixed number of times.
 
 ### Instantiating a Notifier
 
-#### Main Constructor (Default way): Notifier({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)});
+#### Notifier({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)})
 
 **attachNotifiers**: Attach these Notifier(s) to the Notifier that's being instantiated.
 
@@ -168,6 +168,22 @@ A `Notifier` is a simple object that maintains and notifies a set of listeners, 
 **initialListeners**: Pass a set of listeners to be merged to the default set of listeners.
 
 **removeListenerOnError**: A special parameter that accepts a function that can be used to handle anything that gets thrown while notifying the listeners/even remove them (if needed) (if this function returns `true` the listener gets removed; if it returns `false` then nothing really happens; and if it returns `null`, the error simply gets `rethrown`)
+
+#### ValNotifier\<T>({T initialVal, Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)})
+
+**initialVal**: The value with which the ValNotifier should be instantiated. (ValNotifier-specific)
+
+#### HttpNotifier({@required String url, HttpRequestType requestType, Map<String, String> headers, String body, Encoding encoding, dynamic initialVal, bool syncOnCreate=true, Function(dynamic) parseResponse, Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool Function(Error) removeListenerOnError})
+
+**url**: The url to which the HttpRequest needs to be performed. (needs to be a valid url/perhaps satisfy the regex used internally)
+**requestType**: The requestType determines the type of http request to be perfomed while the `sync()` method is called. (cannot be set to null)
+**headers**: The headers to be passed while performing an Http Request, through the HttpNotifier.
+**body**: The body to be passed while performing an Http Request that supports passing a body. (Trying to set/get body for an HttpRequestType that does not support holding a body leads to the failure of one of the assert statement)
+**encoding**: The encoding of the body to be passed. The rules for setting/getting a body applies to this parameter (encoding)
+**syncOnCreate**: A bool value that decides whether the `sync` method should be through the constructor.
+**parseResponse**:  A function that can be used to parse the response value, before it gets passed to all the listeners.
+
+Almost the above parameters can be retrieved/modified at a later stage, unless specified. (body and encoding are dependent on the type of HttpRequestType set)
 
 #### Copy Constructor (By cloning): Notifier.from(Notifier)
 

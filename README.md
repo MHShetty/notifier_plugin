@@ -190,11 +190,15 @@ Also, it might be worth reading the [special case of Notifier extends Iterable\<
 Almost the above parameters (for HttpNotifier) can be retrieved/modified at a later stage, unless specified. (body and encoding are dependent on the type of HttpRequestType set)
 These values are then persistently stored within the HttpNotifier, so if we try to sync,
 
-#### Copy Constructor (By cloning): Notifier.from(Notifier)
+#### Copy Constructor (By cloning):
+
+**Notifier.from(Notifier)**
+
+**ValNotifier.from(ValNotifier)**
 
 It accepts an Notifier and just clones it into a new Notifier that would then need to be separately maintained. A disposed Notifier cannot be cloned.
 
-Other ways: There are numerous ways to instantiate a Notifier. For example, one could use the instance/static method merge, to merge one/multiple Notifiers into one, or use an overloaded operator or some extension method to do the same.
+There are numerous other ways to instantiate a Notifier. For example, one could use the instance/static method `merge`, to merge one/multiple notifiers into one, or use an or some extension method's overloaded operator to do the same.
 
 ### Adding listeners to a Notifier
 
@@ -205,15 +209,27 @@ This can be done with the help of two methods, namely,
   **a. addListener**  (Accepts a Listener/Function; returns the hashCode of that listener if it gets successfully added, else null)
   
   **b. addListeners** (Accepts an Iterable<Listener/Function>; returns an Iterable<int> of hashCodes. The success of adding of each method can be determined by the value at it's corresponding index in the Iterable)
+  
+  **c. customListener(s)Adder**: Separately map one/multiple listeners to multiple different notifiers in one method call.
 
 An example for Notifier,
 
 ```Dart
-Notifier n = Notifier(); // Instantiating a Notifier
-n.addListener(()=>print("Notified!")); // Adding a single listener to the Notifier
-n.addListener((v)=>print("null==$v")); // Adding a single listener to the Notifier (that accepts a parameter) (the parameter will always return null for a
-n.addListeners([()=>print(1),(v)=>print("This is $v.")]); // Adding multiple listeners to the same Notifier with the help of an Iterable
+Notifier n0 = Notifier(); // Instantiating a Notifier
+Notifier n1 = Notifier(); // Instantiating a Notifier
+
+n0.addListener(()=>print("Notified!")); // Adding a single listener to the Notifier
+n0.addListener((v)=>print("null==$v")); // Adding a single listener to the Notifier (that accepts a parameter) (the parameter will always return null for a
+n0.addListeners([()=>print(0),(v)=>print("This is $v.")]); // Adding multiple listeners to the same Notifier with the help of an Iterable
+
+[n0,n1].addListener(print);
+[n0,n1].addListeners(()=>print("This should be"),()=>print("easy"));
+
+Notifier.customListenerAdder({n0: ()=>print(0), n1: ()=>print(1)});
+Notifier.customListenersAdder({n0: [()=>print("Zero"),()=>print("0 == 0")], n1: [()=>print(":)"),()=>print(";)")]});
 ```
+
+Note: All the above methods have an static implementation.
 
 An example for ValNotifier,
 
@@ -221,16 +237,21 @@ An example for ValNotifier,
 ValNotifier vn = ValNotifier();
 vn.addListener(()=>print("Notified! Yeah it's fine if I was never made to receive a value :)"));
 vn.addListener(print);
+
+/// All the methods used in Notifier can be used for a ValNotifier
 ```
 
+Note: All the above methods have an static implementation.
 
 **Exception cases**
+
 ```Dart
 n.addListener(n); // You cannot make a Notifier listen itself (it compiles)
 n.addListener(null); // Simply returns null
 n.addListener((p1,p2)=>print("$p1$p2")); // this listener won't get added, since only no/one parameter type of Listener is supported by any Notifier
 n.addListener(existingListener); // works for now ... but is very likely to turn into an Exception in the near future
 n.addListener((p)=>print(p)); // For a normal Notifier, only a null would be passed (irrespective of the value passed while calling)
+
 // However for a ValNotifier, things work as expected.
 ```
 
@@ -245,7 +266,7 @@ n();
 n(1); // Listeners won't get it, since this is not a ValNotifier
 n();
 
-// Prints "Notified!" thrice/
+// Prints "Notified!" thrice
 ```
 
 So what does a Notifier return? Just itself.
@@ -260,7 +281,7 @@ n.addListener(()=>print("Notified!"));
 n()(1)();
 ```
 
-But what if my listeners were made to perform a long list operations or I can't just afford to wait until every listeners get notified?
+But what if my listeners were made to perform a long list of operations and I just can't afford to wait until every listeners get notified?
 
 ```Dart
 n.asyncNotify(); // returns Future<Notifier>
@@ -268,7 +289,8 @@ n.asyncNotify(); // returns Future<Notifier>
 
 The `asyncNotify` method was made just for you!
 
-Other ways of notifying/calling the listener, (they too just return a `Notifier`)
+Other ways of notifying/calling the listener...(they too just return a `Notifier`)
+
 ```Dart
 ~n;
 n.notify(1);
@@ -284,7 +306,7 @@ Yes, it can be called without a passing a value. The last notified value gets pa
 ValNotifier vn = ValNotifier(initialVal: "Hello World!");
 
 vn.addListener(()=>print("Notified! Yeah it's fine if I was never made to receive a value :)"));
-vn.addListener(print); // That was easy! lol.
+vn.addListener(print); // That was easy!
 
 vn();  // Notifies all the listeners with "Hello World!" string (those who can accept it)
 vn(5); // Notifies all the listeners with the integer value 5 (those who can accept it)
@@ -346,7 +368,7 @@ If anything unexpected happens, an exception shall be thrown.
 
 A Notifier can easily listen to one/multiple notifiers by using the `startListeningTo`/`startListeningtoAll` method or stop listening to them using the `stopListeningTo`/`stopListeningToAll` method. However a Notifier cannot listen to a Notifier that is already listening to it or to a Notifier that is attached to it.
 
-```
+```Dart
 Iterable<Notifier> n = List.generate(3,(i)=>Notifier()); // Instantiates 3 Notifiers n[0] n[1] n[2]
 
 n[0].startListeningTo(n[1]);
@@ -367,15 +389,43 @@ n.startListeningToAll([n3,n4]); // makes all the notifiers in n listen to n3 and
 n.startListeningToAll([n4,n3]); // makes all the notifiers in iterable n, stop listening to n4 and n3
 ```
 
-When a Notifier listens to a ValNotifier, it does get called by the ValNotifier (but the value however is not passed to it's listeners) whereas when a ValNotifier listens to a Notifier, it just simply calls it like any other listener and hence the expected behavior will occur. However, when a ValNotifier<T> listens to another ValNotifier<T> it gets the value that's been notified. And if you are feeling that attaching a listener is similar to a Notifier listening to it, then....you are right :blush: In fact, it's the same thing, since all that a Notifier maintains is a list of listeners.
+When a Notifier listens to a ValNotifier, it does get called by the ValNotifier (but the value however is not passed to it's listeners) whereas when a ValNotifier listens to a Notifier, it just simply calls it like any other listener and hence the expected behavior will occur.
+
+However, when a ValNotifier<T> listens to another ValNotifier<T> it gets the value that's been notified. And just by any chance that attaching a listener is similar to a Notifier listening to it, then....you are right :blush: In fact, it's the same thing, since all that a Notifier maintains is a list of listeners.
   
-**(TODO: Implement a `CrossNotifier` that holds a seperate List\<Notifier> being attached/listened to)**
+So how do I connect 2 listeners in such a way that I can notify them in one go and maybe even connect or disconnect them in one go?
+
+Well, that's what one of the reasons why all the methods of a Notifier were re-implemented as extension methods on Iterable<Notifier>,
+  
+```
+Notifier n1 = Notifier();
+Notifier n2 = Notifier();
+
+// Create a connection
+Iterable<Notifier> n = [n1,n2];
+
+n();
+n.addListener(print);
+n.removeListener(print);
+
+// Dispose the connection
+n = null;
+
+// Create, use and dispose the connection in one go (just as http.Client is unknowingly used nowadays)
+[n1,n2]();
+
+// Even doing this is not a bad idea (if you just want to notify both once)
+n1(); n2();
+
+// If you want to connect two Iterable<Notifier>s together then just add them to a single Iterable<Notifier>
+// Iterable<Notifier> n = []..addAll(firstIterable)..addAll(secondIterable);
+```
 
 ### Notifying a specific listener (implemented as callByHashCode(s) for now)
 
 One can easily notify a specific listener of the notifier if it's `hashCode` is known.
 
-```
+```Dart
 Notifier n = Notifier();
 int hashCode = n.addListener(()=>print("It's never too late to smile..."));
 n.addListener(()=>print("Weird flex, but ok!"));
@@ -387,7 +437,7 @@ n.notifyByHashCode(hashCode); // Only notifies the listener whose hashCode is pa
 
 or maybe multiple of such listeners
 
-```
+```Dart
 Notifier n = Notifier();
 
 int h0 = n.addListener(()=>print(1));
@@ -551,6 +601,7 @@ RaisedButton(child: Text("Increment"), onPressed: n)
 ```
 
 or even a ValNotifier.
+
 ```Dart
 ValNotifier n = ValNotifier(initialVal: 0); // Supports explicit type-check through type-param<>, while notify a value.
 // [...]
@@ -592,6 +643,7 @@ Other examples:
 **Atomic calls on a List\<Notifier>**: An atomic call is a method that interfaces it's corresponding existing method to check if all the Notifiers in the Iterable are disposed or not, before trying to notify all of them. 
 
 If you're still wondering how is all this still working..then the secret lies in the method/getter that was implemented while extending Iterable<Notifier>,
+  
 ```Dart
 get iterator => {this}.iterator;
 ```

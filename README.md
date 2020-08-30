@@ -155,7 +155,7 @@ Also, it might be worth reading the [special case of Notifier extends Iterable\<
 
 ### Instantiating a Notifier
 
-#### Notifier({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)})
+> Notifier({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)})
 
 **attachNotifiers**: Attach these Notifier(s) to the Notifier that's being instantiated.
 
@@ -167,11 +167,11 @@ Also, it might be worth reading the [special case of Notifier extends Iterable\<
 
 **removeListenerOnError**: A special parameter that accepts a function that can be used to handle anything that gets thrown while notifying the listeners/even remove them (if needed) (if this function returns `true` the listener gets removed; if it returns `false` then nothing really happens; and if it returns `null`, the error simply gets `rethrown`)
 
-#### ValNotifier\<T>({T initialVal, Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)})
+> ValNotifier\<T>({T initialVal, Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)})
 
 **initialVal**: The value with which the ValNotifier should be instantiated. (ValNotifier-specific)
 
-#### HttpNotifier({@required String url, HttpRequestType requestType, Map<String, String> headers, String body, Encoding encoding, dynamic initialVal, bool syncOnCreate=true, Function(dynamic) parseResponse, Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool Function(Error) removeListenerOnError})
+> HttpNotifier({@required String url, HttpRequestType requestType, Map<String, String> headers, String body, Encoding encoding, dynamic initialVal, bool syncOnCreate=true, Function(dynamic) parseResponse, Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool Function(Error) removeListenerOnError})
 
 **url**: The url to which the HttpRequest needs to be performed. (needs to be a valid url/perhaps satisfy the regex used internally)
 
@@ -192,9 +192,9 @@ These values are then persistently stored within the HttpNotifier, so if we try 
 
 #### Copy Constructor (By cloning):
 
-**Notifier.from(Notifier)**
-
-**ValNotifier.from(ValNotifier)**
+> Notifier.from(Notifier)
+>
+> ValNotifier.from(ValNotifier)
 
 It accepts an Notifier and just clones it into a new Notifier that would then need to be separately maintained. A disposed Notifier cannot be cloned.
 

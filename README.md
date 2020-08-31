@@ -145,9 +145,9 @@ For now, this plugin mainly four types of Notifiers: `Notifier`, `ValNotifier`, 
 
 [TimedNotifier](#timednotifer): A `Notifier` that can be polled in a very controlled manner.
 
-[TweenNotifier](#tweennotifier): A `Va0lNotifier` that can perform a Tween in a very controlled manner.
+[TweenNotifier](#tweennotifier): A `ValNotifier` that can perform a Tween in a very controlled manner.
 
-These `Notifier`(s) and the extension methods used on certain pre-defined types, overload certain operator methods in a specific way to help developers quickly implement dynamic UI in Flutter in a scalable manner with minimal effort/code. (Read more about it in [this section](#the-magic-of-extension-methods-and-operator-overloading).)
+These `Notifier`(s) and the extension methods used on certain pre-defined types overload certain operator methods in a specific way to help developers quickly implement dynamic UI in Flutter in a scalable manner with minimal effort/code. (Read more about it in [this section](#the-magic-of-extension-methods-and-operator-overloading).)
 
 Not sure with how you can use this plugin for state management? [This section](#state-management-with) might be a small help you. 
 
@@ -567,7 +567,7 @@ n.clearListeners(); // throws a StateError
 
 Tweening a ValNotifier? You mean those animation stuff? Yes.
 
-```
+```Dart
 ValNotifier v = ValNotifier();
 
 valTest.performTween(IntTween(begin: Colors.red, end: Colors.green), Duration(seconds: 1)).then((value) => print("Animation completed!"));
@@ -579,7 +579,7 @@ You can easily animate through a Tween of values as long as you have a Tween or 
 
 Extension methods and operator overloading
 
-```
+```Dart
 ~(n,v) => GestureDetector(
   onHorizontalDragUpdate: (d) => n(d.localPosition.dx),
   child: Container(

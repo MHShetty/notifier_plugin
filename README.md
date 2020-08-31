@@ -676,9 +676,9 @@ hasThisListener(Notifier notifier, Function listener) → bool | Checks if the p
 
 ## State management with notifier_plugin
 
-This plugin was made with the intention of making state management easy and flexible to the extent which Dart is. So this plugin deserves a small guide on the same :)
+> This plugin was made with the intention of making state management easy and flexible to the extent which Dart is. So this plugin deserves a small guide on the same :)
 
-Before diving into the plugin, it would be great if we could really understand what's really missing at this point..
+Before diving into the guide, it would be great if we could really understand what's really missing at this point..
 
 Extension methods and operator overloading can do the work of creating an interface for the UI to which the back-end of the app can connect to. UI can be easily be implemented with the power of Flutter's widgets...
 

@@ -602,33 +602,45 @@ Instance method | Description
 --------------- | -----------
 addListener(Function listener) → int | Adds a listener to the Notifier and returns the listener's `hashCode` if successfully added else returns `null` (adding a listener that already exists)
 addListeners(Iterable<Function> listeners) → Iterable\<int> | Adds multiple listeners to a Notifier and returns an Iterable<int> of hashCodes. If the corresponding index has an hashCode, then the listener at that index was added successfully added else null.
+call([dynamic _]) → Notifier | Calls a Notifier to notify it's listeners. (notifierInstance() invokes this method) 
 asyncNotify([dynamic _]) → Future\<Notifier> | Asynchronously notify the listeners without blocking the caller's execution thread.
 attach(Notifier notifier) → bool | Attaches the passed notifier to the current `Notifier`. The current `Notifier` will call the attached notifier whenever it gets called. 
 attachAll(Iterable\<Notifier> notifiers) → Iterable\<bool> | Attaches the passed notifier(s) to the current Notifier. The current Notifier calls all the attached notifiers (as long as they are attached to it) whenever it gets called. Calling `clearListeners()` clears the attached Notifiers too. Read the concepts section for more info.
-call([dynamic _]) → Notifier | Calls a Notifier to notify it's listeners.
-notifyByHashCode(int hashCode) → bool | Just notifies a listener by hashCode (if it exists as a part of it). The hashCode can be obtained from the return value of addListener. Calls the listener and returns true if the listener is found else false.
-callByHashCodes(Iterable\<int> hashCodes) → Iterable\<bool> | Notifies multiple listeners based on the given hashCodes. If the listener is found it sets true at the corresponding index of that listener else false.
-clearListeners() | Clears all the listeners of the current Notifier (including attachments and stops notifying any listener listening to it)
 detach(Notifier notifier) → bool | Detaches a notifier attached to it. If the Notifier isn't attached then the method simply returns false, else true.
 detachAll(Iterable\<Notifier> notifiers) → Iterable\<bool> | Tries to detach all the notifiers given to it. Sets true at the corresponding index, if the Notifier was previously attached else false.
-dispose() → bool | Disposes the current Notifier. The Notifier can be re-init with the help of the `init()` (however the reused Notifier will be as good as using a new one). If the Notifier was already disposed it'll return false else true.
-hasListener(Function listener) → bool | Checks if the passed listener is a listener of the current Notifier. If it has it it returns true else false.
-init({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)}) → bool | Manually initialize the Notifier (if it's disposed). Returns true if the Notifier was previously disposed, else just does nothing and returns false. Values can be set through other methods.
-isAttachedTo(Notifier notifier) → bool | Checks if the current Notifier is attached to another Notifier. Returns true if it is else false.
-isAttachedToAll(Iterable\<Notifier> notifiers) → bool | Checks if the current Notifier is attached to all the passed notifier(s). If it is then true, else false.
-isAttachedToThese(Iterable\<Notifier> notifiers) → Iterable\<bool> | Checks if the current Notifier isAttached to these Notifiers, while returning an Iterable\<bool> that describes the state of each Notifier in that regard.
+startListeningTo(Notifier notifier) → bool | Starts listening to the passed Notifier (if it isn't currently doing so). Returns false if it was already somehow listening to it else true.
+startListeningToAll(Iterable<Notifier> notifiers) → Iterable\<bool> | Starts listening to all the passed notifiers and for any given index in the Iterable<bool> being returned, it sets false if the Notifier was already being listened to, else true.
+stopListeningTo(Notifier notifier) → bool | Stops listening to the passed Notifier. Returns false if it was never listening to one else true.
+**stopListeningToAll(Iterable<Notifier> notifiers) → Iterable\<bool> | Stops listening to all the notifiers in the passed Iterable\<Notifier>. For any given index, it sets true if the Notifier was previously listening to that Notifier else sets false.
 isListeningTo(Notifier notifier) → bool | Checks if the current Notifier isListening to the passed Notifier. If it is the returns true, else false.
 **isListeningToAll(Iterable<Notifier> notifiers) → Iterable\<bool> ** | **234**
+**notifyByHashCode(int hashCode) → bool | Just notifies a listener by hashCode (if it exists as a part of it). The hashCode can be obtained from the return value of addListener. Calls the listener and returns true if the listener is found else false.
+**notifyByHashCodes(Iterable\<int> hashCodes) → Iterable\<bool> | Notifies multiple listeners based on the given hashCodes. If the listener is found it sets true at the corresponding index of that listener else false.
+**hasAttached(Notifier notifier) → bool | Checks if the current Notifier is attached to another Notifier. Returns true if it is else false.
+**hasAttachedAll(Iterable\<Notifier> notifiers) → bool | Checks if the current Notifier is attached to all the passed notifier(s). If it is then true, else false.
+**hasAttachedAllThese(Iterable\<Notifier> notifiers) → Iterable\<bool> | Checks if the current Notifier isAttached to these Notifiers, while returning an Iterable\<bool> that describes the state of each Notifier in that regard.
 poll(int times, {TickerProvider vsync}) → Future\<Duration> | Polls the Notifier for a fixed number of times and returns the Duration taken to poll as a return as Future.
 pollFor(Duration duration, {TickerProvider vsync}) → Future\<Notifier> | Polls the Notifier over the given Duration of time. Returns the current instance as a Future.
 removeListener(Function listener) → bool | Tries to remove the passed listener from the Notifier. If it was previously a listener of that Notifier it returns true, else false.
 removeListenerByHashCode(int hashCode) → bool | Tries to remove a listener by it's hashCode (if a listener with that hashCode exists). If it was previously a listener of that Notifier then it returns true else false.
 removeListeners(Iterable\<Function> listeners) → Iterable\<bool> | Tries to remove multiple listeners from a Notifier. For any given index, if the listener was previously a listener of that notifier, it removes it and sets true else false and finally returns the complete Iterable\<bool>.
 removeListenersByHashCodes(Iterable\<int> hashCodes) → Iterable\<bool> | Tries to remove multiple listeners by their hashCode (if found). For any given index, if it is found then it's removed and true is it set for the Iterable\<bool> that'll be returned else false.
+clearListeners() | Clears all the listeners of the current Notifier (including attachments and stops notifying any listener listening to it)
 reverseListeningOrder() → void | Just as the name suggests, it reverses the order in which the listeners get notified.
-startListeningTo(Notifier notifier) → bool | Starts listening to the passed Notifier (if it isn't currently doing so). Returns false if it was already somehow listening to it else true.
-startListeningToAll(Iterable<Notifier> notifiers) → Iterable<bool> | Starts listening to all the passed notifiers and for any given index in the Iterable<bool> being returned, it sets false if the Notifier was already being listened to, else true.
-stopListeningTo(Notifier notifier) → bool | Stops listening to the passed Notifier. Returns false if it was never listening to one else true.
+init({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)}) → bool | Manually initialize the Notifier (if it's disposed). Returns true if the Notifier was previously disposed, else just does nothing and returns false. Values can be set through other methods.
+dispose() → bool | Disposes the current Notifier. The Notifier can be re-init with the help of the `init()` (however the reused Notifier will be as good as using a new one). If the Notifier was already disposed it'll return false else true.
+
+Getter methods | Description
+-------------- | -----------
+isDisposed → bool | Checks if the given Notifier is disposed or not. If it's disposed it returns true else false.
+isNotDisposed → bool | Checks if the given Notifier is disposed or not. If it's disposed it returns false else true.
+notify → Notifier | Returns the current instance as a Notifier. Generally used as `notifier.notify()`
+notifyListener → Notifier | Returns the current instance as a Notifier. Generally used as `notifier.notifyListeners()`
+notifyListener → Notifier | Returns the current instance as a Notifier. Generally used as `notifier.notifyListeners()`
+sendNotification → Notifier | Returns the current instance as a Notifier. Generally used as `notifier.sendNotification()`
+numberOfListeners → int | Returns the number of listeners that Notifier is responsible for.
+**hasListeners → bool | Returns true if the Notifier has at least one listener else false.
+
 
 ## ValNotifier
 

@@ -143,7 +143,9 @@ For now, this plugin mainly four types of Notifiers: `Notifier`, `ValNotifier`, 
 
 [HttpNotifier](#httpnotifier): It is a special `Notifier` that maintains a separate buffer for the parameters of a HTTP request so as to avoid boiler-plate code, while performing those requests with same or similar parameters in different sections of the same app. Since a `HttpNotifier` is a `ValNotifier`, the  methods of `ValNotifier` can still be used, while using a `HttpNotifier`. The real benefit of using an (Http)Notifier can come by using it as a `Stream`. (Note: A `Notifier` is not a `Stream`)
 
-[SelfNotifier](#selfnotifier): It is `ValNotifier`, that just notifies itself (passes itself to the listeners) when called.
+[TimedNotifier](#timednotifer): A Notifier that can be polled in a very controlled manner.
+
+[TweenNotifier](#tweennotifier): A ValNotifier that can perform Tween(s) in a very controlled manner.
 
 These `Notifier`(s) and the extension methods used on certain pre-defined types, overload certain operator methods in a specific way to help developers quickly implement dynamic UI in Flutter in a scalable manner with minimal effort/code. (Read more about it in [this section](#the-magic-of-extension-methods-and-operator-overloading).)
 
@@ -630,9 +632,11 @@ stopListeningTo(Notifier notifier) → bool | Stops listening to the passed Noti
 
 ## ValNotifier
 
-## HttpNotifier
+## HttpNotifier 
 
-## SelfNotifier
+## TimedNotifier (Needs to be implemented)
+
+## TweenNotifier (Needs to be implemented)
 
 ## State management with notifier_plugin
 

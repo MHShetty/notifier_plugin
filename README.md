@@ -696,8 +696,8 @@ However, if you are just a single developer or maybe even a pair **(who is the o
 
 A small example for to represent the above approach,
 
-main.dart
-```
+**main.dart**
+```Dart
 import 'package:flutter/material.dart';
 import 'package:notifier_plugin/notifier_plugin.dart';
 

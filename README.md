@@ -137,15 +137,15 @@ If you have been overwhelemed by seeing all the example codes in one go, then ju
 
 For now, this plugin mainly four types of Notifiers: `Notifier`, `ValNotifier`, `SelfNotifier`, `HttpNotifier`.
 
-[Notifier](#notifier): It's a simple object that can maintain and notify a set of listeners. One could even attach a `Notifier` to it or listen to another `Notifier`. One could  even poll it for a fixed number of times, or over a certain duration. 
+[Notifier](#notifier): A simple object that can maintain and notify a set of listeners. It supports attaching one/multiple Notifier and listening to other Notifiers. One could even poll it for certain number of times or over a fixed duration.
 
-[ValNotifier](#valnotifier): It is a `Notifier` that decides to take a step ahead and maintain it's own buffer and actually pass the value to it's listeners (if it can accept one). (Note: A `Notifier` can be called with a value, but it's listeners won't get that value or get null, if they can accept one. This was done to ensure that `ValNotifier` can actually extend `Notifier` while overriding the same set of methods that are used to notify a `Notifier`)
+[ValNotifier](#valnotifier): A `Notifier` that can notify its listeners with the value it was called with and maintains a buffer for the same. One could directly perform a Tween through the Notifier through the `performTween()` method. It supports all the methods and getters and setters of a Notifier.
 
-[HttpNotifier](#httpnotifier): It is a special `Notifier` that maintains a separate buffer for the parameters of a HTTP request so as to avoid boiler-plate code, while performing those requests with same or similar parameters in different sections of the same app. Since a `HttpNotifier` is a `ValNotifier`, the  methods of `ValNotifier` can still be used, while using a `HttpNotifier`. The real benefit of using an (Http)Notifier can come by using it as a `Stream`. (Note: A `Notifier` is not a `Stream`)
+[HttpNotifier](#httpnotifier): A `ValNotifier` that maintains a separate buffer for the parameters of a HTTP request so as to avoid boiler-plate code, while performing those requests with same or similar parameters in different sections of the same app. Since a `HttpNotifier` is a `ValNotifier`, the  methods of `ValNotifier` can still be used, while using a `HttpNotifier`. The real benefit of using an (Http)Notifier can come by using it as a `Stream`. (Note: A `Notifier` is not a `Stream`)
 
-[TimedNotifier](#timednotifer): A Notifier that can be polled in a very controlled manner.
+[TimedNotifier](#timednotifer): A `Notifier` that can be polled in a very controlled manner.
 
-[TweenNotifier](#tweennotifier): A ValNotifier that can perform Tween(s) in a very controlled manner.
+[TweenNotifier](#tweennotifier): A `Va0lNotifier` that can perform a Tween in a very controlled manner.
 
 These `Notifier`(s) and the extension methods used on certain pre-defined types, overload certain operator methods in a specific way to help developers quickly implement dynamic UI in Flutter in a scalable manner with minimal effort/code. (Read more about it in [this section](#the-magic-of-extension-methods-and-operator-overloading).)
 
@@ -153,7 +153,7 @@ Not sure with how you can use this plugin for state management? [This section](#
 
 Also, it might be worth reading the [special case of Notifier extends Iterable\<Notifier>](#the-special-case-of-notifier-extends-iterablenotifier) used in this plugin.
 
-## Concepts used while writing classes to implement different Notifiers
+## Concepts used while designing the Notifier classes
 
 ### Instantiating a Notifier
 
@@ -399,7 +399,7 @@ So how do I connect 2 listeners in such a way that I can notify them in one go a
 
 Well, that's what one of the reasons why all the methods of a Notifier were re-implemented as extension methods on Iterable<Notifier>,
   
-```
+```Dart
 Notifier n1 = Notifier();
 Notifier n2 = Notifier();
 

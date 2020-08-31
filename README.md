@@ -641,6 +641,15 @@ sendNotification → Notifier | Returns the current instance as a Notifier. Gene
 numberOfListeners → int | Returns the number of listeners that Notifier is responsible for.
 **hasListeners → bool | Returns true if the Notifier has at least one listener else false.
 
+Static method | Description
+------------- | -----------
+addListenerToNotifier(Notifier notifier, Function listener) → int | A static static implementation of the instance method `addListener`.
+addListenersToNotifier(Notifier notifier, Iterable<Function> listeners) → Iterable<int> | Adds multiple listeners to the same Notifier. (A static implementation of the instance method `addListeners`)
+clearListenersOfNotifier(Notifier notifier) → bool | Clears all the listeners of the passed Notifier. (A static implementation of the instance method `clearListeners()`)
+clearListenersOfNotifiers(Iterable<Notifier> notifiers) → Iterable<bool> | Clears all the listeners of the given list of Notifiers. A static implementation of `clearListeners()` for multiple notifiers.
+from(Notifier notifier) → Notifier | Instantiate a new notifier from an existing Notifier (the Notifier that was passed)
+disposeNotifier(Notifier notifier) → bool | Disposes the passed Notifier. A static implementation of these instance methods
+disposeNotifiers(Iterable<Notifier> notifiers) → Iterable<bool> |
 
 ## ValNotifier
 

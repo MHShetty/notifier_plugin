@@ -639,17 +639,32 @@ notifyListener → Notifier | Returns the current instance as a Notifier. Genera
 notifyListener → Notifier | Returns the current instance as a Notifier. Generally used as `notifier.notifyListeners()`
 sendNotification → Notifier | Returns the current instance as a Notifier. Generally used as `notifier.sendNotification()`
 numberOfListeners → int | Returns the number of listeners that Notifier is responsible for.
-**hasListeners → bool | Returns true if the Notifier has at least one listener else false.
+**containsListeners → bool | Returns true if the Notifier has at least one listener else false.
 
 Static method | Description
 ------------- | -----------
-addListenerToNotifier(Notifier notifier, Function listener) → int | A static static implementation of the instance method `addListener`.
-addListenersToNotifier(Notifier notifier, Iterable<Function> listeners) → Iterable<int> | Adds multiple listeners to the same Notifier. (A static implementation of the instance method `addListeners`)
+addListenerToNotifier(Notifier notifier, Function listener) → int | Adds the passed listener to the passed Notifier. A static implementation of the instance method `addListener`.
+addListenersToNotifier(Notifier notifier, Iterable\<Function> listeners) → Iterable\<int> | Adds the listeners present in the passed Iterable\<Notifier> to the passed Notifier. A static implementation of the instance method `addListeners`.
+addListenerToNotifiers(Iterable\<Notifier> notifiers, Function listener) → Iterable\<int> | Adds the passed listener to all of the passed notifiers. A static implementation of `addListener` of Iterable<Notifier>
+addListenersToNotifiers(Iterable\<Notifier> notifiers, Iterable\<Function> listeners) → Iterable\<int> | Adds the passed listeners to the passed notifiers. A static 
+customListenerAdder(Map\<Notifier, Function> options) → Map\<Notifier, int> | It is a static method that can used to add multiple listeners to multiple Notifiers separately in a single method call.
+**customListenersAdder(Map\<Notifier, Iterable\<Function>> options) → Map\<Notifier, Iterable\<int>> | It is a static method that can used to add multiple listeners to multiple notifiers separately in a single method call.
+notifyNotifier(Notifier notifier) → Notifier | Calls the Notifier passed to it. A static implementation of the instance method `call()`.
+notifyAll(Iterable\<Notifier> notifiers) → Iterable\<Notifier> | Notifies all the listeners present in the passed Iterable\<Notifier>. A static implementation of Iterable\<Notifier>'s call method.
 clearListenersOfNotifier(Notifier notifier) → bool | Clears all the listeners of the passed Notifier. (A static implementation of the instance method `clearListeners()`)
-clearListenersOfNotifiers(Iterable<Notifier> notifiers) → Iterable<bool> | Clears all the listeners of the given list of Notifiers. A static implementation of `clearListeners()` for multiple notifiers.
+clearListenersOfNotifiers(Iterable\<Notifier> notifiers) → Iterable\<bool> | Clears all the listeners of the given list of Notifiers. A static implementation of `clearListeners()` for multiple notifiers.
+**merge([Iterable\<Notifier> notifiers, bool Function(dynamic) removeListenerOnError]) → Notifier |  A static method that merges the listeners of a Notifier into a new Notifier while setting the error handler as that of the first Notifier of the passed Iterable\<Notifier> or as the passed function (if not null).**
 from(Notifier notifier) → Notifier | Instantiate a new notifier from an existing Notifier (the Notifier that was passed)
-disposeNotifier(Notifier notifier) → bool | Disposes the passed Notifier. A static implementation of these instance methods
-disposeNotifiers(Iterable<Notifier> notifiers) → Iterable<bool> |
+initNotifier(Notifier notifier) → bool | Initializes the passed Notifier. A static implementation of instance method `init()`
+initNotifiers(Iterable\<Notifier> notifiers) → Iterable\<bool> | Initializes all the passed notifiers. A static implementation of instance method `init()` of Iterable\<Notifier>
+disposeNotifier(Notifier notifier) → bool | Disposes the passed Notifier. A static implementation of the instance method `dispose()`
+disposeNotifiers(Iterable\<Notifier> notifiers) → Iterable\<bool> | Disposes the notifiers passed in the Iterable\<Notifier>. An static implementation of `dispose()` of Iterable\<Notifier>
+sHaveTheseListeners(Iterable\<Notifier> notifiers, Iterable\<Function> listeners) → Iterable\<bool> | Checks if all Notifier(s) in 
+removeListenersFromNotifiers(Iterable\<Notifier> notifiers, Iterable\<Function> listeners) → Iterable<Iterable\<bool>> | Removes the passed listeners from the passed Notifiers. A static implementation of `removeListeners()` of Iterable\<Notifier>.
+hasAListener(Notifier notifier) → bool | Checks if the passed Notifier has any listeners. If it has any, the function returns true else false.
+hasTheseListeners(Notifier notifier, Iterable<Function> listeners) → bool | Checks the Notifier has all the mentioned listener
+hasThisListener(Notifier notifier, Function listener) → bool | Checks if the passed Notifier has the passed listener. If it has it, it returns true else false.
+
 
 ## ValNotifier
 
@@ -660,6 +675,60 @@ disposeNotifiers(Iterable<Notifier> notifiers) → Iterable<bool> |
 ## TweenNotifier (Needs to be implemented)
 
 ## State management with notifier_plugin
+
+This plugin was made with the intention of making state management easy and flexible to the extent which Dart is. So this plugin deserves a small guide on the same :)
+
+Before diving into the plugin, it would be great if we could really understand what's really missing at this point..
+
+Extension methods and operator overloading can do the work of creating an interface for the UI to which the back-end of the app can connect to. UI can be easily be implemented with the power of Flutter's widgets...
+
+So all that remains now is to set up a back-end where you can manage your resources and decide when the UI should update and when not. Hmm!
+
+We could create a manage-able backend in two ways (the third one would be the best of the two worlds),
+
+1. By just declaring variables or allocating resources as and when you need it (i.e. developing the app on the go, based on your raw requirements) (my old way),
+
+So in this approach, one just declares the variables **only** when (s)he needs to access them later and the scope of declaration directly depends upon where exactly is that variable is going to be used later. (a really minimalistic approach, probably even more than it is needed)
+
+This will look fine and in fact work great for an app that doesn't really use any (external) resource, where caching info at a common place could make things a lot more efficient. Also in a real-world scenario where software is not developed and maintained by just one but multiple developers, this approach could make it a lot more time-consuming for other developers to understand the code written by one developer or vice-versa (I mean trying to find what is declared where and why).
+
+However, if you are just a single developer or maybe even a pair **(who is the owner of your his/her app)**, this approach could go really well and save a lot of time and make you focus on adding more features in the app from the perspective of it's real user. But however it would be great if you could just go through all the lessons a developer that has been following this approach has got to share, before taking any decision (eg. maintenance of the app...will you be able easily fix the bugs in that code in the future...is there a possibility that you could hand over the maintenance of the app in the future to some other developer(s) (that could charge a lot more extra or maybe even decline the request)...and so on)
+
+A small example for to represent the above approach,
+
+main.dart
+```
+import 'package:flutter/material.dart';
+import 'package:notifier_plugin/notifier_plugin.dart';
+
+void main() async => runApp(Example());
+
+// A simple stateless widget that has a TextField that dynamically updates the app bar title
+class Example extends StatelessWidget {
+  
+  @override
+  Widget build(BuildContext context) {
+    
+    ValNotifier<String> appName = ValNotifier<String>(initialVal: "Hello World!");
+    
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: appName - (v)=>Text(v),),
+        body: Center(child: TextField(onChanged: appName)),
+      ),
+    );
+    
+  }  
+}
+
+// Note: This code was only statically tested.
+```
+
+Now if I want to access this same value from another widget (keeping re-usability in mind),
+
+I'll declare it globally. If I want rely on some external resource whose one-time/real-time data could be needed across multiple widgets..I'll create a class for the same (but on the go)...That's the beauty of this approach.
+
+(Complete documentation will soon be added!)
 
 ## The magic of extension methods and operator overloading
 

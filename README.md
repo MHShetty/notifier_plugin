@@ -568,9 +568,21 @@ n.clearListeners(); // throws a StateError
 Tweening a ValNotifier? You mean those animation stuff? Yes.
 
 ```Dart
-ValNotifier v = ValNotifier();
+Widget build(BuildContext context) {
 
-valTest.performTween(IntTween(begin: Colors.red, end: Colors.green), Duration(seconds: 1)).then((value) => print("Animation completed!"));
+  ValNotifier bgColor = ValNotifier();
+
+  return Center(
+    child: GestureDetector(
+      onTap: () => bgColor.performTween(IntTween(begin: Colors.red, end: Colors.green), Duration(seconds: 3)),
+      child: bgColor - (c) => Container(
+        height: 100,
+        width:  100,
+        color:  c
+      ),
+    )
+  );
+}
 ```
 
 You can easily animate through a Tween of values as long as you have a Tween or can implement a class that extends and properly implements one.
@@ -684,51 +696,21 @@ Extension methods and operator overloading can do the work of creating an interf
 
 So all that remains now is to set up a back-end where you can manage your resources and decide when the UI should update and when not. Hmm!
 
-We could create a manage-able backend in two ways (the third one would be the best of the two worlds),
+We could create a manage-able backend in three ways,
 
-1. By just declaring variables or allocating resources as and when you need it (i.e. developing the app on the go, based on your raw requirements) (my old way),
+1. By just declaring variables or allocating resources as and when you need them (on-the-go approach)
 
-So in this approach, one just declares the variables **only** when (s)he needs to access them later and the scope of declaration directly depends upon where exactly is that variable is going to be used later. (a really minimalistic approach, probably even more than it is needed)
+2. By designing a global class to manage all your resources and data (makes sure that the entire back-end is visible and testable from one common area)
 
-This will look fine and in fact work great for an app that doesn't really use any (external) resource, where caching info at a common place could make things a lot more efficient. Also in a real-world scenario where software is not developed and maintained by just one but multiple developers, this approach could make it a lot more time-consuming for other developers to understand the code written by one developer or vice-versa (I mean trying to find what is declared where and why).
+3. By designing a global class with only what's needed to be globally accessible and restrict the others within the scope of usage (focuses on making each screen of the app testable at an induvidual level, which may (not) have any relation with the main back-end)
 
-However, if you are just a single developer or maybe even a pair **(who is the owner of your his/her app)**, this approach could go really well and save a lot of time and make you focus on adding more features in the app from the perspective of it's real user. But however it would be great if you could just go through all the lessons a developer that has been following this approach has got to share, before taking any decision (eg. maintenance of the app...will you be able easily fix the bugs in that code in the future...is there a possibility that you could hand over the maintenance of the app in the future to some other developer(s) (that could charge a lot more extra or maybe even decline the request)...and so on)
+### On-the-go approach
 
-A small example for to represent the above approach,
+Just as the name suggests, on-the-go approach focuses on directly implementing the logic of the app with a very raw plan (just what's needed to get started) and with a very minimalistic approach. For some this might seem like an improper way of doing things, but with the help of Flutter's hot reload, this is very much possible and an approach one can go with. For others, this might seem like a good and easy way to go, but you'll have to be ready to learn from your mistakes and keep everything that you learn in your mind for both the current and future project. The initial unit testing happens as soon as the code/a widget is designed and rendered (from both UI/UX and I/O perspective) and integration testing when two or more screens (widgets) are ready to connect. Documentation happens at a later stage and is used as one form of way to ensure that everything is implemented as per the user requirements and as documented. This approach might work great if the person who has the idea of developing a software is the developer itself or someone really close to that (experienced) developer and knows where things are supposed to end how can it be maintained in the future. However, if you are working for a software organization...this approach, might certainly look like an nightmare for you with a very high risk percentage and no accurate way to measure the costs until the software is developed (assuming the client is ready to co-operate to that extent). But irrespective of which approach you go with, this approach is surely the best way to learn and dive deep into Flutter. I have been using it since the very beginning and have loved it, since I love Flutter :) and this is probably the main reason for this plugin to exist today (minimalistic approach). I earnestly thank the Flutter team for all that they have done to make the lives of devs easier than ever.
 
-**main.dart**
-```Dart
-import 'package:flutter/material.dart';
-import 'package:notifier_plugin/notifier_plugin.dart';
+### The common-class approach
 
-void main() async => runApp(Example());
-
-// A simple stateless widget that has a TextField that dynamically updates the app bar title
-class Example extends StatelessWidget {
-  
-  @override
-  Widget build(BuildContext context) {
-    
-    ValNotifier<String> appName = ValNotifier<String>(initialVal: "Hello World!");
-    
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: appName - (v)=>Text(v),),
-        body: Center(child: TextField(onChanged: appName)),
-      ),
-    );
-    
-  }  
-}
-
-// Note: This code was only statically tested.
-```
-
-Now if I want to access this same value from another widget (keeping re-usability in mind),
-
-I'll declare it globally. If I want rely on some external resource whose one-time/real-time data could be needed across multiple widgets..I'll create a class for the same (but on the go)...That's the beauty of this approach.
-
-(Complete documentation will soon be added!)
+### The common-man's approach
 
 ## The magic of extension methods and operator overloading
 

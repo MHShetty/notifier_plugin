@@ -608,6 +608,76 @@ Extension methods and operator overloading
 )
 ```
 
+### Helper classes
+
+These classes might not directly be related to the plugin's title but they do make writing dynamic UI, easier with Flutter.
+
+#### 1. WFuture<T> (Not added to the plugin yet)
+
+Ever had some problem dealing with a resource that was loaded asynchronously or felt too lazy to write a similar `FutureBuilder` in different places of the app just to use the same resource (Future) multiple times? The **WFuture\<T>** and the extension method on **WFuture** and **Future** was written just for you!
+
+```
+WFuture<SharedPreferences> sp = WFuture<SharedPreferences>(SharedPreferences.getInstance(), onLoading: ()=>const SizedBox(), onError: (e)=>const SizedBox());
+
+// Some widget tree
+// [...]
+sp - (s) => Text(s.getString("userName")),
+// [...]
+sp - (s) => Text(s.getString("country"))
+```
+Note: `WFuture<T>` is a simple helper class. It isn't a `ValNotifier<T>`. If you want to dynamically reload a resource (async) multiple times, then please consider to `await` the generated/cached `Future<T>` in as async function/call then on it to pass the resultant value to the concerned ValNotifier. (A helper class for the same might be added later)
+
+Implementing the same while calling an extension method on `Future<T>`,
+
+```
+SharedPreferences.getInstance() - (s) {
+  if(s.hasData) return Text(s.data.getString("userName"));
+  if(s.hasError) return const SizedBox();
+  return const SizedBox();
+}
+
+SharedPreferences.getInstance() - (s) {
+  if(s.hasData) return Text(s.data.getString("country"));
+  if(s.hasError) return const SizedBox();
+  return const SizedBox();
+}
+
+// The reason why the helper class WFuture was designed!
+```
+
+You can re-use a WFuture as a Future by getting it through wFuture.future (just in case only one out of multiple UIs that use that resource 
+
+Also, another approach could be to load all the one-time async resource at the beginning while displaying a loader to the user and storing them in normal variables while writing the UI in such a way that those resources are always guaranteed to be loaded or have an work-around if they aren't.
+
+```Dart
+dynamic r1;
+dynamic r2;
+
+init() async{
+  r1 = await Future.value(1);
+  r2 = await Future.value(2);
+}
+
+class MyApp extends StatelessWidget {
+  
+  build(BuildContext _) {
+    
+    return MaterialApp(
+      home: FutureBuilder(
+        future: init(),
+        builder: (context,_){
+          if(_.hasData) return Scaffold(/*[...]*/);
+          return const SizedBox(); // replace this with a loader or something decent (you could even wrap the Scaffold around the FutureBuilder if needed)
+        }
+      ),
+    );
+    
+  }
+}
+
+// Note: This code was only statically tested. (I have some issue with my system...so that's the reason for this delay (I'm using dartpad.dev for now)
+```
+
 ## Notifier
 
 Instance method | Description
@@ -700,7 +770,7 @@ We could create a manage-able backend in three ways,
 
 1. By just declaring variables or allocating resources as and when you need them (on-the-go approach)
 
-2. By designing a global class to manage all your resources and data (makes sure that the entire back-end is visible and testable from one common area)
+2. By designing a global class (or file) to manage all your resources and data (makes sure that the entire back-end is visible and testable from one common area)
 
 3. By designing a global class with only what's needed to be globally accessible and restrict the others within the scope of usage (focuses on making each screen of the app testable at an induvidual level, which may (not) have any relation with the main back-end)
 
@@ -709,6 +779,47 @@ We could create a manage-able backend in three ways,
 Just as the name suggests, on-the-go approach focuses on directly implementing the logic of the app with a very raw plan (just what's needed to get started) and with a very minimalistic approach. For some this might seem like an improper way of doing things, but with the help of Flutter's hot reload, this is very much possible and an approach one can go with. For others, this might seem like a good and easy way to go, but you'll have to be ready to learn from your mistakes and keep everything that you learn in your mind for both the current and future project. The initial unit testing happens as soon as the code/a widget is designed and rendered (from both UI/UX and I/O perspective) and integration testing when two or more screens (widgets) are ready to connect. Documentation happens at a later stage and is used as one form of way to ensure that everything is implemented as per the user requirements and as documented. This approach might work great if the person who has the idea of developing a software is the developer itself or someone really close to that (experienced) developer and knows where things are supposed to end how can it be maintained in the future. However, if you are working for a software organization...this approach, might certainly look like an nightmare for you with a very high risk percentage and no accurate way to measure the costs until the software is developed (assuming the client is ready to co-operate to that extent). But irrespective of which approach you go with, this approach is surely the best way to learn and dive deep into Flutter. I have been using it since the very beginning and have loved it, since I love Flutter :) and this is probably the main reason for this plugin to exist today (minimalistic approach). I earnestly thank the Flutter team for all that they have done to make the lives of devs easier than ever.
 
 ### The common-class approach
+
+This approach follows the native development-like approach of separating the back-end and the UI of the app. While Flutter seems to have been developed with the intention of making the UI and back-end of the app available at a single place, there are certain objects that can be used for the entire life-time of the app dy declaring them statically/globally (eg. http.Client, (W)Future, ... or some data field that may be sync with a Notifier or a part of the ValNotifier). But in this approach, almost the entire data(/resources) and it's management is designed parallel to the UI of the app and is not embedded within those widgets. This might make it easier for another developer to understand how things are being managed internally (without actually running that app and checking every screen/widget tree) and could be used for static testing.
+
+Note: **common-class** does not mean that a common (non-static) class is declared but it was just an reference to how things are handled in native development. A common dart file is actually expected (that can imported in a file with a name; if needed). However a common class can be declared for the same. However, either it's instance would need to be used or all it's members would need to explicitly be declared static.
+
+The resources that are async being loaded can be done so in 3 ways,
+
+1. Whenever the user arrives to that screen
+
+In this approach the resource will only be loaded when the user arrives to that screen (and not before that). This usually happens when the Future is generated by an instance after the widget gets created (eg. when `initState` gets called). This prevents unwanted loading of resources (if the list of resources to be loaded is too long and might not anyways be used by the user). The UI is safely written with the help of a `FutureBuilder`. (`Loader()`/`ErrorWidget(e)`/`MainWidget()`)
+
+Example: Here the Future only comes into existence for completion once the method is called (assuming the method doesn't return a completed Future)
+```
+FutureBuilder(
+  future: getMyNewFuture(),
+  builder: (c,s){
+    if(s.hasData) return Text(s.data.toString());
+    if(s.hasError) return Text(s.error.toString());
+    return const SizedBox(); // CircularProgressIndicator()
+  }
+)
+```
+
+2. Get all the resources at the beginning, before the user actually gets to use the app 
+
+In this approach, all the static resources that need to be loaded async are loaded and stored in normal variables at the very beginning and then, the rest of the UI is written as though they were always there. This might introduce a variable amount of delay at the beginning and may not be good for UX, unless you have something really mesmerizing to show until then. This makes it easier to write the UI and you don't have you have to think about real-time stuff, all you need to do is just write the code! Using this approach is a bit rigid, but is the only good way out in certain applications. You'll need to handle what needs to be done if a resource is unable, eg. unable to fetch some data over the network due to connectivity issues...will you load the resource at a later stage...or do you want to just tell the user that you can't move ahead and maybe here is something we have got from your last session or had requested for when we are unable to connect (Youtube downloads) and then use the connectivity plugin to wait to notify the user until some network change is detected (that could help) and if the resource gets loaded then prompt the user to proceed to the main app else wait for another change.
+
+3. Try loading the resources at the beginning, we always have an UI for backup, just in case if the resource isn't ready to use (The Flutter way) (Has extra boiler-plate code which can be avoided with the help of `WFuture` class and the extension method used on it) 
+
+**storage.dart**
+```
+String appName = "Hello World";
+
+WFuture<SharedPreferences> sp = WFuture<SharedPreferences>(SharedPreferences.getInstance(), onLoading: ()=>const SizedBox());
+
+
+
+init() async {
+
+}
+```
 
 ### The common-man's approach
 

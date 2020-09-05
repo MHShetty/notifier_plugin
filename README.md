@@ -804,31 +804,65 @@ FutureBuilder(
 
 2. Get all the resources at the beginning, before the user actually gets to use the app 
 
-In this approach, all the static resources that need to be loaded async are loaded and stored in normal variables at the very beginning and then, the rest of the UI is written as though they were always there. This might introduce a variable amount of delay at the beginning and may not be good for UX, unless you have something really mesmerizing to show until then. This makes it easier to write the UI and you don't have you have to think about real-time stuff, all you need to do is just write the code! Using this approach is a bit rigid, but is the only good way out in certain applications. You'll need to handle what needs to be done if a resource is unable, eg. unable to fetch some data over the network due to connectivity issues...will you load the resource at a later stage...or do you want to just tell the user that you can't move ahead and maybe here is something we have got from your last session or had requested for when we are unable to connect (Youtube downloads) and then use the connectivity plugin to wait to notify the user until some network change is detected (that could help) and if the resource gets loaded then prompt the user to proceed to the main app else wait for another change.
+In this approach, all the static (one-time) resources that need to be loaded async are loaded and stored in normal variables at the very beginning and then, the rest of the UI is written as though they were always there. This might introduce a variable amount of delay at the beginning and may not be good for UX, unless you have something really mesmerizing to show until then. This makes it easier to write the UI and you don't have you have to think about real-time stuff, all you need to do is just write the code! Using this approach is a bit rigid, but is the only good way out in certain applications. You'll need to handle what needs to be done if a resource is unable, eg. unable to fetch some data over the network due to connectivity issues...will you load the resource at a later stage...or do you want to just tell the user that you can't move ahead and maybe here is something we have got from your last session or had requested for when we are unable to connect (Youtube downloads) and then use the connectivity plugin to wait to notify the user until some network change is detected (that could help) and if the resource gets loaded then prompt the user to proceed to the main app else wait for another change.
 
 3. Try loading the resources at the beginning, we always have an UI in backup just in case if the resource isn't ready to use (The Flutter way) 
 
-This approach is probably the best way to go around things, but it often has a lot of boiler-plate code to be written (for a good reason - handling every possible situation)
+This approach is probably the best way to go around things, but it often has a lot of boiler-plate code to be written (to tell Flutter what widget should be rendered in each case)
 
 Even if we can't entirely reduce the need to write some code for the same to null (until needed), but we can surely create a helper class and use extension methods to reduce repetitive code, if the same pattern is used in multiple places with the help of the `WFuture<T>` helper class.
 
-It accepts a Future and optionally accepts a function that returns a widget to be rendered onLoading and onError.
-How do we use it?
+It accepts a Future and optionally accepts a function that returns a widget to be rendered onLoading and one for onError. One could use operator - to pass a function that accepts the completed data of the Future and returns the Widget to be rendered on success, based on it.
 
-By using the operator - to pass a function that accepts the completed data of the Future and returns the Widget to be rendered on success, based on it.
-
-**storage.dart**
 ```
-String appName = "Hello World";
+WFuture<SharedPreferences> sp = WFuture(SharedPreferences.getInstance(), onLoading: ()=>const SizedBox(), onError: (e) => const SizedBox());
 
-WFuture<SharedPreferences> sp = WFuture<SharedPreferences>(SharedPreferences.getInstance(), onLoading: ()=>const SizedBox());
+class HelloWorld extends StatelessWidget {
 
-init() async {
-
+ build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: sp - (s) => Text(s.toString()),
+      ),
+    );
+ }
 }
 ```
 
 ### The common-man's approach
+
+> Common man's approach is mainly a mixture of the other two approaches and hence the concepts and principles of both those classes can be used here (except for that things need to be pre-planned as per the given requirements in this case)
+
+The common-man's approach believes in keeping data/resource that is **specific** to a screen within the scope of it's **class** and creating class(es) for the resource/data that can/needs to be common for all classes (either for efficiency (avoid redundancy or reloading of heavy resources) or simply because it sounds more correct to do so). This ensures that every screen is testable as a separate component that may or may not depend on one/multiple classes  to access some common data/resource. Notifiers can be used to connect the data to the widgets in real-time (eg. A (static) ValNotifier could be used to store an value and simple (static) getters and setters could abstract the process of updating that value; The ValNotifier can then be attached to any widget that needs to update in real-time, i.e. whenever the value changes).
+
+Separate classes should only be made when there is possibility of caching or re-usability, else a common class/file is expected for all the objects/data/resources. (One can differ to make the code more descriptive at the cost of the complexity it would introduce)
+
+Example:
+
+**storage.dart**
+```
+import 'package:http/http.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+ValNotifier _todos = ValNotifier(initialVal: []);
+
+// Note: The below two methods can be avoided if you are fine with directly using _todos.val to get and _todos(val) to update the value. (_todos -> todos + Specify type<>)
+List<String> get todos => _todos.val;
+set todos(String todos){_todos(todos);} 
+
+const String appName = "Hello World";
+
+// Common (async) resource
+WFuture<SharedPreferences> sp = WFuture(SharedPreferences.getInstance()); // acts as a cache
+
+// Common (sync) resource
+Client client = Client(); // A client that can perform http requests
+
+WFuture<String> someStaticInfo = WFuture(client.read("https://www.google.com/"));
+
+// Note: This code was statically tested (my personal system is still down...)
+```
+
 
 ## The magic of extension methods and operator overloading
 

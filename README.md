@@ -616,7 +616,7 @@ These classes might not directly be related to the plugin's title but they do ma
 
 Ever had some problem dealing with a resource that was loaded asynchronously or felt too lazy to write a similar `FutureBuilder` in different places of the app just to use the same resource (Future) multiple times? The **WFuture\<T>** and the extension method on **WFuture** and **Future** was written just for you!
 
-```
+```Dart
 WFuture<SharedPreferences> sp = WFuture<SharedPreferences>(SharedPreferences.getInstance(), onLoading: ()=>const SizedBox(), onError: (e)=>const SizedBox());
 
 // Some widget tree
@@ -629,7 +629,7 @@ Note: `WFuture<T>` is a simple helper class. It isn't a `ValNotifier<T>`. If you
 
 Implementing the same while calling an extension method on `Future<T>`,
 
-```
+```Dart
 SharedPreferences.getInstance() - (s) {
   if(s.hasData) return Text(s.data.getString("userName"));
   if(s.hasError) return const SizedBox();
@@ -778,9 +778,9 @@ We could create a manage-able backend in three ways,
 
 Just as the name suggests, on-the-go approach focuses on directly implementing the logic of the app with a very raw plan (just what's needed to get started) and with a very minimalistic approach. For some this might seem like an improper way of doing things, but with the help of Flutter's hot reload, this is very much possible and an approach one can go with. For others, this might seem like a good and easy way to go, but you'll have to be ready to learn from your mistakes and keep everything that you learn in your mind for both the current and future project. The initial unit testing happens as soon as the code/a widget is designed and rendered (from both UI/UX and I/O perspective) and integration testing when two or more screens (widgets) are ready to connect. Documentation happens at a later stage and is used as one form of way to ensure that everything is implemented as per the user requirements and as documented. This approach might work great if the person who has the idea of developing a software is the developer itself or someone really close to that (experienced) developer and knows where things are supposed to end how can it be maintained in the future. However, if you are working for a software organization...this approach, might certainly look like an nightmare for you with a very high risk percentage and no accurate way to measure the costs until the software is developed (assuming the client is ready to co-operate to that extent). But irrespective of which approach you go with, this approach is surely the best way to learn and dive deep into Flutter. I have been using it since the very beginning and have loved it, since I love Flutter :) and this is probably the main reason for this plugin to exist today (minimalistic approach). I earnestly thank the Flutter team for all that they have done to make the lives of devs easier than ever.
 
-### The common-class approach (Needs to be complete)
+### The common-class approach
 
-This approach follows the native development-like approach of separating the back-end and the UI of the app. While Flutter seems to have been developed with the intention of making the UI and back-end of the app available at a single place, there are certain objects that can be used for the entire life-time of the app dy declaring them statically/globally (eg. http.Client, (W)Future, ... or some data field that may be sync with a Notifier or a part of the ValNotifier). But in this approach, almost the entire data(/resources) and it's management is designed parallel to the UI of the app and is not embedded within those widgets. This might make it easier for another developer to understand how things are being managed internally (without actually running that app and checking every screen/widget tree) and could be used for static testing.
+This approach follows the native development-like approach of separating the back-end and the UI of the app. While Flutter seems to have been developed with the intention of making the UI and back-end of the app available at a single place, there are certain objects that can be used for the entire life-time of the app dy declaring them statically/globally (eg. http.Client, (W)Future, ... or some data field that may be sync with a Notifier or a part of the ValNotifier). But in this approach, almost the entire data(/resources) and it's management is designed parallel to the UI of the app and declaring data fields (not the once used for animation/internal state of a widget) and functions that deal with those fields/get info from some (external) resource is avoided. This might make it easier for the reader/tester to understand how things are being managed internally (without actually running that app and checking the code every screen/widget tree) and could be used for static testing.
 
 Note: **common-class** does not mean that a common (non-static) class is declared but it was just an reference to how things are handled in native development. A common dart file is actually expected (that can imported in a file with a name; if needed). However a common class can be declared for the same. However, either it's instance would need to be used or all it's members would need to explicitly be declared static.
 
@@ -791,7 +791,7 @@ The resources that are async being loaded can be done so in 3 ways,
 In this approach the resource will only be loaded when the user arrives to that screen (and not before that). This usually happens when the Future is generated by an instance after the widget gets created (eg. when `initState` gets called). This prevents unwanted loading of resources (if the list of resources to be loaded is too long and might not anyways be used by the user). The UI is safely written with the help of a `FutureBuilder`. (`Loader()`/`ErrorWidget(e)`/`MainWidget()`)
 
 Example: Here the Future only comes into existence for completion once the method is called (assuming the method doesn't return a completed Future)
-```
+```Dart
 FutureBuilder(
   future: getMyNewFuture(),
   builder: (c,s){
@@ -814,7 +814,7 @@ Even if we can't entirely reduce the need to write some code for the same to nul
 
 It accepts a Future and optionally accepts a function that returns a widget to be rendered onLoading and one for onError. One could use operator - to pass a function that accepts the completed data of the Future and returns the Widget to be rendered on success, based on it.
 
-```
+```Dart
 WFuture<SharedPreferences> sp = WFuture(SharedPreferences.getInstance(), onLoading: ()=>const SizedBox(), onError: (e) => const SizedBox());
 
 class HelloWorld extends StatelessWidget {
@@ -840,9 +840,11 @@ Separate classes should only be made when there is possibility of caching or re-
 Example:
 
 **storage.dart**
-```
+```Dart
 import 'package:http/http.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+const String appName = "Hello World";
 
 ValNotifier _todos = ValNotifier(initialVal: []);
 
@@ -850,19 +852,21 @@ ValNotifier _todos = ValNotifier(initialVal: []);
 List<String> get todos => _todos.val;
 set todos(String todos){_todos(todos);} 
 
-const String appName = "Hello World";
-
-// Common (async) resource
-WFuture<SharedPreferences> sp = WFuture(SharedPreferences.getInstance()); // acts as a cache
-
 // Common (sync) resource
 Client client = Client(); // A client that can perform http requests
 
-WFuture<String> someStaticInfo = WFuture(client.read("https://www.google.com/"));
+// Common (async) resource
+WFuture<SharedPreferences> sp = WFuture(SharedPreferences.getInstance());
+
+// Common (async) resource
+WFuture<String> someStaticInfo = WFuture(client.read("https://www.google.com/")); // http.Client supports other type of requests too!
 
 // Note: This code was statically tested (my personal system is still down...)
 ```
 
+Now this class can be imported wherever these common resources need to be accessed (memory allocation for all of them would only happen once).
+
+> Apart from the above mentioned approaches one could develop and even publish his/her own approach to achieve state management with this plugin, that may/may not be related to the above approaches.
 
 ## The magic of extension methods and operator overloading
 

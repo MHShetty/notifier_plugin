@@ -969,6 +969,8 @@ class ExampleApp extends StatelessWidget {
           builder: (c,s){
               if(s.hasData) return s.data?Login():MainApp();
               return Center(child: MyLoader(),);
+              // Now the rest the app will be written as though those resources were sync loaded
+              // However dynamic/real-time resources will still need (Val/Http)Notifier/Stream/Future
           },
         ),
       ),

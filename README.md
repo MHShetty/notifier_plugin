@@ -912,7 +912,9 @@ FutureBuilder(
 
 In this approach, all the static (one-time) resources that need to be loaded async are loaded and stored in normal variables at the very beginning and then, the rest of the UI is written as though they were always there. This might introduce a variable amount of delay at the beginning and may not be good for UX, unless you have something really mesmerizing to show until then. This makes it easier to write the UI and you don't have you have to think about real-time stuff, all you need to do is just write the code! Using this approach is a bit rigid, but is the only good way out in certain applications. You'll need to handle what needs to be done if a resource is unable, eg. unable to fetch some data over the network due to connectivity issues...will you load the resource at a later stage...or do you want to just tell the user that you can't move ahead and maybe here is something we have got from your last session or had requested for when we are unable to connect (Youtube's download section) and then use the connectivity plugin to wait to notify the user until some network change is detected (that could help) and if the resource gets loaded then prompt the user to proceed to the main app else wait for another change.
 
-**storage.dart** (A example with random variables)
+An example with random variables
+
+**storage.dart**
 ```Dart
 // [...]
 
@@ -920,15 +922,20 @@ SharedPreferences s;
 int points = 0;
 String version; // Can be used to display it in some screen
 Client client = Client();
+Firebase 
 
-// Re-usability: If the function returns false
 Future<bool> init() async{
   s = await SharedPreferences.getInstance();
-  Map data = json.decode(client.read(someFixedLink));
+  Map data = json.decode(await client.read(someLink));
   version = data["version"];
   points = data["points"];
-  if(s.containsKey("version")) return s.getString("version")==version;
-  await s.setString("version");
+  // Check for user status, etc. or literally anything else that is async and needs to be done at the start.
+  // Return whatever information is needed to render the widgets accordingly
+  // eg. the function could return true if internet connection exists or false if it doesn't
+  // or even a complex object that consists of information that does not necessarily need to be stored 
+  // but can be used to render the widgets in a more meaningful way.
+  // Quick Tip: You could return a List, instead of designing a class to return multiple values.
+  // eg. return ["Hello", true, aVariable, null, ...]; // Use fixed indexes to access the right value
   return true;
 }
 // [...]
@@ -936,7 +943,30 @@ Future<bool> init() async{
 
 **main.dart**
 ```Dart
+import 'package:flutter/material.dart';
+import 'storage.dart';
 
+class ExampleApp extends StatelessWidget {
+
+  Notifier n = Notifier(); // Can be used to restart the app
+
+  Widget build(BuildContext context) {
+
+    // Some code to listen to network changes and uses `n` to update the UI
+
+    return n - MaterialApp(
+      home: Scaffold(
+        body: FutureBuilder(
+          future: init(),
+          builder: (c,s){
+              if(s.hasData) return s.data?Login():MainApp();
+              return Center(child: MyLoader(),);
+          },
+        ),
+      ),
+    );
+  }
+}
 ```
 
 3. Try loading the resources at the beginning, we always have an UI in backup just in case if the resource isn't ready to use (The Flutter way) 

@@ -794,15 +794,18 @@ Summarizing the things that you need to remember while using this approach,
 
 ### The common-class approach
 
-This approach follows the native development-like approach of separating the back-end and the UI of the app. While Flutter seems to have been developed with the intention of making the UI and back-end of the app available at a single place, there are certain objects that can be used for the entire life-time of the app dy declaring them statically/globally (eg. http.Client, (W)Future, ... or some data field that may be sync with a Notifier or a part of the ValNotifier). But in this approach, almost the entire data(/resources) and it's management is designed parallel to the UI of the app and declaring data fields (not the once used for animation/the internal state of a widget) and functions that deal with those fields/get info from some (external) resource is avoided. This might make it easier for the reader/tester to understand how things are being managed internally (without actually running that app and checking the code every screen/widget tree) and could be used for static testing.
+This approach follows the native development-like approach of separating the back-end and the UI of the app. While Flutter seems to have been developed with the intention of making the UI and back-end of the app available at a single place, there are certain objects that can be used for the entire life-time of the app dy declaring them statically/globally (eg. http.Client, (W)Future, ... or some data field that may be sync with a Notifier or a part of the ValNotifier). But in this approach, almost the entire data(/resources) and it's management is designed parallel to the UI of the app and declaring data fields (not the once used for animation/the internal state of a widget) and functions that deal with those fields/get info from some (external) resource within the classes that extend Widget is avoided. This might make it easier for the reader/tester to understand how things are being managed internally (without actually running that app and checking every screen/widget tree) and could be used for static testing.
 
 Note: **common-class** does not mean that a common class is declared but it was just an reference to how things are handled in native development (through multiple classes). A **common** dart file is actually expected (that can imported with a name; if needed).
 
-An example of an common storage file,
+An example of an common storage file (that contains different approaches of designing an interface of the back-end),
 
 **storage.dart**
 ```Dart
+
 const String appName = "Hello World";
+
+// Note: One does not need to stick to a single approach while designing the backend
 
 /// Class based approach
 class Todos extends ValNotifier<List<String>>
@@ -918,12 +921,16 @@ An example with random variables
 ```Dart
 // [...]
 
+/// Sync resources/data fields
 SharedPreferences s;
 int points = 0;
-String version; // Can be used to display it in some screen
-Client client = Client();
-Firebase 
+String version; 
 
+final Client client = Client();
+final FirebaseAuth auth = FirebaseAuth.instance;
+User user;
+
+/// Method that loads [all] the async resources as sync
 Future<bool> init() async{
   s = await SharedPreferences.getInstance();
   Map data = json.decode(await client.read(someLink));
@@ -938,6 +945,7 @@ Future<bool> init() async{
   // eg. return ["Hello", true, aVariable, null, ...]; // Use fixed indexes to access the right value
   return true;
 }
+
 // [...]
 ```
 

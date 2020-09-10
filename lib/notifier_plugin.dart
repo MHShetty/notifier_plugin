@@ -16,4 +16,7 @@ part 'src/notification_builder.dart';
 /// Contains different Notifier(s) and extensions
 part 'src/notifier.dart';
 
+/// Contains different helper classes and extension methods that makes writing code and developing logic easier.
+part 'src/helper.dart';
+
 //const dynamic _noArgs = const Object();

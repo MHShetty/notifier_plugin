@@ -163,14 +163,14 @@ class MultiNotificationBuilder extends StatefulWidget {
 
   final Iterable<Notifier> notifier;
   final Widget Function(BuildContext, Notifier) builder;
-  final bool disposeNotifier;
+  final bool disposeNotifiers;
   final bool Function() canRebuild;
 
   const MultiNotificationBuilder({
     @required this.notifier,
     @required this.builder,
     this.canRebuild,
-    this.disposeNotifier,
+    this.disposeNotifiers,
     Key key})
       :
     assert(notifier != null),
@@ -199,8 +199,7 @@ class _MultiNotificationBuilderState extends State<MultiNotificationBuilder> {
 
   void dispose() {
     widget.notifier.removeListener(this._setState);
-    if (widget.disposeNotifier != null && widget.disposeNotifier) widget
-        .notifier.dispose();
+    if (widget.disposeNotifiers != null && widget.disposeNotifiers) widget.notifier.dispose();
     notifiers = null;
     super.dispose();
   }
@@ -219,10 +218,11 @@ class _MultiNotificationBuilderState extends State<MultiNotificationBuilder> {
 
 /// ValNotificationBuilder<T> widget
 class ValNotificationBuilder<T> extends StatefulWidget {
+
   final ValNotifier<T> notifier;
-  final Widget Function(BuildContext, T val) builder;
+  final Widget Function(BuildContext, T) builder;
   final bool disposeNotifier;
-  final bool Function(T val) canRebuild;
+  final bool Function(T) canRebuild;
 
   const ValNotificationBuilder({
     @required this.notifier,
@@ -237,6 +237,7 @@ class ValNotificationBuilder<T> extends StatefulWidget {
 
   createState() => _ValNotificationBuilderState<T>();
 }
+
 
 class _ValNotificationBuilderState<T> extends State<ValNotificationBuilder<T>> {
 

@@ -5,12 +5,22 @@ import 'package:notifier_plugin/notifier_plugin.dart';
 void main() async => runApp(TestApp());
 
 class TestApp extends StatelessWidget {
-  @override
+
+  TimedNotifier t = TimedNotifier(tickOnStart: true);
+  Notifier n = Notifier()..addListener(print);
+
   Widget build(BuildContext context) {
+
+    // print(t.elapsedDuration);
+    print(t.dispose());
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-//      showPerformanceOverlay: true,
-      home: TestScaffold1(),
+      home: SafeArea(
+        child: Scaffold(
+          // body: ListView.itemBuilder,
+        ),
+      ),
     );
   }
 }
@@ -38,8 +48,6 @@ class _TestScaffold1State extends State<TestScaffold1> {
         body: Column(
           children: [
             CupertinoTextField(
-                inputFormatters: [
-                ],
                 onSubmitted: (url) async {
               try {
                 url = url.replaceAll(' ', '');
@@ -68,12 +76,12 @@ class _TestScaffold1State extends State<TestScaffold1> {
   }
 }
 
-class TestScaffold0 extends StatefulWidget {
+class TestScaffold0 extends StatefulWidget
+{
   _TestScaffoldState0 createState() => _TestScaffoldState0();
 }
 
-class _TestScaffoldState0 extends State<TestScaffold0>
-    with TickerProviderStateMixin {
+class _TestScaffoldState0 extends State<TestScaffold0> with TickerProviderStateMixin {
   Notifier test;
   ValNotifier<Color> valTest;
   double a = 0;
@@ -85,6 +93,7 @@ class _TestScaffoldState0 extends State<TestScaffold0>
   }
 
   Widget build(BuildContext context) {
+
     return valTest -
         () => Scaffold(
             backgroundColor: valTest.val,

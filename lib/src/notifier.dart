@@ -66,11 +66,9 @@ class Notifier extends Iterable<Notifier> {
   /// whenever it receives a notification. In order to [attach] multiple notifiers to the current [Notifier] use
   /// [attachAll]. The notifier will remained attached as long as it exists as one of the current [Notifier]'s listeners.
   bool attach(Notifier notifier) {
-    assert(notifier != null,
-        "You are trying to attach null to Notifier#$hashCode.");
-    assert(notifier != this,
-        "\nPlease make sure that you don't attach the Notifier to itself, as it would lead to an Stack Overflow error whenever the Notifier gets notified.\n");
-    assert(isListeningTo(this));
+    assert(notifier != null, "You are trying to attach null to Notifier#$hashCode.\n");
+    assert(notifier != this, "Please make sure that you don't attach the Notifier to itself, as it would lead to an Stack Overflow error whenever the Notifier gets notified.\n");
+    assert(!this.isListeningTo(notifier), "Cross-attaching two notifiers is highly not recommended as it would lead to an endless cycle of notifier calls between the two notifiers until a Stack Overflow Error is finally thrown by the VM.\n\nYou could either merge() the two notifiers to create a new notifier that holds the listeners of both the notifiers (you'll have to maintain the newly created notifier separately)\n\nor\n\nIf you want to notify both/all the Notifiers while separately maintaining them create a List of them then notify that list as per your requirements.\n");
     return _attach(notifier);
   }
 
@@ -114,32 +112,27 @@ class Notifier extends Iterable<Notifier> {
 //      notifiers
 //          ?.map((notifier) => notifier.attach(attachments).elementAt(0))
 //          ?.toList();
-  bool isAttachedTo(Notifier notifier) =>
-      _isNotDisposed ? _isAttachedTo(notifier) : null;
+  bool hasAttached(Notifier notifier) =>
+      _isNotDisposed ? _hasAttached(notifier) : null;
 
-  bool _isAttachedTo(Notifier notifier) {
-    for (Function listener in _listeners)
-      // ignore: unrelated_type_equality_checks
-      if (notifier == listener) return true;
-    return false;
-  }
+  bool _hasAttached(Notifier notifier) => _listeners.containsEitherComp(notifier);
 
-  Iterable<bool> isAttachedToThese(Iterable<Notifier> notifiers) =>
-      _isNotDisposed ? _isAttachedToThese(notifiers) : null;
+  Iterable<bool> hasAttachedThese(Iterable<Notifier> notifiers) =>
+      _isNotDisposed ? _hasAttachedThese(notifiers) : null;
 
-  Iterable<bool> _isAttachedToThese(Iterable<Notifier> notifiers) =>
-      notifiers?.map(_isAttachedTo)?.toList();
+  Iterable<bool> _hasAttachedThese(Iterable<Notifier> notifiers) =>
+      notifiers?.map(_hasAttached)?.toList();
 
-  bool isAttachedToAll(Iterable<Notifier> notifiers) =>
-      _isNotDisposed ? _isAttachedToAll(notifiers) : null;
+  bool hasAttachedAll(Iterable<Notifier> notifiers) =>
+      _isNotDisposed ? _hasAttachedAll(notifiers) : null;
 
-  bool _isAttachedToAll(Iterable<Notifier> notifiers) {
+  bool _hasAttachedAll(Iterable<Notifier> notifiers) {
     for (Notifier notifier in notifiers)
-      if (!_isAttachedTo(notifier)) return false;
+      if (!_hasAttached(notifier)) return false;
     return true;
   }
 
-//  Iterable<bool> isNotAttachedTo(Iterable<Notifier> notifier)=>isAttachedTo(notifier).notAll();
+//  Iterable<bool> isNotAttachedTo(Iterable<Notifier> notifier)=>hasAttached(notifier).notAll();
   bool detach(Notifier notifier) => _isNotDisposed ? _detach(notifier) : null;
 
   bool _detach(Notifier notifier) =>
@@ -160,7 +153,7 @@ class Notifier extends Iterable<Notifier> {
 //  => notifiers?.map((notifier) => notifier.detach(attachment));
 //  static Iterable<Iterable<bool>> listDetachNotifiersOf(
 //          Iterable<Notifier> notifiers, Iterable<Notifier> attachments) =>
-//      notifiers?.map((notifier) => notifier.detach(attachments));
+// //      notifiers?.map((notifier) => notifier.detach(attachments));
   bool startListeningTo(Notifier notifier) {
     assert(notifier != null,
         "Notifier#$hashCode: A notifier cannot start listening to null.");
@@ -185,11 +178,11 @@ class Notifier extends Iterable<Notifier> {
   bool isListeningTo(Notifier notifiers) =>
       _isNotDisposed ? _isListeningTo(notifiers) : null;
 
-  bool _isListeningTo(Notifier notifiers) =>
-      notifiers?._isAttachedTo(notifiers);
+  bool _isListeningTo(Notifier notifier) =>
+      notifier?._hasAttached(this);
 
   Iterable<bool> isListeningToAll(Iterable<Notifier> notifiers) =>
-      notifiers?.isAttachedTo(notifiers);
+      notifiers?.hasAttached(this);
 
   bool init({
     Iterable<Notifier> attachNotifiers,
@@ -233,10 +226,8 @@ class Notifier extends Iterable<Notifier> {
   /// Adds a listener to the [Notifier] and returns the listener's [hashCode] if successfully added else returns [null].
   ///
   /// The [hashCode] can then be used to uniquely [notify] the listener using the [notifyListener] method.
-  int addListener(Function listener) =>
-      _isNotDisposed && !_listeners.contains(listener)
-          ? _addListener(listener)
-          : null;
+  int addListener(Function listener) => _isNotDisposed && !_listeners.containsEitherComp(listener)
+      ? _addListener(listener) : null;
 
   int _addListener(Function listener) {
     if (listener == null) return null;
@@ -512,10 +503,10 @@ class Notifier extends Iterable<Notifier> {
   /// using the hashCode getter on that variable.
   ///
   /// If the passed [hashCode] doesn't match any of the listener's hashCode then the
-  bool callByHashCode(int hashCode) =>
-      _isNotDisposed ? _callByHashCode(hashCode) : null;
+  bool notifyByHashCode(int hashCode) =>
+      _isNotDisposed ? _notifyByHashCode(hashCode) : null;
 
-  bool _callByHashCode(int hashCode) {
+  bool _notifyByHashCode(int hashCode) {
     Function _ = _listeners.firstWhere(
         (listener) => listener.hashCode == hashCode,
         orElse: () => null);
@@ -524,11 +515,11 @@ class Notifier extends Iterable<Notifier> {
     return true;
   }
 
-  Iterable<bool> callByHashCodes(Iterable<int> hashCodes) =>
-      _isNotDisposed ? _callByHashCodes(hashCodes) : null;
+  Iterable<bool> notifyByHashCodes(Iterable<int> hashCodes) =>
+      _isNotDisposed ? _notifyByHashCodes(hashCodes) : null;
 
-  Iterable<bool> _callByHashCodes(Iterable<int> hashCodes) =>
-      hashCodes?.map(_callByHashCode)?.toList();
+  Iterable<bool> _notifyByHashCodes(Iterable<int> hashCodes) =>
+      hashCodes?.map(_notifyByHashCode)?.toList();
 
   int get numberOfListeners => _listeners.length;
 
@@ -624,10 +615,10 @@ extension Iterable_Notifier on Iterable<Notifier> {
       map((notifier) => notifier.attach(attachments)).toList();
   Iterable<Iterable<bool>> attachAll(Iterable<Notifier> notifiers) =>
       map((notifier) => notifier._attachAll(notifiers)).toList();
-  Iterable<bool> isAttachedTo(Notifier notifier) =>
-      map((n) => n?.isAttachedTo(notifier)).toList();
-  Iterable<bool> isAttachedToAll(Iterable<Notifier> notifiers) =>
-      map((n) => n?.isAttachedToAll(notifiers)).toList();
+  Iterable<bool> hasAttached(Notifier notifier) =>
+      map((n) => n?.hasAttached(notifier)).toList();
+  Iterable<bool> hasAttachedAll(Iterable<Notifier> notifiers) =>
+      map((n) => n?.hasAttachedAll(notifiers)).toList();
   Iterable<bool> detach(Notifier attachment) =>
       map((notifier) => notifier?.detach(attachment)).toList();
   Iterable<Iterable<bool>> detachAll(Iterable<Notifier> attachments) =>
@@ -652,10 +643,10 @@ extension Iterable_Notifier on Iterable<Notifier> {
       map((notifier) => notifier.removeListener(listener)).toList();
   Iterable<Iterable<bool>> removeListeners(Iterable<Function> listeners) =>
       map((n) => n?.removeListeners(listeners)).toList();
-  Iterable<bool> callByHashCode(int hashCode) =>
-      map((n) => n?.callByHashCode(hashCode)).toList();
-  Iterable<Iterable<bool>> callByHashCodes(Iterable<int> hashCodes) =>
-      map((n) => n?.callByHashCodes(hashCodes)).toList();
+  Iterable<bool> notifyByHashCode(int hashCode) =>
+      map((n) => n?.notifyByHashCode(hashCode)).toList();
+  Iterable<Iterable<bool>> notifyByHashCodes(Iterable<int> hashCodes) =>
+      map((n) => n?.notifyByHashCodes(hashCodes)).toList();
   Iterable<bool> removeListenerByHashCode(int hashCode) =>
       map((n) => n?.removeListenerByHashCode(hashCode)).toList();
   Iterable<Iterable<bool>> removeListenersByHashCodes(
@@ -682,13 +673,13 @@ extension Iterable_Notifier on Iterable<Notifier> {
       _atomicTest("attachAll")
           ? map((notifier) => notifier._attachAll(notifiers)).toList()
           : null;
-  Iterable<bool> isAttachedToAtomic(Notifier notifier) =>
-      _atomicTest("isAttachedTo")
-          ? map((n) => n._isAttachedTo(notifier)).toList()
+  Iterable<bool> hasAttachedAtomic(Notifier notifier) =>
+      _atomicTest("hasAttached")
+          ? map((n) => n._hasAttached(notifier)).toList()
           : null;
-  Iterable<bool> isAttachedToAllAtomic(Iterable<Notifier> notifiers) =>
-      _atomicTest("isAttachedToAll")
-          ? map((n) => n._isAttachedToAll(notifiers)).toList()
+  Iterable<bool> hasAttachedAllAtomic(Iterable<Notifier> notifiers) =>
+      _atomicTest("hasAttachedAll")
+          ? map((n) => n._hasAttachedAll(notifiers)).toList()
           : null;
   Iterable<bool> detachAtomic(Notifier attachment) =>
       _atomicTest("detach") ? map((n) => n._detach(attachment)).toList() : null;
@@ -736,13 +727,13 @@ extension Iterable_Notifier on Iterable<Notifier> {
       _atomicTest("removeListeners")
           ? map((n) => n._removeListeners(listeners)).toList()
           : null;
-  Iterable<bool> callByHashCodeAtomic(int hashCode) =>
-      _atomicTest("callByHashCode")
-          ? map((n) => n._callByHashCode(hashCode)).toList()
+  Iterable<bool> notifyByHashCodeAtomic(int hashCode) =>
+      _atomicTest("notifyByHashCode")
+          ? map((n) => n._notifyByHashCode(hashCode)).toList()
           : null;
-  Iterable<Iterable<bool>> callByHashCodesAtomic(Iterable<int> hashCodes) =>
-      _atomicTest("callByHashCodes")
-          ? map((n) => n._callByHashCodes(hashCodes)).toList()
+  Iterable<Iterable<bool>> notifyByHashCodesAtomic(Iterable<int> hashCodes) =>
+      _atomicTest("notifyByHashCodes")
+          ? map((n) => n._notifyByHashCodes(hashCodes)).toList()
           : null;
   Iterable<bool> removeListenerByHashCodeAtomic(int hashCode) =>
       _atomicTest("removeListenerByHashCode")
@@ -951,56 +942,6 @@ class ValNotifier<T> extends Notifier {
     _val = null;
   }
 }
-
-class SelfNotifier extends ValNotifier {
-  get val => this;
-  void _call(Function listener) =>
-      listener is Function(Notifier) ? listener(this) : listener();
-}
-
-//class TimedNotifier extends Notifier{
-//  Timer _;
-//  TimedNotifier(
-//      {
-//        Duration tickAfter,
-//        Iterable<Notifier> attachNotifiers,
-//        Iterable<Notifier> listenToNotifiers,
-//        Iterable<Notifier> mergeNotifiers,
-//        Iterable<Function> initialListeners,
-//        bool Function(Error) removeListenerOnError,
-//      }) : super(
-//        attachNotifiers: attachNotifiers,
-//        listenToNotifiers: listenToNotifiers,
-//        mergeNotifiers: mergeNotifiers,
-//        initialListeners: initialListeners,
-//        removeListenerOnError: removeListenerOnError){ if(tickAfter!=null) _start(tickAfter);}
-//  void _start(Duration tickAfter) => _ = Timer.periodic(tickAfter, this);
-//  /// Restarts the [TimedNotifier] if it's timer is running else starts the timer if the notifier [isNotDisposed].
-//  void start(Duration tickAfter) {
-//    if(_isNotDisposed) {
-//      _?.cancel();
-//      _start(tickAfter);
-//    }
-//  }
-//  /// Stops the timer if the [TimedNotifier] is not disposed.
-//  ///
-//  /// Returns [true] if the timer was running else false.
-//  bool stop(){
-//    if(_isNotDisposed){
-//      if(!_.isActive) return false;
-//      _.cancel();
-//      return true;
-//    }
-//    return false;
-//  }
-//  void _dispose(){
-//    super._dispose();
-//    if(_==null) return;
-//    if(_.isActive) _.cancel();
-//    _ = null;
-//  }
-//  int get ticks => _?.tick;
-//  bool get isActive => _?.isActive;
 
 enum HttpRequestType { GET, HEAD, DELETE, READ, READBYTES, POST, PUT, PATCH }
 
@@ -1557,6 +1498,215 @@ class HttpNotifier extends ValNotifier {
   get error => hasError ? _val : null;
 }
 
+class TimedNotifier extends Notifier
+{
+  Ticker _t;
+  Stopwatch _s = Stopwatch();
+
+  Duration get elapsedDuration => _isNotDisposed ? _s.elapsed : null;
+
+  bool start({bool play=true}){
+    if(_isNotDisposed){
+      if(_t.isActive) return false;
+
+      // TODO: Check if this is the right method to ensure that [SchedulerBinding.instance] is initialized
+      WidgetsFlutterBinding.ensureInitialized();
+
+      _t.start();
+      _s.start();
+      _t.muted = play!=true;
+      return true;
+    }
+    return null;
+  }
+
+  bool play(){
+    if(_isNotDisposed){
+      if(_t.muted) {
+        _t.muted = false;
+        _s.start();
+        return true;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  bool pause(){
+    if(_isNotDisposed){
+      if(_t.muted) return false;
+      _s.stop();
+      return _t.muted = true;
+    }
+    return null;
+  }
+
+  bool stop() {
+    if(_isNotDisposed){
+      if(_t.isActive) {
+        _t.stop();
+        _s.reset();
+        return true;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  bool dispose() {
+    if(super.dispose()){
+      _t.stop(canceled: true);
+      _t.dispose();
+      _s.reset();
+      _t = null;
+      _s = null;
+    }
+    return false;
+  }
+
+  TimedNotifier({
+    bool tickOnStart = true,
+    bool muteOnStart = false,
+    String debugLabel,
+    Iterable<Notifier> attachNotifiers,
+    Iterable<Notifier> listenToNotifiers,
+    Iterable<Notifier> mergeNotifiers,
+    Iterable<Function> initialListeners,
+    bool Function(Error) removeListenerOnError,
+  }) : super(
+    attachNotifiers: attachNotifiers,
+    listenToNotifiers: listenToNotifiers,
+    mergeNotifiers: mergeNotifiers,
+    initialListeners: initialListeners,
+    removeListenerOnError: removeListenerOnError,
+  ) {
+    _t = Ticker((_)=>this(), debugLabel: debugLabel);
+    start(play: tickOnStart);
+    _t.muted = muteOnStart;
+  }
+}
+
+// Had tried using mixin but an error occurred since multiple signatures of the method call were found by the VM
+// So the idea was dropped. call([dynamic]) call([T,`bool`])
+
+class TimedValNotifier<T> extends ValNotifier<T>
+{
+  Ticker _t;
+  Stopwatch _s = Stopwatch();
+
+  Duration get elapsedDuration => _isNotDisposed ? _s.elapsed : null;
+
+  bool start({bool pause=false}){
+    if(_isNotDisposed){
+      if(_t.isActive) return false;
+
+      // TODO: Check if this is the right method to ensure that [SchedulerBinding.instance] is initialized
+      WidgetsFlutterBinding.ensureInitialized();
+
+      _t.start();
+      _s.start();
+      _t.muted = pause==true;
+      return true;
+    }
+    return null;
+  }
+
+  bool play(){
+    if(_isNotDisposed){
+      if(_t.muted) {
+        _t.muted = false;
+        _s.start();
+        return true;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  bool pause(){
+    if(_isNotDisposed){
+      if(_t.muted) return false;
+      _s.stop();
+      return _t.muted = true;
+    }
+    return null;
+  }
+
+  bool stop() {
+    if(_isNotDisposed){
+      if(_t.isActive) {
+        _t.stop();
+        _s.reset();
+        return true;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  bool dispose() {
+    if(super.dispose()){
+      _t.stop(canceled: true);
+      _t.dispose();
+      _s.reset();
+      _t = null;
+      _s = null;
+    }
+    return false;
+  }
+
+  TimedValNotifier({
+    T initialVal,
+    bool startOnInit = true,
+    bool muteOnStart = false,
+    String debugLabel,
+    Iterable<Notifier> attachNotifiers,
+    Iterable<Notifier> listenToNotifiers,
+    Iterable<Notifier> mergeNotifiers,
+    Iterable<Function> initialListeners,
+    bool Function(Error) removeListenerOnError,
+  }) : super(
+    initialVal: initialVal,
+    attachNotifiers: attachNotifiers,
+    listenToNotifiers: listenToNotifiers,
+    mergeNotifiers: mergeNotifiers,
+    initialListeners: initialListeners,
+    removeListenerOnError: removeListenerOnError
+  ) {
+    _t = Ticker((_)=>this(), debugLabel: debugLabel);
+    if(startOnInit) start(pause: muteOnStart);
+    else _t.muted = muteOnStart==true;
+  }
+
+  bool init({
+        T initialVal,
+        bool startOnInit = true,
+        bool muteOnStart = false,
+        String debugLabel,
+        Iterable<Notifier> attachNotifiers,
+        Iterable<Function> initialListeners,
+        Iterable<Notifier> listenToNotifiers,
+        Iterable<Notifier> mergeNotifiers,
+        bool Function(Error) removeListenerOnError}
+      ){
+    if(super.init(
+      initialVal: initialVal,
+      attachNotifiers: attachNotifiers,
+      initialListeners: initialListeners,
+      mergeNotifiers: mergeNotifiers,
+      removeListenerOnError: removeListenerOnError,
+    )){
+      _t = Ticker((_)=>this(), debugLabel: debugLabel);
+      if(startOnInit) start(pause: muteOnStart);
+      else _t.muted = muteOnStart==true;
+    }
+    return false;
+    }
+
+}
+
+
+
 extension Iterable_<T> on Iterable<T> {
   /// A syntactic sugar for the [elementAt] function.
   T operator [](int index) => elementAt(index);
@@ -1574,6 +1724,22 @@ extension Iterable_<T> on Iterable<T> {
   /// If the function is able to iterate the list successfully the function will return [false] else [true].
   bool doWhileFalse(bool Function(T) computation) {
     for (T val in this) if (computation(val)) return true;
+    return false;
+  }
+
+  /// Checks whether the given
+  bool containsRevComp(Object element){
+    for (T val in this) if (element==val) return true;
+    return false;
+  }
+
+  bool containsEitherComp(Object element){
+    for (T val in this) if (element==val||val==element) return true;
+    return false;
+  }
+
+  bool containsBothComp(Object element){
+    for (T val in this) if (element==val&&val==element) return true;
     return false;
   }
 }

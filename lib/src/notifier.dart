@@ -1,21 +1,24 @@
 part of notifier_plugin;
 
 class Notifier extends Iterable<Notifier> {
+
   List<Function> _listeners = <Function>[]; // Auto-init
   bool Function(Error) _handleError;
 
-  //_ = Timer.periodic(tick, (timer)=>this())
   Notifier({
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Error) removeListenerOnError,
   }) {
     if (mergeNotifiers != null) _addListeners(mergeNotifiers._listeners);
     if (attachNotifiers != null) _attach(attachNotifiers);
     if (listenToNotifiers != null) _startListeningTo(listenToNotifiers);
+    if (initialListeners != null) _addListeners(initialListeners);
     this.._handleError = removeListenerOnError;
+    if(lockListenersOnInit==true) _listeners = List.from(_listeners, growable: false);
   }
 
   Notifier._();
@@ -25,9 +28,7 @@ class Notifier extends Iterable<Notifier> {
       Ticker t;
       Function onTick = (d) {
         if (d > duration) {
-          t
-            ..stop()
-            ..dispose();
+          t..stop()..dispose();
           return;
         }
         call();
@@ -235,9 +236,13 @@ class Notifier extends Iterable<Notifier> {
         "Notifier#$hashCode: A Notifier can only notify a listener that does not accept a parameter or accepts a 'single' parameter.");
     // ignore: unrelated_type_equality_checks
     if (this == listener)
-      throw ArgumentError(
-          "Notifier#$hashCode: A notifier cannot listen to itself.");
-    _listeners.add(listener);
+      throw ArgumentError("Notifier#$hashCode: A notifier cannot listen to itself.");
+    try {
+      _listeners.add(listener);
+    }catch(e){
+      if(e is UnsupportedError) throw StateError("Notifier#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly add a listener next time.");
+      rethrow; // for any other unexpected error
+    }
     return listener.hashCode;
   }
 
@@ -498,6 +503,18 @@ class Notifier extends Iterable<Notifier> {
   /// Manually get a listener by it's index to perform any low-level operation with it.
   operator [](int index) => _isNotDisposed ? _listeners.elementAt(index) : null;
 
+  /// Compares the current instance to the passed Object to check if the two are equal or not.
+  ///
+  /// If both the Notifier are the same instance or if the passed Function is actually the call method
+  /// of that the Notifier, this operator returns true else false.
+  /// (The call method was made equal to minimize the possibility of cross-attachment, however at the end
+  /// not cross-attaching two notifiers is solely in the hands of the developer)
+  bool operator ==(Object other) =>
+      (other is Notifier || other is Notifier Function([dynamic])) &&
+          (other.hashCode == hashCode);
+
+  int get hashCode => this.call.hashCode;
+
   /// Notifies a listener by it's [hashCode], which can be obtained by the return value of [addListener] or [addListeners]
   /// or by manually obtaining it by declaring a variable to hold that function and then later obtaining it's hashCode
   /// using the hashCode getter on that variable.
@@ -511,7 +528,12 @@ class Notifier extends Iterable<Notifier> {
         (listener) => listener.hashCode == hashCode,
         orElse: () => null);
     if (_ == null) return false;
-    _();
+    try{
+      _ is Function() ? _() : _(null);
+    } catch(e){
+      debugPrint("Notifier#${this.hashCode}: An error was thrown while specifically notifying the listener#$hashCode (String rep.:$_)");
+      rethrow;
+    }
     return true;
   }
 
@@ -526,15 +548,16 @@ class Notifier extends Iterable<Notifier> {
   String toString() =>
       "{\"id\": $hashCode, \"Number of Listeners\": ${_listeners.length}}";
 
-  static Notifier merge([Iterable<Notifier> notifiers]) =>
-      notifiers == null ? Notifier._() : notifiers.merge();
+  static Notifier merge([Iterable<Notifier> notifiers,bool ]) {
+    notifiers == null ? Notifier._() : notifiers.merge();
+  }
 
   static Notifier from(Notifier notifier) {
     if (notifier.isDisposed)
       throw ArgumentError(
           """A disposed Notifier cannot be cloned!\nPlease make sure you clone it before disposing it, as a disposed Notifier
     loses track of it's listeners, once it's disposed.""");
-    return Notifier().._listeners = List.from(notifier._listeners);
+    return Notifier(removeListenerOnError: notifier._handleError).._listeners = List.from(notifier._listeners);
   }
 
   static Notifier Function(Notifier) clone = from;
@@ -542,13 +565,57 @@ class Notifier extends Iterable<Notifier> {
   /// Print this [Notifier]'s details in-line while testing with the help of (..) operator
   void get printMe => print(toString());
 
+  /// Locks the listeners of the current [Notifier] and prevents anyone from adding a listener to it. (by any means)
+  ///
+  /// If the listeners are already locked, it returns false else it locks the listeners and returns true.
+  bool lockListeners(){
+    if(_isNotDisposed) return _lockListeners();
+    return null;
+  }
+
+  bool _lockListeners(){
+    try {
+      _listeners.add(null);
+      _listeners.remove(null);
+      _listeners = List.from(_listeners, growable: false);
+      return true;
+    } catch(e){ return false; }
+  }
+
+  /// Unlocks the listeners of the current [Notifier] and allows others to add a listener to it.
+  ///
+  /// If the listeners are already locked, it returns false else it locks the listeners and returns true.
+  bool unlockListeners(){
+    if(_isNotDisposed) return _unlockListeners();
+    return null;
+  }
+
+  bool _unlockListeners() {
+    try {
+      _listeners.add(null);
+      _listeners.remove(null);
+      return false;
+    } catch(e) {
+      _listeners = List.from(_listeners);
+      return true;
+    }
+  }
+
+  bool get listenersAreLocked {
+    if(_isNotDisposed){
+      try {
+        _listeners.add(null);
+        _listeners.remove(null);
+        return false;
+      } catch(e){return true;}
+    }
+    return null;
+  }
+
+  bool get listenersAreUnlocked => !listenersAreLocked;
+
   Iterator<Notifier> get iterator => {this}.iterator;
-
-  bool operator ==(Object other) =>
-      (other is Notifier || other is Notifier Function([dynamic])) &&
-      (other.hashCode == hashCode);
-
-  int get hashCode => this.call.hashCode;
+  Iterable<Function> get listeners => List.from(_listeners);
 }
 
 extension CallableList on Iterable<Function()> {
@@ -653,6 +720,10 @@ extension Iterable_Notifier on Iterable<Notifier> {
           Iterable<int> hashCodes) =>
       map((n) => n?.removeListenersByHashCodes(hashCodes)).toList();
   Iterable<bool> clearListeners() => map((n) => n?.clearListeners()).toList();
+
+  Iterable<bool> lockListeners() => map((n)=>n?.lockListeners()).toList();
+  Iterable<bool> unlockListeners() => map((n)=>n?.lockListeners()).toList();
+
   Iterable<bool> hasListenerAtomic(Function listener) =>
       _atomicTest("hasListener")
           ? map((n) => n?._hasListener(listener)).toList()
@@ -767,16 +838,21 @@ extension Iterable_Notifier on Iterable<Notifier> {
   bool get isAllNotDisposed => isAnyDisposed;
   bool get isAllDisposed => !isAnyDisposed;
   bool get isAnyNotDisposed => !isAnyDisposed;
-  Iterable<Notifier> get undisposedNotifiers =>
-      where((notifier) => notifier.isNotDisposed);
+  Iterable<Notifier> get unDisposedNotifiers => where((notifier) => notifier.isNotDisposed);
+
   Iterable<Notifier> get notify => this;
   Iterable<Function> get _notify => map((notifier) => notifier?.notify);
+
   void get printMe => print(toString());
+
+  Iterable<bool> get listenersAreLocked => map((n)=>n?.listenersAreLocked).toList();
+  Iterable<bool> get listenersAreUnlocked => map((n)=>n?.listenersAreUnlocked).toList();
+
   Notifier merge([Iterable<Notifier> notifiers]) => Notifier._()
     .._addListeners(_listeners)
     .._addListeners(notifiers._listeners);
   void reverseListeningOrder() =>
-      undisposedNotifiers.forEach((n) => n?.reverseListeningOrder());
+      unDisposedNotifiers.forEach((n) => n?.reverseListeningOrder());
   void reverseListeningOrderOf(int index) =>
       this.elementAt(index)?.reverseListeningOrder();
   Iterable<Notifier> clone() => map(Notifier.clone);
@@ -865,18 +941,20 @@ class ValNotifier<T> extends Notifier {
       """);
   }
 
-  bool attach(covariant ValNotifier<T> notifier);
-
-  Iterable<bool> attachAll(covariant Iterable<ValNotifier<T>> notifiers);
-
-  bool startListeningTo(covariant ValNotifier<T> notifier);
-
-  Iterable<bool> startListeningToAll(
-      covariant Iterable<ValNotifier<T>> notifiers);
-
-  bool detach(covariant ValNotifier<T> attachment);
-
-  Iterable<bool> detachAll(attachments);
+  @override
+  bool _notifyByHashCode(int hashCode) {
+    Function _ = _listeners.firstWhere(
+            (listener) => listener.hashCode == hashCode,
+        orElse: () => null);
+    if (_ == null) return false;
+    try{
+      _ is Function() ? _() : _(val);
+    } catch(e){
+      debugPrint("Notifier#${this.hashCode}: An error was thrown while specifically notifying the listener#$hashCode (String rep.:$_)");
+      rethrow;
+    }
+    return true;
+  }
 
   ValNotifier<T> call([covariant T val, bool save = true]) {
     if (val == null) val = this._val;
@@ -897,15 +975,12 @@ class ValNotifier<T> extends Notifier {
     return null;
   }
 
-  ValNotifier<T> notifyNull() => this(_val = null);
+  ValNotifier<T> nullNotify() => this(_val = null);
 
   ValNotifier<T> operator ~() => notify();
-
-  ValNotifier<T> get notify => this;
-
-  ValNotifier<T> get notifyListeners => this;
-
-  ValNotifier<T> get sendNotification => this;
+  ValNotifier<T> get notify => super.notify;
+  ValNotifier<T> get notifyListeners => super.notifyListeners;
+  ValNotifier<T> get sendNotification => super.sendNotification;
 
   operator -(_) {
     if (_ is Notifier) return Notifier.merge([this, _]);
@@ -1702,10 +1777,7 @@ class TimedValNotifier<T> extends ValNotifier<T>
     }
     return false;
     }
-
 }
-
-
 
 extension Iterable_<T> on Iterable<T> {
   /// A syntactic sugar for the [elementAt] function.
@@ -1727,17 +1799,24 @@ extension Iterable_<T> on Iterable<T> {
     return false;
   }
 
-  /// Checks whether the given
+  /// Checks whether the given element is present in the current [Iterable] by comparing it from the opposite
+  /// class's operator== method.
   bool containsRevComp(Object element){
     for (T val in this) if (element==val) return true;
     return false;
   }
 
+  /// Checks whether the given element is present in the current [Iterable] by comparing it with both classes'
+  /// operator== method. For any given element present in the array, it returns true if either of the method(s)
+  /// return true for any element else false is bluntly returned at the end.
   bool containsEitherComp(Object element){
     for (T val in this) if (element==val||val==element) return true;
     return false;
   }
 
+  /// Checks whether the given element is present in the current [Iterable] by comparing it with both classes'
+  /// operator== method. For any given element present in the array, it returns true if both the method(s)
+  /// return true, else false is bluntly returned at the end.
   bool containsBothComp(Object element){
     for (T val in this) if (element==val&&val==element) return true;
     return false;
@@ -1745,15 +1824,8 @@ extension Iterable_<T> on Iterable<T> {
 }
 
 extension Iterable_ValNotifier<T> on Iterable<ValNotifier<T>> {
-  operator -(_) {
-    if (_ is ValNotifier) return _ & this;
-    if (_ is WidgetBuilder)
-      return NotificationBuilder(notifier: this, builder: _);
-    if (_ is Function())
-      return NotificationBuilder(notifier: this, builder: (c) => _());
-    if (_ is Widget) return NotifiableChild(notifier: this, child: _);
-    throw UnsupportedError(
-        "Notifier#$hashCode: Notifier's operator - does not support ${_.runtimeType}.");
-  }
+
+  Iterable<ValNotifier<T>> nullNotify() => map((n)=>n?.nullNotify()).toList();
   ValNotifier<T> merge([Iterable<ValNotifier<T>> notifiers]) => ValNotifier<T>._().._addListeners(_listeners).._addListeners(notifiers._listeners);
+
 }

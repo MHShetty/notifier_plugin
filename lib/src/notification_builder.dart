@@ -135,7 +135,7 @@ class _NotificationBuilderState extends State<NotificationBuilder> {
 
   void initState() {
     super.initState();
-    widget.notifier.undisposedNotifiers.addListener(this._setState);
+    widget.notifier.unDisposedNotifiers.addListener(this._setState);
   }
 
   void dispose() {
@@ -194,7 +194,7 @@ class _MultiNotificationBuilderState extends State<MultiNotificationBuilder> {
 
   void initState() {
     super.initState();
-    widget.notifier.undisposedNotifiers.addListener(this._setState);
+    widget.notifier.unDisposedNotifiers.addListener(this._setState);
   }
 
   void dispose() {
@@ -243,7 +243,7 @@ class _ValNotificationBuilderState<T> extends State<ValNotificationBuilder<T>> {
 
   void initState() {
     super.initState();
-    widget.notifier.undisposedNotifiers.addListener(this._setState);
+    widget.notifier.unDisposedNotifiers.addListener(this._setState);
   }
 
   void dispose() {

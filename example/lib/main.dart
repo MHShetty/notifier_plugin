@@ -2,17 +2,19 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:notifier_plugin/notifier_plugin.dart';
 
+/* The examples for this plugin haven't been properly designed yet.
+* Sorry for the inconvenience and delay and thank you for your patience.
+* */
+
 void main() async => runApp(TestApp());
 
 class TestApp extends StatelessWidget {
 
-  TimedNotifier t = TimedNotifier(tickOnStart: true);
-  Notifier n = Notifier()..addListener(print);
+  Notifier n = Notifier(initialListeners: [print], lockListenersOnInit: true);
 
   Widget build(BuildContext context) {
 
-    // print(t.elapsedDuration);
-    print(t.dispose());
+    print(Notifier().startListeningTo(n));
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,

@@ -4,23 +4,24 @@ import 'package:notifier_plugin/notifier_plugin.dart';
 
 /* The examples for this plugin haven't been properly designed yet.
 * Sorry for the inconvenience and delay and thank you for your patience.
-* */
+*/
 
 void main() async => runApp(TestApp());
 
 class TestApp extends StatelessWidget {
 
   Notifier n = Notifier(initialListeners: [print], lockListenersOnInit: true);
+  ValNotifier<Color> c = ValNotifier();
 
   Widget build(BuildContext context) {
 
-    print(Notifier().startListeningTo(n));
+    c.performCircularTween(Tween<Color>(begin: Colors.red, end: Colors.blue), Duration(seconds: 2), circles: 5, reverse: true);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: SafeArea(
-        child: Scaffold(
-          // body: ListView.itemBuilder,
+        child: c - (cc)=>Scaffold(
+          backgroundColor: cc,
         ),
       ),
     );

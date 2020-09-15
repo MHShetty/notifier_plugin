@@ -34,6 +34,7 @@ class Notifier extends Iterable<Notifier> {
         call();
       };
       t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
+      WidgetsFlutterBinding.ensureInitialized();
       return t.start().then((v) => this);
     }
     return null;
@@ -55,10 +56,61 @@ class Notifier extends Iterable<Notifier> {
         this();
       };
       t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
+      WidgetsFlutterBinding.ensureInitialized();
       return t.start().then((value) => end);
     }
     return null;
   }
+
+  /// A method that can be used to async load a resource and then notify the listeners of the Notifier
+  /// when the Future has been successfully completed. Can be used for a complete future.
+  Future<Notifier> load(Future res) async => await res.then(this);
+
+  /// Attach a ChangeNotifier to this [Notifier]
+  // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+  bool attachChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed?addListener(changeNotifier.notifyListeners)!=null:null;
+
+  /// Detach a ChangeNotifier to this [Notifier]
+  // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+  bool detachChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed?removeListener(changeNotifier.notifyListeners):null;
+
+  /// Check if the [Notifier] has attached this [ChangeNotifier]
+  // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+  bool hasAttachedChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed?hasListener(changeNotifier.notifyListeners):null;
+
+  /// Make this [Notifier] listen to a [ChangeNotifier]
+  bool startListeningToChangeNotifier(ChangeNotifier changeNotifier){
+    if(_isNotDisposed){
+      try {
+        changeNotifier.addListener(this);
+        return true;
+      } catch(e) { return false; }
+    }
+    return null;
+  }
+
+  /// Tries to stop listening to the [changeNotifier] it was previously listening to.
+  bool stopListeningToChangeNotifier(ChangeNotifier changeNotifier) {
+    if(_isNotDisposed){
+      try {
+        changeNotifier.removeListener(this);
+        return true;
+      } catch(e) { return false; }
+    }
+    return null;
+  }
+
+  /// Attach a Stream to this [Notifier].
+  bool attachStream(StreamController s) => _isNotDisposed?addListener(s.add)!=null:null;
+
+  /// Detach a Stream that was previously attached to this [Notifier].
+  bool detachStream(StreamController s) => _isNotDisposed?removeListener(s.add):null;
+
+  /// Checks if the Notifier has attached the Stream
+  bool hasAttachedStream(StreamController s) => _isNotDisposed?contains(s.add):null;
+
+  /// Makes the [ValNotifier] listen to an existing [stream].
+  StreamSubscription listenTo(Stream stream) => stream.listen(this);
 
   /// Asynchronously notify the listeners without blocking the
   Future<Notifier> asyncNotify([dynamic _]) async => Future(()=>call(_));
@@ -220,9 +272,7 @@ class Notifier extends Iterable<Notifier> {
   _dispose() => _listeners = null;
 
   static bool disposeNotifier(Notifier notifier) => notifier?.dispose();
-
-  static Iterable<bool> disposeNotifiers(Iterable<Notifier> notifiers) =>
-      notifiers?.dispose();
+  static Iterable<bool> disposeNotifiers(Iterable<Notifier> notifiers) => notifiers?.dispose();
 
   /// Adds a listener to the [Notifier] and returns the listener's [hashCode] if successfully added else returns [null].
   ///
@@ -253,14 +303,12 @@ class Notifier extends Iterable<Notifier> {
       notifier?.addListener(listener);
 
   /// Adds a listener to all of the given [notifiers] and returns
-  static Iterable<int> addListenerToNotifiers(
-          Iterable<Notifier> notifiers, Function listener) =>
+  static Iterable<int> addListenerToNotifiers(Iterable<Notifier> notifiers, Function listener) =>
       notifiers.addListener(listener);
 
-  static Map<Notifier, int> customListenerAdder(
-          Map<Notifier, Function> options) =>
-      options.map((notifier, listener) =>
-          MapEntry(notifier, notifier.addListener(listener)));
+  static Map<Notifier, Iterable<int>> customListenerAdder(Map<Iterable<Notifier>, Function> options) =>
+      options.map((notifiers, listener) =>
+          MapEntry(notifiers, notifiers.addListener(listener)));
 
   Iterable<int> addListeners(Iterable<Function> listeners) =>
       _isNotDisposed ? _addListeners(listeners) : null;
@@ -277,6 +325,9 @@ class Notifier extends Iterable<Notifier> {
       notifiers
           ?.map((notifier) => notifier.addListeners(listeners).elementAt(0))
           ?.toList();
+
+  static Map<Notifier, Iterable<Iterable<int>>> customListenersAdder(Map<Iterable<Notifier>, Iterable<Function>> options) =>
+      options.map((notifier, listeners) => MapEntry(notifier, notifier.addListeners(listeners)));
 
   /// Checks if the current [Notifier] has the passed [listener]. If it has it, it returns [true], else [false].
   bool hasListener(Function listener) =>
@@ -703,8 +754,8 @@ extension Iterable_Notifier on Iterable<Notifier> {
       map((n) => n?.isListeningTo(notifiers));
   Iterable<int> addListener(Function listener) =>
       map((notifier) => notifier?.addListener(listener)).toList();
-  Iterable<int> addListeners(Iterable<Function> listeners) =>
-      map((notifier) => notifier.addListeners(listeners)).toList()[0];
+  Iterable<Iterable<int>> addListeners(Iterable<Function> listeners) =>
+      map((notifier) => notifier.addListeners(listeners)).toList();
   Iterable<bool> removeListener(Function listener) =>
       map((notifier) => notifier.removeListener(listener)).toList();
   Iterable<Iterable<bool>> removeListeners(Iterable<Function> listeners) =>
@@ -890,15 +941,8 @@ extension Iterable_Notifier on Iterable<Notifier> {
       map((n) => n >> notifiers).toList();
 }
 
-// package-private
-extension _Tween_Magic on Object
-{
-  dynamic operator +(dynamic) => throw UnsupportedError("+");
-  dynamic operator -(dynamic) => throw UnsupportedError("+");
-  dynamic operator *(dynamic) => throw UnsupportedError("+");
-}
-
 class ValNotifier<T> extends Notifier {
+
   T _val;
 
   ValNotifier({
@@ -974,15 +1018,20 @@ class ValNotifier<T> extends Notifier {
   }
 
   Future<ValNotifier<T>> circularAnimate(T begin, T end, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) {
-    if(T==dynamic) debugPrint("Calling circularAnimate on a ValNotifier<dynamic> might be an bad idea.\n"
-        "Please try being more specific by using the method performTween with the appropriate type.");
-    // Error wasn't throw for the type dynamic since there is a very tiny possibility that someone might
-    // declare an extension method on Tween<dynamic>.
-    return performCircularTween(Tween<T>(begin: begin, end: end), duration, circles: circles, reverse: reverse , firstCurve: firstCurve, secondCurve: secondCurve);
+    if(_isNotDisposed){
+      if(T==dynamic) debugPrint("Calling circularAnimate on a ValNotifier<dynamic> might be an bad idea.\n"
+          "Please try being more specific while specifying the type of variable that holds the ValNotifier().");
+      // Error wasn't throw for the type dynamic since there is a very tiny possibility that someone might
+      // declare an extension method on Tween<dynamic>.
+      return performCircularTween(Tween<T>(begin: begin, end: end), duration, circles: circles, reverse: reverse , firstCurve: firstCurve, secondCurve: secondCurve);
+    }
+    return null;
   }
 
   Future<ValNotifier<T>> performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) async {
-    if(_isNotDisposed){
+
+    if(_isNotDisposed) {
+
       assert(tween != null,
       "$runtimeType#$hashCode: Make sure that you pass a non-null value to the tween parameter of performTween([...]) method.");
       assert(
@@ -1002,15 +1051,18 @@ class ValNotifier<T> extends Notifier {
         if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
       }
 
-      return _performTween(tween, duration, loop: loop, reverse: reverse, curve: curve);
+      return _performTween(tween, duration, loop: loop, reverse: reverse, curve: curve).then((t){
+        t.dispose();
+        return this;
+      });
     }
+
     return null;
   }
 
-  Future<ValNotifier<T>> _performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) async {
+  Future<Ticker> _performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Ticker t}) async {
 
-    Ticker t;
-
+    if(t==null)
     t = (reverse ?? false) ? Ticker((d) {
       if (d > duration) {
         call(tween.begin);
@@ -1025,51 +1077,167 @@ class ValNotifier<T> extends Notifier {
       return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
     });
 
-    loop??=1;
-    if(loop==0) loop=1;
-    loop=loop.abs();
+    loop = _times(loop);
 
+    WidgetsFlutterBinding.ensureInitialized();
     while(loop--!=0) await t.start();
-    t.dispose();
-    return this;
+    return t;
+
   }
 
-  Future<ValNotifier> performCircularTween(Tween<T> tween, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) async {
-    assert(tween != null,
-    "$runtimeType#$hashCode: Make sure that you pass a non-null value to the tween parameter of performTween([...]) method.");
-    assert(
-    tween.begin != null && tween.end != null,
-    "$runtimeType#$hashCode: Cannot performTween([...]) through null values. tween.begin or tween.end was initialized to null\n"
-        "Use the notifyNull");
-    assert(duration != null && duration != Duration.zero,
-    "The performTween() method needs a valid duration to perform a Tween.");
-    assert(firstCurve != null,
-    "The parameter firstCurve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
-        "Passing value to curve parameter is not necessary.");
-    assert(secondCurve != null,
-    "The parameter secondCurve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
-        "Passing value to curve parameter is not necessary.");
+  Future<ValNotifier<T>> performCircularTween(Tween<T> tween, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) async {
+    if(_isNotDisposed){
+      assert(tween != null,
+      "$runtimeType#$hashCode: Make sure that you pass a non-null value to the tween parameter of performTween([...]) method.");
+      assert(
+      tween.begin != null && tween.end != null,
+      "$runtimeType#$hashCode: Cannot performTween([...]) through null values. tween.begin or tween.end was initialized to null\n"
+          "Use the notifyNull");
+      assert(duration != null && duration != Duration.zero,
+      "The performTween() method needs a valid duration to perform a Tween.");
+      assert(firstCurve != null,
+      "The parameter firstCurve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
+          "Passing value to curve parameter is not necessary.");
+      assert(secondCurve != null,
+      "The parameter secondCurve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
+          "Passing value to curve parameter is not necessary.");
 
-    try{
-      tween.transform(0.5);
-    } catch(e){
-      tween = _transform(tween);
-      if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
+      try{
+        tween.transform(0.5);
+      } catch(e){
+        tween = _transform(tween);
+        if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
+      }
+
+      reverse??=false;
+      circles=_times(circles);
+      duration~/=2;
+
+      Ticker t1,t2;
+
+      t1 = reverse ? Ticker((d) {
+        if (d > duration) {
+          call(tween.end);
+          return t1..stop();
+        }
+        return call(tween.transform(firstCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
+      }) : Ticker((d) {
+        if (d > duration) {
+          call(tween.begin);
+          return t1..stop();
+        }
+        return call(tween.transform(1 - firstCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
+      });
+
+      t2 = reverse ? Ticker((d) {
+        if (d > duration) {
+          call(tween.begin);
+          return t2..stop();
+        }
+        return call(tween.transform(1 - secondCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
+      }) : Ticker((d) {
+        if (d > duration) {
+          call(tween.end);
+          return t2..stop();
+        }
+        return call(tween.transform(secondCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
+      });
+
+
+      return Future.doWhile(() async {
+        await _performTween(tween, duration, t: t1);
+        await _performTween(tween, duration, t: t2);
+        return --circles!=0;
+      }).then((_){
+        t1.dispose();
+        t2.dispose();
+        return this;
+      });
     }
+    return null;
+  }
 
-    reverse??=false;
-    circles??=1;
-    if(circles==0) circles=1;
-    circles = circles.abs();
+  int _times(int times) {
+    if(times==null||times==0) return 1;
+    return times.abs();
+  }
 
-    print(circles);
-
-    while(circles--!=0) {
-      await _performTween(tween, duration~/2, reverse: reverse, curve: firstCurve);
-      await _performTween(tween, duration~/2, reverse: !reverse, curve: secondCurve);
+  Future<ValNotifier<T>> interpolateR(Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
+    if(_isNotDisposed){
+      if(T==dynamic) debugPrint("Calling interpolateR on a ValNotifier<dynamic> might be an bad idea.\n"
+          "Please try being more specific while specifying the type of variable that holds the ValNotifier().");
+      return interpolate(Tween<T>(),values, totalDuration, loop: loop, reverse: reverse, curve: curve, curves: curves);
     }
+    return null;
+  }
 
-    return this;
+  Future<ValNotifier<T>> interpolate(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
+    if(_isNotDisposed){
+
+      assert(tween!=null,"You cannot interpolate across values without a buffer Tween.");
+      assert(values!=null,"The parameter values cannot be set to null.");
+      assert(totalDuration!=null,"The total duration of the interpolation cannot be set to null.");
+      assert((curves==null)!=(curve==null),"Please either set curve or curves in order to interpolate.");
+      if(curves==null) curves = List.filled(values.length-1, curve);
+      assert(curves.length+1==values.length,"There should be a curve for each interpolation in order to interpolate");
+      assert(values.length>1,"We need at least two values to successfully interpolate.");
+
+      try{
+        tween.transform(0.5);
+      } catch(e){
+        tween = _transform(tween);
+        if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
+      }
+
+      loop = _times(loop);
+      totalDuration~/=curves.length;
+
+      if(reverse??=false){
+        values = values.toList().reversed;
+        curves = curves.toList().reversed;
+      }
+
+      int i;
+      tween.begin = values.first;
+      tween.end = values[1];
+
+      Ticker t;
+      t = reverse ? Ticker((d){
+        if (d > totalDuration) {
+          call(tween.end);
+          t.stop();
+          if(++i==values.length) return t;
+          tween.begin = tween.end;
+          tween.end = values[i];
+          curve = curves[i-1];
+          return t..start();
+        }
+        return call(tween.transform(curve.transform(d.inMilliseconds / totalDuration.inMilliseconds)));
+      }) :
+      Ticker((d){
+        if (d > totalDuration) {
+          call(tween.begin);
+          t.stop();
+          if(++i==values.length) return t;
+          tween.begin = tween.end;
+          tween.end = values[i];
+          curve = curves[i-1];
+          return t..start();
+        }
+        return call(tween.transform(1 - curve.transform(d.inMilliseconds / totalDuration.inMilliseconds)));
+      });
+
+      return Future.doWhile(() async {
+        i = 1;
+        await t.start();
+        t.stop();
+        return --loop!=0;
+      }).then((_){
+        t.dispose();
+        return this;
+      });
+    }
+    return null;
   }
 
   Future<ValNotifier<T>> performTweens(Iterable<Tween<T>> tweens, Duration duration, {int loop=1,bool reverse=false, Curve curve = Curves.linear}) async {
@@ -1082,11 +1250,40 @@ class ValNotifier<T> extends Notifier {
       "The parameter curve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
           "Passing value to curve parameter is not necessary.");
 
-      loop??=1;
-      if(loop==0) loop=1;
-      loop=loop.abs();
+      tweens = tweens.map((tween){
+        try {
+          tween.transform(0.5);
+        } catch(e) {
+          tween = _transform(tween);
+          if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode cannot not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please ensure that you pass it's instance as a Tween.");
+        }
+        return tween;
+      });
 
-      for(Tween<T> tween in tweens) await performTween(tween, duration, loop: loop, reverse: reverse, curve: curve);
+      reverse??=false;
+
+      Iterable<Ticker> iT = tweens.map((tween){
+        Ticker t;
+        return t = reverse ? Ticker((d) {
+          if (d > duration) {
+            call(tween.begin);
+            return t..stop();
+          }
+          return call(tween.transform(1 - curve.transform(d.inMilliseconds / duration.inMilliseconds)));
+        }) : Ticker((d) {
+          if (d > duration) {
+            call(tween.end);
+            return t..stop();
+          }
+          return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
+        });
+      });
+
+      loop=_times(loop);
+
+      while(loop--!=0)
+        for(Ticker t in iT)
+          await _performTween(null, duration, loop: loop, reverse: reverse, curve: curve, t: t);
       return this;
     }
     return null;
@@ -1107,6 +1304,7 @@ class ValNotifier<T> extends Notifier {
     return true;
   }
 
+
   ValNotifier<T> call([covariant T val, bool save = true]) {
     if (val == null) val = this._val;
     if (_isNotDisposed) {
@@ -1125,6 +1323,16 @@ class ValNotifier<T> extends Notifier {
     }
     return null;
   }
+
+
+  /// Attach a Stream to this [ValNotifier].
+  bool attachStream(covariant StreamController<T> s) => _isNotDisposed?addListener(s.add)!=null:null;
+
+  /// Detach a Stream that was previously attached to this [ValNotifier].
+  bool detachStream(covariant StreamController<T> s) => _isNotDisposed?removeListener(s.add):null;
+
+  /// Makes the [ValNotifier] listen to an existing stream.
+  StreamSubscription<T> listenTo(covariant Stream<T> stream) => stream.listen(this);
 
   ValNotifier<T> nullNotify() => this(_val = null);
 
@@ -1724,22 +1932,14 @@ class HttpNotifier extends ValNotifier {
   get error => hasError ? _val : null;
 }
 
-class TimedNotifier extends Notifier
+class TickerNotifier extends Notifier
 {
   Ticker _t;
-  Stopwatch _s = Stopwatch();
-
-  Duration get elapsedDuration => _isNotDisposed ? _s.elapsed : null;
 
   bool start({bool play=true}){
     if(_isNotDisposed){
       if(_t.isActive) return false;
-
-      // TODO: Check if this is the right method to ensure that [SchedulerBinding.instance] is initialized
-      WidgetsFlutterBinding.ensureInitialized();
-
       _t.start();
-      _s.start();
       _t.muted = play!=true;
       return true;
     }
@@ -1750,7 +1950,6 @@ class TimedNotifier extends Notifier
     if(_isNotDisposed){
       if(_t.muted) {
         _t.muted = false;
-        _s.start();
         return true;
       }
       return false;
@@ -1761,7 +1960,6 @@ class TimedNotifier extends Notifier
   bool pause(){
     if(_isNotDisposed){
       if(_t.muted) return false;
-      _s.stop();
       return _t.muted = true;
     }
     return null;
@@ -1771,7 +1969,6 @@ class TimedNotifier extends Notifier
     if(_isNotDisposed){
       if(_t.isActive) {
         _t.stop();
-        _s.reset();
         return true;
       }
       return false;
@@ -1783,15 +1980,13 @@ class TimedNotifier extends Notifier
     if(super.dispose()){
       _t.stop(canceled: true);
       _t.dispose();
-      _s.reset();
       _t = null;
-      _s = null;
     }
     return false;
   }
 
-  TimedNotifier({
-    bool tickOnStart = true,
+  TickerNotifier({
+    bool tickOnStart = false,
     bool muteOnStart = false,
     String debugLabel,
     Iterable<Notifier> attachNotifiers,
@@ -1807,30 +2002,24 @@ class TimedNotifier extends Notifier
     removeListenerOnError: removeListenerOnError,
   ) {
     _t = Ticker((_)=>this(), debugLabel: debugLabel);
+    WidgetsFlutterBinding.ensureInitialized();
     start(play: tickOnStart);
     _t.muted = muteOnStart;
   }
 }
 
-// Had tried using mixin but an error occurred since multiple signatures of the method call were found by the VM
+// Had tried using mixin but an error occurred since multiple signatures of the method call was
+// found by the VM.
 // So the idea was dropped. call([dynamic]) call([T,`bool`])
 
-class TimedValNotifier<T> extends ValNotifier<T>
+class TickerValNotifier<T> extends ValNotifier<T>
 {
   Ticker _t;
-  Stopwatch _s = Stopwatch();
 
-  Duration get elapsedDuration => _isNotDisposed ? _s.elapsed : null;
-
-  bool start({bool pause=false}){
+  bool start({bool pause=false}) {
     if(_isNotDisposed){
       if(_t.isActive) return false;
-
-      // TODO: Check if this is the right method to ensure that [SchedulerBinding.instance] is initialized
-      WidgetsFlutterBinding.ensureInitialized();
-
       _t.start();
-      _s.start();
       _t.muted = pause==true;
       return true;
     }
@@ -1841,7 +2030,6 @@ class TimedValNotifier<T> extends ValNotifier<T>
     if(_isNotDisposed){
       if(_t.muted) {
         _t.muted = false;
-        _s.start();
         return true;
       }
       return false;
@@ -1852,7 +2040,6 @@ class TimedValNotifier<T> extends ValNotifier<T>
   bool pause(){
     if(_isNotDisposed){
       if(_t.muted) return false;
-      _s.stop();
       return _t.muted = true;
     }
     return null;
@@ -1862,7 +2049,6 @@ class TimedValNotifier<T> extends ValNotifier<T>
     if(_isNotDisposed){
       if(_t.isActive) {
         _t.stop();
-        _s.reset();
         return true;
       }
       return false;
@@ -1874,14 +2060,12 @@ class TimedValNotifier<T> extends ValNotifier<T>
     if(super.dispose()){
       _t.stop(canceled: true);
       _t.dispose();
-      _s.reset();
       _t = null;
-      _s = null;
     }
     return false;
   }
 
-  TimedValNotifier({
+  TickerValNotifier({
     T initialVal,
     bool startOnInit = true,
     bool muteOnStart = false,
@@ -1900,6 +2084,7 @@ class TimedValNotifier<T> extends ValNotifier<T>
     removeListenerOnError: removeListenerOnError
   ) {
     _t = Ticker((_)=>this(), debugLabel: debugLabel);
+    WidgetsFlutterBinding.ensureInitialized();
     if(startOnInit) start(pause: muteOnStart);
     else _t.muted = muteOnStart==true;
   }
@@ -1976,26 +2161,59 @@ extension Iterable_<T> on Iterable<T> {
 
 class TweenNotifier<T> extends ValNotifier<T>
 {
+
   Ticker _t;
 
   TweenNotifier({
     T initialVal,
-    Tween<T> performTweens,
+    Iterable<Tween<T>> performTweens,
+    Iterable<Tween<T>> performCircularTween,
+    Duration duration,
+    String debugLabel,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool Function(Error) removeListenerOnError,
-  }) : assert(performTweens==null||true),
+  }) : assert((performTweens==null)==(duration==null),"Please ensure that both performTweens are either either initialized with some expected value, or simply are not."),
         super(
-      initialVal: initialVal,
+          initialVal: initialVal,
       attachNotifiers: attachNotifiers,
       listenToNotifiers: listenToNotifiers,
       mergeNotifiers: mergeNotifiers,
       initialListeners: initialListeners,
       removeListenerOnError: removeListenerOnError)
   {
+    WidgetsFlutterBinding.ensureInitialized();
+    if(performTweens!=null) this.performTweens(performTweens, duration);
+  }
 
+  bool play(){
+    if(_isNotDisposed){
+      if(_t.muted) {
+        _t.muted = false;
+        return true;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  bool pause(){
+    if(_isNotDisposed){
+      if(_t.muted) return false;
+      return _t.muted = true;
+    }
+    return null;
+  }
+
+  bool dispose() {
+    if(super.dispose()){
+      _t.stop(canceled: true);
+      _t.dispose();
+      _t = null;
+    }
+    return false;
   }
 
   bool get isPerformingTween => _isNotDisposed?(_t!=null && _t.isTicking):null;
@@ -2004,59 +2222,80 @@ class TweenNotifier<T> extends ValNotifier<T>
   bool get hasPerformedATween => _isNotDisposed?_t!=null:null;
   bool get hasNotPerformedATween => _isNotDisposed?_t==null:null;
 
-  bool canPerformThisTween(Tween<T> tween) {
+  bool get isPaused => _isNotDisposed&&_t!=null&&_t.isActive?_t.muted:null;
+  bool get isPlaying => _isNotDisposed&&_t!=null&&_t.isActive?!_t.muted:null;
+
+  // bool get _isNotDisposed {
+  //   if(super._isNotDisposed){
+  //     if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation. Please wait for the current animation to get over.");
+  //     return true;
+  //   }
+  //   return false;
+  // }
+
+  Future<TweenNotifier<T>> performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) async {
+
     if(_isNotDisposed){
-      if(tween==null||tween.end==null||tween.begin==null) return false;
-      _canPerformThisTween(tween);
+      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation. Please wait for the current animation to get over.");
+      return super.performTween(tween, duration, loop: loop, reverse: reverse, curve: curve).then((value) => this);
+    }
+
+    return null;
+  }
+
+  Future<TweenNotifier<T>> performCircularTween(Tween<T> tween, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) async {
+    if(_isNotDisposed){
+      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
+      return super.performCircularTween(tween, duration, circles: circles, reverse: reverse, firstCurve: firstCurve, secondCurve: secondCurve).then((value) => this);
     }
     return null;
   }
 
-  bool _canPerformThisTween(Tween<T> tween) {
-    if(tween==null||tween.end==null||tween.begin==null) return false;
-    try {
-      tween.transform(0.5);
-      return true;
-    } catch (e) {
-      try{
-        tween.begin + (tween.end - tween.begin) * 0.5 as T;
-        return true;
-      } catch(e){
-        return false;
-      }
-    }
+  int _times(int times) {
+    if(times==null||times==0) return 1;
+    return times.abs();
   }
 
-  Future<TweenNotifier<T>> performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse = false, Curve curve = Curves.linear}) {
+  Future<TweenNotifier<T>> interpolate(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
     if(_isNotDisposed){
-      assert(tween != null,
-      "$runtimeType#$hashCode: Make sure that you pass a non-null value to the tween parameter of performTween([...]) method.");
-      assert(
-      tween.begin != null && tween.end != null,
-      "$runtimeType#$hashCode: Cannot performTween([...]) through null values. tween.begin or tween.end was initialized to null\n"
-          "Use the notifyNull");
-      assert(duration != null && duration != Duration.zero,
-      "The performTween() method needs a valid duration to perform a Tween.");
-      assert(
-      curve != null,
-      "The parameter curve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
-          "Passing value to curve parameter is not necessary.");
-      if (canPerformThisTween(tween)) {
-        _t = Ticker((d) {
-          if (d > duration) {
-            call(tween.end);
-            return _t
-              ..stop()
-              ..dispose();
-          }
-          return call(tween.transform(
-              curve.transform(d.inMilliseconds / duration.inMilliseconds)));
-        });
-        return _t.start().then<TweenNotifier<T>>((v) => this);
-      }
+      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation. Please wait for the current animation to get over.");
+      return super.interpolate(tween, values, totalDuration, loop: loop, reverse: reverse, curve: curve, curves: curves).then((value) => this);
     }
     return null;
   }
+
+  Future<TweenNotifier<T>> performTweens(Iterable<Tween<T>> tweens, Duration duration, {int loop=1,bool reverse=false, Curve curve = Curves.linear}) async {
+    if(_isNotDisposed){
+      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation. Please wait for the current animation to get over.");
+      return super.performTweens(tweens, duration, loop: loop, reverse: reverse, curve: curve).then((value) => this);
+    }
+    return null;
+  }
+
+  Future<Ticker> _performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Ticker t}) async {
+
+    if(t==null)
+      t = (reverse ?? false) ? Ticker((d) {
+        if (d > duration) {
+          call(tween.begin);
+          return _t..stop();
+        }
+        return call(tween.transform(1 - curve.transform(d.inMilliseconds / duration.inMilliseconds)));
+      }) : Ticker((d) {
+        if (d > duration) {
+          call(tween.end);
+          return _t..stop();
+        }
+        return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
+      });
+
+    loop = _times(loop);
+    _t = t;
+    WidgetsFlutterBinding.ensureInitialized();
+    while(loop--!=0) await _t.start();
+    return _t;
+  }
+
 }
 
 extension Iterable_ValNotifier<T> on Iterable<ValNotifier<T>> {

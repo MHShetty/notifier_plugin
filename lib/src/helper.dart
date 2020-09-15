@@ -111,6 +111,7 @@ extension Iterable_ChangeNotifier_Ease on Iterable<ChangeNotifier> {
 }
 
 extension ValueNotifier_Ease<T> on ValueNotifier<T> {
+
   ChangeNotifierBuilder operator -(Widget Function(T) builder) =>
       ChangeNotifierBuilder(
         changeNotifier: this,
@@ -127,6 +128,7 @@ extension ValueNotifier_Ease<T> on ValueNotifier<T> {
 // }
 
 class ChangeNotifierBuilder extends StatefulWidget {
+
   final ChangeNotifier changeNotifier;
   final WidgetBuilder builder;
 
@@ -214,5 +216,72 @@ class SmartCircularProgressIndicator extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+extension ChangeNotifier_Extension on ChangeNotifier
+{
+  ChangeNotifier call([dynamic value]){
+    // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+    notifyListeners();
+    return this;
+  }
+}
+
+extension ValueNotifier_Extension<T> on ValueNotifier<T>
+{
+  ChangeNotifier call([T value,bool save=true]){
+    // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+    if(value==null) notifyListeners();
+    else {
+      T _ = this.value;
+      this.value = value;
+      // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+      notifyListeners();
+      if(!(save??true)) this.value = _;
+    }
+    return this;
+  }
+}
+
+extension IterableChangeNotifier_Extension on Iterable<ChangeNotifier>
+{
+  Iterable<ChangeNotifier> call([dynamic value]){
+    // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+    forEach((cn)=>cn());
+    return this;
+  }
+
+  /// Adds a [listener] to all the [ChangeNotifier]s.
+  ///
+  /// true at any given index just means that that ChangeNotifier was not disposed while performing that
+  /// operation.
+  Iterable<bool> addListener(void Function() listener) =>
+    map((cn) {
+      try{
+        cn.addListener(listener);
+        return true;
+      } catch(e){return false;}
+    });
+
+  /// Tries to remove the [listener] to all the [ChangeNotifier]s.
+  ///
+  /// true at any given index just means that that ChangeNotifier was not disposed while performing that
+  /// operation.
+  Iterable<bool> removeListener(void Function() listener) =>
+      map((cn) {
+        try{
+          cn.removeListener(listener);
+          return true;
+        } catch(e){return false;}
+      });
+}
+
+extension IterableValueNotifier_Extension<T> on Iterable<ValueNotifier<T>>
+{
+  Iterable<ValueNotifier<T>> call([T value,bool save=true]){
+    // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
+    forEach((cn){cn(value,save);});
+    return this;
   }
 }

@@ -6,22 +6,33 @@ import 'package:notifier_plugin/notifier_plugin.dart';
 * Sorry for the inconvenience and delay and thank you for your patience.
 */
 
-void main() async => runApp(TestApp());
+void main() {
+  runApp(TestApp());
+}
 
 class TestApp extends StatelessWidget {
 
-  Notifier n = Notifier(initialListeners: [print], lockListenersOnInit: true);
-  ValNotifier<Color> c = ValNotifier();
+  // Notifier n = Notifier(initialListeners: [print], lockListenersOnInit: true);
+  TweenNotifier<Color> t = TweenNotifier();
+  // Ticker t = Ticker(print);
+
+  // Iterable<ChangeNotifier> cn = [ChangeNotifier()];
+  int i = 0;
 
   Widget build(BuildContext context) {
 
-    c.performCircularTween(Tween<Color>(begin: Colors.red, end: Colors.blue), Duration(seconds: 2), circles: 5, reverse: true);
+    t.interpolateR([Colors.red, Colors.green], Duration(seconds: 4), reverse: null);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: SafeArea(
-        child: c - (cc)=>Scaffold(
-          backgroundColor: cc,
+        child: t - (cc)=>GestureDetector(
+          onTapDown: (_)=>t.pause(),
+          onTapUp: (_)=>t.play(),
+          child: Scaffold(
+            backgroundColor: cc,
+            // body: Center(child: cn - ()=>Text(i.toString())),
+          ),
         ),
       ),
     );

@@ -16,8 +16,8 @@ class TestApp extends StatelessWidget {
 
   Widget build(BuildContext context) {
 
-    DateTime a = DateTime.now();
-    t.performCircularTween(Tween<Color>(begin: Colors.red, end: Colors.blue), Duration(seconds: 3), reverse: true).then((_)=>print(DateTime.now().difference(a)));
+    // The widget tree gets built twice (by default) ... this code is only for testing/debugging
+      t.circularInterpolationR([Colors.blue, Colors.green, Colors.pink, Colors.red], Duration(seconds: 5));
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,

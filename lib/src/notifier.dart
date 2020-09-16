@@ -1209,7 +1209,7 @@ class ValNotifier<T> extends Notifier {
     return null;
   }
 
-  Future<ValNotifier<T>> circularInterpolationR(Iterable<T> values, Duration totalDuration, {int circles=1, bool antiClockwise=false, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
+  Future<ValNotifier<T>> circularInterpolationR(Iterable<T> values, Duration totalDuration, {int circles=1, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
   {
     if(_isNotDisposed){
       if(T==dynamic) debugPrint("Calling circularAnimate on a ValNotifier<dynamic> might be an bad idea.\n"
@@ -1221,8 +1221,9 @@ class ValNotifier<T> extends Notifier {
     return null;
   }
 
-  Future<ValNotifier<T>> circularInterpolation(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int circles=1, bool antiClockwise=false, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
+  Future<ValNotifier<T>> circularInterpolation(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int circles=1, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
   {
+
     if(_isNotDisposed) {
 
       if(firstCurves==null) firstCurves = firstCurve==null ? secondCurves : List.filled(values.length-1, firstCurve);
@@ -1249,7 +1250,7 @@ class ValNotifier<T> extends Notifier {
       totalDuration~/=_curves.length;
 
       return Future.doWhile(() async {
-        await _interpolate(tween, _values, totalDuration, reverse: antiClockwise ?? false, curves: _curves);
+        await _interpolate(tween, _values, totalDuration, curves: _curves);
         return --circles!=0;
       }).then((value) => this);
     }
@@ -2313,7 +2314,7 @@ class TweenNotifier<T> extends ValNotifier<T>
     return null;
   }
 
-  Future<TweenNotifier<T>> circularInterpolation(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int circles=1, bool antiClockwise=false, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
+  Future<TweenNotifier<T>> circularInterpolation(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int circles=1, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
   {
     if(_isNotDisposed){
       if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");

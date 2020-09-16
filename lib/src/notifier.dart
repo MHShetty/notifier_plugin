@@ -1028,6 +1028,7 @@ class ValNotifier<T> extends Notifier {
     return null;
   }
 
+  /// Performs a Tween given to it.
   Future<ValNotifier<T>> performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) async {
 
     if(_isNotDisposed) {
@@ -1062,30 +1063,38 @@ class ValNotifier<T> extends Notifier {
 
   Future<Ticker> _performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Ticker t}) async {
 
-    if(t==null)
-    t = (reverse ?? false) ? Ticker((d) {
-      if (d > duration) {
-        call(tween.begin);
-        return t..stop();
+    T _;
+    reverse??=false;
+
+    if(t==null){
+      if(reverse){
+        _ = tween.end;
+        tween.end = tween.begin;
+        tween.begin = _;
+        reverse = null;
       }
-      return call(tween.transform(1 - curve.transform(d.inMilliseconds / duration.inMilliseconds)));
-    }) : Ticker((d) {
-      if (d > duration) {
-        call(tween.end);
-        return t..stop();
-      }
-      return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
-    });
+      t = Ticker((d) {
+        if (d > duration) {
+          call(tween.begin);
+          return t..stop();
+        }
+        return call(tween.transform(1 - curve.transform(d.inMilliseconds / duration.inMilliseconds)));
+      });
+    }
 
     loop = _times(loop);
 
     WidgetsFlutterBinding.ensureInitialized();
     while(loop--!=0) await t.start();
+    if(reverse==null){
+      tween.begin = tween.end;
+      tween.end = _;
+    }
     return t;
-
   }
 
   Future<ValNotifier<T>> performCircularTween(Tween<T> tween, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) async {
+
     if(_isNotDisposed){
       assert(tween != null,
       "$runtimeType#$hashCode: Make sure that you pass a non-null value to the tween parameter of performTween([...]) method.");
@@ -1114,33 +1123,29 @@ class ValNotifier<T> extends Notifier {
       duration~/=2;
 
       Ticker t1,t2;
+      T _;
 
-      t1 = reverse ? Ticker((d) {
+      if(reverse){
+        _ = tween.end;
+        tween.end = tween.begin;
+        tween.begin = _;
+        reverse = null;
+      }
+
+      t1 = Ticker((d) {
         if (d > duration) {
           call(tween.end);
           return t1..stop();
         }
         return call(tween.transform(firstCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
-      }) : Ticker((d) {
-        if (d > duration) {
-          call(tween.begin);
-          return t1..stop();
-        }
-        return call(tween.transform(1 - firstCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
       });
 
-      t2 = reverse ? Ticker((d) {
+      t2 = Ticker((d) {
         if (d > duration) {
           call(tween.begin);
           return t2..stop();
         }
         return call(tween.transform(1 - secondCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
-      }) : Ticker((d) {
-        if (d > duration) {
-          call(tween.end);
-          return t2..stop();
-        }
-        return call(tween.transform(secondCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
       });
 
 
@@ -1151,6 +1156,11 @@ class ValNotifier<T> extends Notifier {
       }).then((_){
         t1.dispose();
         t2.dispose();
+        if(reverse==null){
+          tween.begin = tween.end;
+          tween.end = _;
+        }
+
         return this;
       });
     }
@@ -1163,7 +1173,7 @@ class ValNotifier<T> extends Notifier {
   }
 
   Future<ValNotifier<T>> interpolateR(Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
-    if(_isNotDisposed){
+    if(_isNotDisposed) {
       if(T==dynamic) debugPrint("Calling interpolateR on a ValNotifier<dynamic> might be an bad idea.\n"
           "Please try being more specific while specifying the type of variable that holds the ValNotifier().");
       return interpolate(Tween<T>(),values, totalDuration, loop: loop, reverse: reverse, curve: curve, curves: curves);
@@ -1174,9 +1184,11 @@ class ValNotifier<T> extends Notifier {
   Future<ValNotifier<T>> interpolate(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
     if(_isNotDisposed){
 
+      if(curves!=null) curve = null;
+
       assert(tween!=null,"You cannot interpolate across values without a buffer Tween.");
       assert(values!=null,"The parameter values cannot be set to null.");
-      assert(totalDuration!=null,"The total duration of the interpolation cannot be set to null.");
+      assert(totalDuration!=null && totalDuration!=Duration.zero,"The total duration of the interpolation cannot be set to null.");
       assert((curves==null)!=(curve==null),"Please either set curve or curves in order to interpolate.");
       if(curves==null) curves = List.filled(values.length-1, curve);
       assert(curves.length+1==values.length,"There should be a curve for each interpolation in order to interpolate");
@@ -1192,52 +1204,91 @@ class ValNotifier<T> extends Notifier {
       loop = _times(loop);
       totalDuration~/=curves.length;
 
-      if(reverse??=false){
+      return _interpolate(tween, values, totalDuration, loop: loop, reverse: reverse, curves: curves);
+    }
+    return null;
+  }
+
+  Future<ValNotifier<T>> circularInterpolationR(Iterable<T> values, Duration totalDuration, {int circles=1, bool antiClockwise=false, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
+  {
+    if(_isNotDisposed){
+      if(T==dynamic) debugPrint("Calling circularAnimate on a ValNotifier<dynamic> might be an bad idea.\n"
+          "Please try being more specific while specifying the type of variable that holds the ValNotifier().");
+      // Error wasn't throw for the type dynamic since there is a very tiny possibility that someone might
+      // declare an extension method on Tween<dynamic>.
+      return circularInterpolation(Tween<T>(), values, totalDuration, circles: circles, firstCurve: firstCurve, secondCurve: secondCurve, firstCurves: firstCurves, secondCurves: secondCurves);
+    }
+    return null;
+  }
+
+  Future<ValNotifier<T>> circularInterpolation(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int circles=1, bool antiClockwise=false, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
+  {
+    if(_isNotDisposed) {
+
+      if(firstCurves==null) firstCurves = firstCurve==null ? secondCurves : List.filled(values.length-1, firstCurve);
+      if(secondCurves==null) secondCurves = secondCurve==null ? firstCurves : List.filled(values.length-1, secondCurve);
+
+      assert(tween!=null,"You cannot interpolate across values without a buffer Tween.");
+      assert(values!=null,"The parameter values cannot be set to null.");
+      assert(totalDuration!=null && totalDuration!=Duration.zero,"The total duration of the interpolation cannot be set to null.");
+      assert(firstCurves.length==secondCurves.length,"The length of the two curve iterables should be equal.");
+      assert(secondCurves.length+1==values.length,"There should be a curve for each interpolation in order to successfully interpolate (anti-clockwise)");
+      assert(values.length>1, "We need at least two values to successfully interpolate.");
+
+      try{
+        tween.transform(0.5);
+      } catch(e){
+        tween = _transform(tween);
+        if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
+      }
+
+      List<T> _values = []..addAll(values)..removeLast()..addAll(values.toList().reversed);
+      List<Curve> _curves = []..addAll(firstCurves)..addAll(secondCurves);
+
+      circles = _times(circles);
+      totalDuration~/=_curves.length;
+
+      return Future.doWhile(() async {
+        await _interpolate(tween, _values, totalDuration, reverse: antiClockwise ?? false, curves: _curves);
+        return --circles!=0;
+      }).then((value) => this);
+    }
+    return null;
+  }
+
+  Future<ValNotifier<T>> _interpolate(Tween<T> tween, Iterable<T> values, Duration duration, {int loop=1, bool reverse=false, Iterable<Curve> curves, Ticker t}) async {
+
+      Curve curve;
+
+      if(reverse??=false) {
         values = values.toList().reversed;
         curves = curves.toList().reversed;
       }
 
       int i;
-      tween.begin = values.first;
-      tween.end = values[1];
 
-      Ticker t;
-      t = reverse ? Ticker((d){
-        if (d > totalDuration) {
+      t = Ticker((d) async {
+        if (d > duration) {
           call(tween.end);
-          t.stop();
-          if(++i==values.length) return t;
-          tween.begin = tween.end;
-          tween.end = values[i];
-          curve = curves[i-1];
-          return t..start();
+          return t..stop();
         }
-        return call(tween.transform(curve.transform(d.inMilliseconds / totalDuration.inMilliseconds)));
-      }) :
-      Ticker((d){
-        if (d > totalDuration) {
-          call(tween.begin);
-          t.stop();
-          if(++i==values.length) return t;
-          tween.begin = tween.end;
-          tween.end = values[i];
-          curve = curves[i-1];
-          return t..start();
-        }
-        return call(tween.transform(1 - curve.transform(d.inMilliseconds / totalDuration.inMilliseconds)));
+        return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
       });
 
+      tween.end=values.first;
       return Future.doWhile(() async {
         i = 1;
-        await t.start();
-        t.stop();
+        do {
+          tween.begin = tween.end;
+          tween.end = values[i];
+          curve = curves[i-1];
+          await t.start();
+        } while(++i!=values.length);
         return --loop!=0;
       }).then((_){
         t.dispose();
         return this;
       });
-    }
-    return null;
   }
 
   Future<ValNotifier<T>> performTweens(Iterable<Tween<T>> tweens, Duration duration, {int loop=1,bool reverse=false, Curve curve = Curves.linear}) async {
@@ -1323,7 +1374,6 @@ class ValNotifier<T> extends Notifier {
     }
     return null;
   }
-
 
   /// Attach a Stream to this [ValNotifier].
   bool attachStream(covariant StreamController<T> s) => _isNotDisposed?addListener(s.add)!=null:null;
@@ -2163,6 +2213,8 @@ class TweenNotifier<T> extends ValNotifier<T>
 {
 
   Ticker _t;
+  Duration _pD = Duration.zero;
+  DateTime _pT;
 
   TweenNotifier({
     T initialVal,
@@ -2189,8 +2241,9 @@ class TweenNotifier<T> extends ValNotifier<T>
   }
 
   bool play(){
-    if(_isNotDisposed){
+    if(_isNotDisposed||_t==null){
       if(_t.muted) {
+        _pD += DateTime.now().difference(_pT);
         _t.muted = false;
         return true;
       }
@@ -2200,8 +2253,9 @@ class TweenNotifier<T> extends ValNotifier<T>
   }
 
   bool pause(){
-    if(_isNotDisposed){
+    if(_isNotDisposed||_t==null){
       if(_t.muted) return false;
+      _pT = DateTime.now();
       return _t.muted = true;
     }
     return null;
@@ -2209,9 +2263,11 @@ class TweenNotifier<T> extends ValNotifier<T>
 
   bool dispose() {
     if(super.dispose()){
-      _t.stop(canceled: true);
-      _t.dispose();
-      _t = null;
+      if(_t!=null){
+        _t.stop(canceled: true);
+        _t.dispose();
+        _t = null;
+      }
     }
     return false;
   }
@@ -2225,41 +2281,10 @@ class TweenNotifier<T> extends ValNotifier<T>
   bool get isPaused => _isNotDisposed&&_t!=null&&_t.isActive?_t.muted:null;
   bool get isPlaying => _isNotDisposed&&_t!=null&&_t.isActive?!_t.muted:null;
 
-  // bool get _isNotDisposed {
-  //   if(super._isNotDisposed){
-  //     if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation. Please wait for the current animation to get over.");
-  //     return true;
-  //   }
-  //   return false;
-  // }
-
   Future<TweenNotifier<T>> performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) async {
-
     if(_isNotDisposed){
       if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation. Please wait for the current animation to get over.");
       return super.performTween(tween, duration, loop: loop, reverse: reverse, curve: curve).then((value) => this);
-    }
-
-    return null;
-  }
-
-  Future<TweenNotifier<T>> performCircularTween(Tween<T> tween, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) async {
-    if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
-      return super.performCircularTween(tween, duration, circles: circles, reverse: reverse, firstCurve: firstCurve, secondCurve: secondCurve).then((value) => this);
-    }
-    return null;
-  }
-
-  int _times(int times) {
-    if(times==null||times==0) return 1;
-    return times.abs();
-  }
-
-  Future<TweenNotifier<T>> interpolate(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
-    if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation. Please wait for the current animation to get over.");
-      return super.interpolate(tween, values, totalDuration, loop: loop, reverse: reverse, curve: curve, curves: curves).then((value) => this);
     }
     return null;
   }
@@ -2272,30 +2297,110 @@ class TweenNotifier<T> extends ValNotifier<T>
     return null;
   }
 
+  Future<TweenNotifier<T>> performCircularTween(Tween<T> tween, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) async {
+    if(_isNotDisposed){
+      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
+      return super.performCircularTween(tween, duration, circles: circles, reverse: reverse, firstCurve: firstCurve, secondCurve: secondCurve).then((value) => this);
+    }
+    return null;
+  }
+
+  Future<TweenNotifier<T>> interpolate(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
+    if(_isNotDisposed){
+      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
+      return super.interpolate(tween, values, totalDuration, loop: loop, reverse: reverse, curve: curve, curves: curves).then((value) => this);
+    }
+    return null;
+  }
+
+  Future<TweenNotifier<T>> circularInterpolation(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int circles=1, bool antiClockwise=false, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
+  {
+    if(_isNotDisposed){
+      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
+      return super.circularInterpolation(Tween<T>(), values, totalDuration, circles: circles, firstCurve: firstCurve, secondCurve: secondCurve, firstCurves: firstCurves, secondCurves: secondCurves).then((value) => this);
+    }
+    return null;
+  }
+
+  Future<TweenNotifier<T>> _interpolate(Tween<T> tween, Iterable<T> values, Duration duration, {int loop=1, bool reverse=false, Iterable<Curve> curves, Ticker t}) async {
+
+    Curve curve;
+
+    if(reverse??=false) {
+      values = values.toList().reversed;
+      curves = curves.toList().reversed;
+    }
+
+    int i;
+
+    t = Ticker((d) async {
+      d-=_pD;
+      if (d > duration) {
+        call(tween.end);
+        return t..stop();
+      }
+      // print(duration);
+      return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
+    });
+
+    tween.end = values.first;
+
+    _t = t;
+
+    return Future.doWhile(() async {
+      i = 1;
+      do {
+        tween.begin = tween.end;
+        tween.end = values[i];
+        curve = curves[i-1];
+        _pD = Duration.zero;
+        await _t.start();
+      } while(++i!=values.length);
+      return --loop!=0;
+    }).then((_){
+      _t.dispose();
+      return this;
+    });
+  }
+
   Future<Ticker> _performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Ticker t}) async {
 
-    if(t==null)
-      t = (reverse ?? false) ? Ticker((d) {
-        if (d > duration) {
-          call(tween.begin);
-          return _t..stop();
-        }
-        return call(tween.transform(1 - curve.transform(d.inMilliseconds / duration.inMilliseconds)));
-      }) : Ticker((d) {
+    T _;
+    reverse??=false;
+
+
+
+    if(t==null){
+      if(reverse) {
+        _ = tween.begin;
+        tween.end = tween.begin;
+        tween.begin = _;
+        reverse = null;
+      }
+      t = Ticker((d) {
+        d-=_pD;
         if (d > duration) {
           call(tween.end);
           return _t..stop();
         }
         return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
       });
+    }
 
     loop = _times(loop);
     _t = t;
     WidgetsFlutterBinding.ensureInitialized();
-    while(loop--!=0) await _t.start();
+    while(loop--!=0) {
+      _pD = Duration.zero;
+      await _t.start();
+    }
+
+    if(reverse==null){
+      tween.begin = tween.end;
+      tween.end = _;
+    }
     return _t;
   }
-
 }
 
 extension Iterable_ValNotifier<T> on Iterable<ValNotifier<T>> {

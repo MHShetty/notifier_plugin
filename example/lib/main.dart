@@ -12,16 +12,12 @@ void main() {
 
 class TestApp extends StatelessWidget {
 
-  // Notifier n = Notifier(initialListeners: [print], lockListenersOnInit: true);
   TweenNotifier<Color> t = TweenNotifier();
-  // Ticker t = Ticker(print);
-
-  // Iterable<ChangeNotifier> cn = [ChangeNotifier()];
-  int i = 0;
 
   Widget build(BuildContext context) {
 
-    t.interpolateR([Colors.red, Colors.green], Duration(seconds: 4), reverse: null);
+    DateTime a = DateTime.now();
+    t.performCircularTween(Tween<Color>(begin: Colors.red, end: Colors.blue), Duration(seconds: 3), reverse: true).then((_)=>print(DateTime.now().difference(a)));
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -30,7 +26,7 @@ class TestApp extends StatelessWidget {
           onTapDown: (_)=>t.pause(),
           onTapUp: (_)=>t.play(),
           child: Scaffold(
-            backgroundColor: cc,
+            backgroundColor: cc ?? Colors.white,
             // body: Center(child: cn - ()=>Text(i.toString())),
           ),
         ),
@@ -152,3 +148,4 @@ class _TestScaffoldState0 extends State<TestScaffold0> with TickerProviderStateM
             ));
   }
 }
+

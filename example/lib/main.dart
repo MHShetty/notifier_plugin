@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
 import 'package:notifier_plugin/notifier_plugin.dart';
 
 /* The examples for this plugin haven't been properly designed yet.
@@ -12,26 +15,23 @@ void main() {
 
 class TestApp extends StatelessWidget {
 
-  TweenNotifier<Color> t = TweenNotifier();
+  ValNotifier valNotifier = ValNotifier();
+
+  StreamController s = StreamController(onListen: ()=>print("Me"));
+  StreamSubscription streamSubscription;
 
   Widget build(BuildContext context) {
 
-    // The widget tree gets built twice (by default) ... this code is only for testing/debugging
-      t.circularInterpolationR([Colors.blue, Colors.green, Colors.pink, Colors.red], Duration(seconds: 5));
+
 
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: SafeArea(
-        child: t - (cc)=>GestureDetector(
-          onTapDown: (_)=>t.pause(),
-          onTapUp: (_)=>t.play(),
-          child: Scaffold(
-            backgroundColor: cc ?? Colors.white,
-            // body: Center(child: cn - ()=>Text(i.toString())),
-          ),
+      home: Scaffold(
+        body: Center(
+          child: Text("Hello World"),
         ),
       ),
     );
+
   }
 }
 

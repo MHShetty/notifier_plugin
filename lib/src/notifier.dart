@@ -1,9 +1,27 @@
 part of notifier_plugin;
 
+/// A Notifier is a simple object that internally maintains a set of listeners and notifies them whenever
+/// it is asked to. While a Notifier might just seem like being capable of doing just that, this plugin
+/// has interfaced the same list of listeners with methods by re-using Dart in such a way that you can,
+///
+/// * Pass a single [Notifier] to an [Iterable]<Notifier> variable/parameter
+/// * Add one/multiple listeners to one/multiple notifiers.
+/// * Attach/detach one/multiple notifier(s) to one/multiple notifier(s)
+/// * Make one/multiple notifier(s) listen to one/multiple notifier(s)
+/// * (Un)lock a notifier to prevent addition/deletion of listeners
+/// * Poll a notifier for a fixed number of times or over a fixed duration.
+/// * Attach a Stream/ChangeNotifier to a Notifier.
+/// * Notify/delete a specific (set of) listener(s) by just knowing its/their hashCode(s) or references
+/// * Merge one/multiple notifier(s) into a single notifier
+/// * Re-init a disposed notifier.
+/// * Clear the listeners of a notifier.
+/// * Check the state of the notifier through different getter/setter methods.
+/// * Use the - operator to attach a WidgetBuilder(/handled function) to a Notifier (abstract)
+///
 class Notifier extends Iterable<Notifier> {
 
   List<Function> _listeners = <Function>[]; // Auto-init
-  bool Function(Error) _handleError;
+  bool Function(Function,dynamic) _handleError;
 
   Notifier({
     Iterable<Notifier> attachNotifiers,
@@ -11,7 +29,7 @@ class Notifier extends Iterable<Notifier> {
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Error) removeListenerOnError,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) {
     if (mergeNotifiers != null) _addListeners(mergeNotifiers._listeners);
     if (attachNotifiers != null) _attach(attachNotifiers);
@@ -19,10 +37,14 @@ class Notifier extends Iterable<Notifier> {
     if (initialListeners != null) _addListeners(initialListeners);
     this.._handleError = removeListenerOnError;
     if(lockListenersOnInit==true) _listeners = List.from(_listeners, growable: false);
+    WidgetsFlutterBinding.ensureInitialized();
   }
 
   Notifier._();
 
+  /// This method polls a Notifier with notifications over a fixed [duration] of time and returns the
+  /// current instance of [Notifier] as a [Future]. A TickerProvider can be provided to this method
+  /// via the [vsync] parameter.
   Future<Notifier> pollFor(Duration duration, {TickerProvider vsync}) {
     if (_isNotDisposed) {
       Ticker t;
@@ -34,12 +56,14 @@ class Notifier extends Iterable<Notifier> {
         call();
       };
       t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      WidgetsFlutterBinding.ensureInitialized();
       return t.start().then((v) => this);
     }
     return null;
   }
 
+  /// This method polls a Notifier with notifications for a fixed number of [times] and returns the
+  /// duration taken to poll the Notifier as a future. A TickerProvider can be passed via the [vsync]
+  /// parameter.
   Future<Duration> poll(int times, {TickerProvider vsync}) {
     Duration end;
     if (_isNotDisposed) {
@@ -56,15 +80,41 @@ class Notifier extends Iterable<Notifier> {
         this();
       };
       t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      WidgetsFlutterBinding.ensureInitialized();
       return t.start().then((value) => end);
     }
     return null;
   }
 
-  /// A method that can be used to async load a resource and then notify the listeners of the Notifier
-  /// when the Future has been successfully completed. Can be used for a complete future.
-  Future<Notifier> load(Future res) async => await res.then(this);
+
+  /// A method that notifies the listeners of the current [Notifier], whenever the passed Future
+  /// completes or if it has already completed. You can tell the method what needs to be done
+  /// if Future completes/has completed with an error or with an value.
+  ///
+  /// This is different from load(ing) the error onto a [ValNotifier]. (It can't be strongly supported due to
+  /// type issues)
+  void notifyOnComplete<R>(Future<R> res,[Function(R) onData, Function onError]) => res.then(onData??(_){}).catchError(onError??(){}).whenComplete(this);
+
+  /// A method that notifies the listeners of the current [Notifier], if the passed Future completes
+  /// with an error else nothing is done with the [Notifier]. You can tell the method what needs to be
+  /// done if the Future completes/has completed with an error or value.
+  ///
+  /// This is different from load(ing) the thrown error onto a [ValNotifier].
+  void notifyIfError(Future res,[Function(dynamic) onData, Function onError]) =>
+      res.then(onData??(_){}).catchError((e){
+        if(onError!=null) onError is Function()?onError():onError(e);
+        this();
+      });
+
+  /// A method that notifies the listeners of the current [Notifier], if the passed Future completes
+  /// with an error else nothing is done with the [Notifier]. You can tell the method what needs to be
+  /// done if the Future completes/has completed with an value or error.
+  ///
+  /// This is different from load(ing) the data received after awaiting a Future onto a [ValNotifier].
+  void notifyIfSuccess<R>(Future<R> res, [Function(R) onData, Function onError]) =>
+      res.then((_){
+        onData?.call(_);
+        this();
+      }).catchError(onError??(){});
 
   /// Attach a ChangeNotifier to this [Notifier]
   // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
@@ -78,7 +128,7 @@ class Notifier extends Iterable<Notifier> {
   // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
   bool hasAttachedChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed?hasListener(changeNotifier.notifyListeners):null;
 
-  /// Make this [Notifier] listen to a [ChangeNotifier]
+  /// Make this [Notifier] listen to a [ChangeNotifier]. This method can be re-used for a [ValueNotifier]
   bool startListeningToChangeNotifier(ChangeNotifier changeNotifier){
     if(_isNotDisposed){
       try {
@@ -100,16 +150,19 @@ class Notifier extends Iterable<Notifier> {
     return null;
   }
 
-  /// Attach a Stream to this [Notifier].
+  /// Attach a Stream to this [Notifier]. Do not use this if your [Stream] is actually expecting some
+  /// value apart from null!
   bool attachStream(StreamController s) => _isNotDisposed?addListener(s.add)!=null:null;
 
-  /// Detach a Stream that was previously attached to this [Notifier].
+  /// Detach a Stream that was previously attached to this [Notifier] using [attachStream].
   bool detachStream(StreamController s) => _isNotDisposed?removeListener(s.add):null;
 
   /// Checks if the Notifier has attached the Stream
-  bool hasAttachedStream(StreamController s) => _isNotDisposed?contains(s.add):null;
+  bool hasAttachedStream(StreamController s) => _isNotDisposed?_hasListener(s.add):null;
 
-  /// Makes the [ValNotifier] listen to an existing [stream].
+  /// Makes the [Notifier] listen to an existing [stream]. In order to control or stop listening to
+  /// this connection, you'll need to store the [StreamSubscription] returned by this function and use
+  /// it as per your requirements.
   StreamSubscription listenTo(Stream stream) => stream.listen(this);
 
   /// Asynchronously notify the listeners without blocking the
@@ -242,7 +295,7 @@ class Notifier extends Iterable<Notifier> {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) {
     if (isDisposed && _init()) {
       if (mergeNotifiers != null) _addListeners(mergeNotifiers._listeners);
@@ -385,10 +438,17 @@ class Notifier extends Iterable<Notifier> {
           _call(_listeners[i]);
         } catch (e) {
           if (_handleError == null) rethrow;
-          bool _ = _handleError(e);
-          if (_)
-            _listeners.removeAt(i--);
-          else if (_ == null) rethrow;
+          bool _ = _handleError(_listeners[i],e);
+          if (_ == null) rethrow;
+          if (_) {
+            try {
+              _listeners.removeAt(i--);
+            } catch(e) {
+              i++;
+              if(e is UnsupportedError) throw StateError("ValNotifier#$hashCode: Could not remove ${_listeners[i]} as my listeners had been locked!\nPlease call unlockListeners() on me.");
+              rethrow; // For any other unexpected error
+            }
+          }
         }
       }
       return this;
@@ -417,9 +477,17 @@ class Notifier extends Iterable<Notifier> {
   ///
   /// If the listener is a listener of the current [Notifier] and [isNotDisposed] then it returns [true] else false.
   bool removeListener(Function listener) =>
-      _isNotDisposed ? _listeners.remove(listener) : null;
+      _isNotDisposed ? _removeListener(listener) : null;
 
-  bool _removeListener(Function listener) => _listeners.remove(listener);
+  bool _removeListener(Function listener){
+    try{
+      _listeners.remove(listener);
+      return true;
+    } catch(e){
+      if(e is UnsupportedError) throw StateError("Notifier#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly remove a listener next time.");
+      rethrow; // For any unexpected error
+    }
+  }
 
   /// This function can be used to remove a specific listener by it's [hashCode], which can either be obtained as the
   /// return value of [addListener] or by manually storing the function as a variable and then obtaining it with the
@@ -432,6 +500,7 @@ class Notifier extends Iterable<Notifier> {
       return _listeners.remove(
           _listeners.firstWhere((listener) => listener.hashCode == hashCode));
     } catch (e) {
+      if(e is UnsupportedError) throw StateError("Notifier#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly remove a listener next time.");
       return false;
     }
   }
@@ -599,7 +668,7 @@ class Notifier extends Iterable<Notifier> {
   String toString() =>
       "{\"id\": $hashCode, \"Number of Listeners\": ${_listeners.length}}";
 
-  static Notifier merge([Iterable<Notifier> notifiers, bool Function(dynamic) removeListenerOnError]) =>
+  static Notifier merge([Iterable<Notifier> notifiers, bool Function(Function, dynamic) removeListenerOnError]) =>
       notifiers == null ? Notifier._() : notifiers.merge(const [],removeListenerOnError);
 
   static Notifier from(Notifier notifier) {
@@ -898,7 +967,7 @@ extension Iterable_Notifier on Iterable<Notifier> {
   Iterable<bool> get listenersAreLocked => map((n)=>n?.listenersAreLocked).toList();
   Iterable<bool> get listenersAreUnlocked => map((n)=>n?.listenersAreUnlocked).toList();
 
-  Notifier merge([Iterable<Notifier> notifiers, bool Function(dynamic) removeListenerOnError]){
+  Notifier merge([Iterable<Notifier> notifiers, bool Function(Function, dynamic) removeListenerOnError]){
     Notifier n = Notifier._();
     n._addListeners(_listeners);
     n._addListeners(notifiers._listeners);
@@ -941,8 +1010,8 @@ extension Iterable_Notifier on Iterable<Notifier> {
       map((n) => n >> notifiers).toList();
 }
 
-class ValNotifier<T> extends Notifier {
-
+class ValNotifier<T> extends Notifier
+{
   T _val;
 
   ValNotifier({
@@ -951,7 +1020,7 @@ class ValNotifier<T> extends Notifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) : _val=initialVal, super(attachNotifiers: attachNotifiers,
             listenToNotifiers: listenToNotifiers,
             mergeNotifiers: mergeNotifiers,
@@ -961,6 +1030,10 @@ class ValNotifier<T> extends Notifier {
   ValNotifier._();
 
   T get val => _val;
+
+  /// A method that can be used to load an async resource of type T and then pass it to the [ValNotifier]'s
+  /// listeners if it's successfully retrieved else the error is either passed to the onError function
+  Future<T> load(covariant Future<T> res, [Function onError]) => res.then((_)=>this(_)._val).catchError(onError??(){});
 
   static ValNotifier<T> merge<T>([Iterable<ValNotifier<T>> notifiers]) =>
       notifiers == null ? ValNotifier._() : notifiers.merge();
@@ -1083,8 +1156,6 @@ class ValNotifier<T> extends Notifier {
     }
 
     loop = _times(loop);
-
-    WidgetsFlutterBinding.ensureInitialized();
     while(loop--!=0) await t.start();
     if(reverse==null){
       tween.begin = tween.end;
@@ -1365,9 +1436,17 @@ class ValNotifier<T> extends Notifier {
           _listeners[i] is Function(T) ? _listeners[i](val) : _listeners[i]();
         } catch (e) {
           if (_handleError == null) rethrow;
-          bool _ = _handleError(e);
+          bool _ = _handleError(_listeners[i],e);
           if (_ == null) rethrow;
-          if (_) _listeners.removeAt(i--);
+          if (_) {
+            try {
+              _listeners.removeAt(i--);
+            } catch(e) {
+              i++;
+              if(e is UnsupportedError) throw StateError("ValNotifier#$hashCode: Could not remove ${_listeners[i]} as my listeners had been locked!\nPlease call unlockListeners() on me.");
+              rethrow; // For any other unexpected error
+            }
+          }
         }
       }
       if (save) _val = val;
@@ -1376,22 +1455,53 @@ class ValNotifier<T> extends Notifier {
     return null;
   }
 
-  /// Attach a Stream to this [ValNotifier].
+  /// Attach a Stream to this [ValNotifier] to get notified, whenever it gets called.
   bool attachStream(covariant StreamController<T> s) => _isNotDisposed?addListener(s.add)!=null:null;
 
-  /// Detach a Stream that was previously attached to this [ValNotifier].
+  /// Detach a Stream that was previously attached to this [ValNotifier] via [attachStream] method.
   bool detachStream(covariant StreamController<T> s) => _isNotDisposed?removeListener(s.add):null;
 
-  /// Makes the [ValNotifier] listen to an existing stream.
+  /// Makes the [ValNotifier] listen to an existing stream. Use the [StreamSubscription] returned from
+  /// this method control or cancel this connection.
   StreamSubscription<T> listenTo(covariant Stream<T> stream) => stream.listen(this);
 
+  /// Notifies null to all the listeners and clears the value stored in the ValNotifier's buffer.
+  ///
+  /// Trying to do this by any other means, would be as good as not passing any value to that function.
+  /// i.e. The previous value shall get notified again.
   ValNotifier<T> nullNotify() => this(_val = null);
 
+  // Other ways to call the current [ValNotifier]
+  // Getters were used instead of methods to minimize the chance of accidental cross-attachment
+  // of two or more notifiers and to reduce the complexity of the code that detects.
+
+  /// Calls the [ValNotifier] with the value that was stored in the buffer.
   ValNotifier<T> operator ~() => notify();
+
+  /// Helper getter that abstracts the call method for readability.
   ValNotifier<T> get notify => super.notify;
+
+  /// Helper getter that abstracts the call method for readability.
   ValNotifier<T> get notifyListeners => super.notifyListeners;
+
+  /// Helper getter that abstracts the call method for readability.
   ValNotifier<T> get sendNotification => super.sendNotification;
 
+  /// It is a special operator method that eases the process of creating dynamic UI and working with
+  /// multiple notifiers.
+  ///
+  /// This method,
+  ///
+  /// * Combines the two Notifiers as a Notifier, if a Notifier was passed
+  /// * Combines the two ValNotifiers as a ValNotifier, if a ValNotifier was passed.
+  /// * Returns a NotificationBuilder that just rebuilds when the ValNotifier is notified,
+  /// if a method that accepts no parameters is passed.
+  /// * Returns a NotificationBuilder that rebuilds while passing the value, if a method that accepts
+  /// a single parameter (of the current type) or something that has a wider scope (including this type)
+  /// else an UnsupportedError shall been thrown.
+  /// * Returns a NotificationBuilder that rebuilds while passing the BuildContext and value, if such a
+  /// method is passed. If the two types differ in any way or are not within the scope of expected types
+  /// an UnsupportedError shall been thrown.
   operator -(_) {
     if (_ is Notifier) return Notifier.merge([this, _]);
     if (_ is ValNotifier<T>) return ValNotifier.merge<T>([this, _]);
@@ -1406,13 +1516,14 @@ class ValNotifier<T> extends Notifier {
         "$runtimeType<$T>#$hashCode: $runtimeType<$T>'s operator - does not support ${_.runtimeType}.");
   }
 
+
   bool init({
     T initialVal,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool Function(Function,dynamic) removeListenerOnError,
   }){
     if(isDisposed){
       _val = initialVal;
@@ -1530,7 +1641,7 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool Function(Function,dynamic) removeListenerOnError,
   })  : assert(url != null, "A $runtimeType cannot be created without an URL. Please make sure that you provide a valid url."),
         // Regex Source: https://stackoverflow.com/a/55674757
         assert(RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url), "Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case)."),
@@ -1751,7 +1862,7 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) {
     if(isDisposed) {
       assert(url != null, "A $runtimeType cannot be init without an URL. Please make sure that you provide a valid url.");
@@ -1997,6 +2108,9 @@ class TickerNotifier extends Notifier
     return null;
   }
 
+  Future<bool> startAfter(Duration d) => _isNotDisposed ? Future.delayed(d,start) : null;
+  Future<bool> tickAfter(Duration d)  => startAfter(d);
+
   bool play(){
     if(_isNotDisposed){
       if(_t.muted) {
@@ -2008,6 +2122,8 @@ class TickerNotifier extends Notifier
     return null;
   }
 
+  Future<bool> playAfter(Duration d) => _isNotDisposed ? Future.delayed(d,play) : null;
+
   bool pause(){
     if(_isNotDisposed){
       if(_t.muted) return false;
@@ -2016,8 +2132,10 @@ class TickerNotifier extends Notifier
     return null;
   }
 
+  Future<bool> pauseAfter(Duration d) => _isNotDisposed ? Future.delayed(d,pause) : null;
+
   bool stop() {
-    if(_isNotDisposed){
+    if(_isNotDisposed) {
       if(_t.isActive) {
         _t.stop();
         return true;
@@ -2026,6 +2144,8 @@ class TickerNotifier extends Notifier
     }
     return null;
   }
+
+  Future<bool> stopAfter(Duration d) => _isNotDisposed ? Future.delayed(d,stop) : null;
 
   bool dispose() {
     if(super.dispose()){
@@ -2036,15 +2156,98 @@ class TickerNotifier extends Notifier
     return false;
   }
 
-  TickerNotifier({
-    bool tickOnStart = false,
-    bool muteOnStart = false,
+  Future<bool> tickFor(Duration d) async {
+    if(_isNotDisposed) {
+      if(_t.isTicking) return false;
+      _t.start();
+      // null is returned to specify that the TickerNotifier was stopped/disposed by some other source
+      // and to distinguish it from the [false] that was previously returned.
+      return Future.delayed(d,()=>stop()?true:null);
+    }
+    return null;
+  }
+
+  bool get isPlaying => _isNotDisposed ? _t.isTicking : null;
+  bool get isNotPlaying => _isNotDisposed ? !_t.isTicking : null;
+
+  bool get isActive => _isNotDisposed ? _t.isActive : null;
+  bool get isNotActive => _isNotDisposed ? !_t.isActive : null;
+
+  Future<TickerNotifier> pollFor(Duration duration, {TickerProvider vsync}) {
+    if (_isNotDisposed) {
+      if(_t.isTicking) throw StateError("A TickerNotifier can control only one T");
+      if (duration == Duration.zero) return Future.value(this);
+      duration=duration.abs();
+      Function onTick = (d) {
+        if (d>duration) return _t..stop()..dispose();
+        call();
+      };
+      _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
+      return _t.start().then((value)=>this);
+    }
+    return null;
+  }
+
+  @override
+  Future<Duration> poll(int times, {TickerProvider vsync}) {
+    if (_isNotDisposed) {
+      Duration end;
+      bool wasPlaying = _t.isTicking?true:_t.isActive?false:null;
+      if (times == 0) return Future.value(Duration.zero);
+      times = times.abs();
+      Function onTick = (d) {
+        if (times-- == 0) {
+          end = d;
+          return _t..stop()..dispose();
+        }
+        call();
+      };
+      _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
+      return _t.start().then((value){
+        _t = Ticker(this);
+        if(wasPlaying!=null) start(play: wasPlaying);
+        return end;
+      });
+    }
+    return null;
+  }
+
+  @override
+  bool init({
+    bool startOnInit = false,
+    bool pauseOnInit = false,
     String debugLabel,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool Function(Function,dynamic) removeListenerOnError,
+  })
+  {
+    if(super.init(
+        attachNotifiers: attachNotifiers,
+        listenToNotifiers: listenToNotifiers,
+        mergeNotifiers: mergeNotifiers,
+        initialListeners: initialListeners,
+        removeListenerOnError: removeListenerOnError,
+    )){
+      _t = Ticker(this, debugLabel: debugLabel);
+      if(startOnInit??false) start(play: pauseOnInit!=true);
+      _t.muted = pauseOnInit==true;
+    }
+    return false;
+  }
+
+
+  TickerNotifier({
+    bool startOnInit = false,
+    bool pauseOnInit = false,
+    String debugLabel,
+    Iterable<Notifier> attachNotifiers,
+    Iterable<Notifier> listenToNotifiers,
+    Iterable<Notifier> mergeNotifiers,
+    Iterable<Function> initialListeners,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) : super(
     attachNotifiers: attachNotifiers,
     listenToNotifiers: listenToNotifiers,
@@ -2052,30 +2255,32 @@ class TickerNotifier extends Notifier
     initialListeners: initialListeners,
     removeListenerOnError: removeListenerOnError,
   ) {
-    _t = Ticker((_)=>this(), debugLabel: debugLabel);
-    WidgetsFlutterBinding.ensureInitialized();
-    start(play: tickOnStart);
-    _t.muted = muteOnStart;
+    _t = Ticker(this, debugLabel: debugLabel);
+    if(startOnInit??false) start(play: pauseOnInit!=true);
+    _t.muted = pauseOnInit==true;
   }
 }
 
 // Had tried using mixin but an error occurred since multiple signatures of the method call was
 // found by the VM.
-// So the idea was dropped. call([dynamic]) call([T,`bool`])
+// So the idea was dropped. call([dynamic]) and call([T,`bool`])
 
 class TickerValNotifier<T> extends ValNotifier<T>
 {
   Ticker _t;
 
-  bool start({bool pause=false}) {
+  bool start({bool play=true}){
     if(_isNotDisposed){
       if(_t.isActive) return false;
       _t.start();
-      _t.muted = pause==true;
+      _t.muted = play!=true;
       return true;
     }
     return null;
   }
+
+  Future<bool> startAfter(Duration d) => _isNotDisposed ? Future.delayed(d,start) : null;
+  Future<bool> tickAfter (Duration d) => startAfter(d);
 
   bool play(){
     if(_isNotDisposed){
@@ -2088,6 +2293,8 @@ class TickerValNotifier<T> extends ValNotifier<T>
     return null;
   }
 
+  Future<bool> playAfter(Duration d) => _isNotDisposed ? Future.delayed(d,play) : null;
+
   bool pause(){
     if(_isNotDisposed){
       if(_t.muted) return false;
@@ -2096,8 +2303,10 @@ class TickerValNotifier<T> extends ValNotifier<T>
     return null;
   }
 
+  Future<bool> pauseAfter(Duration d) => _isNotDisposed ? Future.delayed(d,pause) : null;
+
   bool stop() {
-    if(_isNotDisposed){
+    if(_isNotDisposed) {
       if(_t.isActive) {
         _t.stop();
         return true;
@@ -2106,6 +2315,8 @@ class TickerValNotifier<T> extends ValNotifier<T>
     }
     return null;
   }
+
+  Future<bool> stopAfter(Duration d) => _isNotDisposed ? Future.delayed(d,stop) : null;
 
   bool dispose() {
     if(super.dispose()){
@@ -2116,16 +2327,100 @@ class TickerValNotifier<T> extends ValNotifier<T>
     return false;
   }
 
-  TickerValNotifier({
+  Future<bool> tickFor(Duration d) async {
+    if(_isNotDisposed) {
+      if(_t.isTicking) return false;
+      _t.start();
+      // null is returned to specify that the TickerNotifier was stopped/disposed by some other source
+      // and to distinguish it from the [false] that was previously returned.
+      return Future.delayed(d,()=>stop()?true:null);
+    }
+    return null;
+  }
+
+  bool get isPlaying => _isNotDisposed ? _t.isTicking : null;
+  bool get isNotPlaying => _isNotDisposed ? !_t.isTicking : null;
+
+  bool get isActive => _isNotDisposed ? _t.isActive : null;
+  bool get isNotActive => _isNotDisposed ? !_t.isActive : null;
+
+  Future<TickerValNotifier<T>> pollFor(Duration duration, {TickerProvider vsync}) {
+    if (_isNotDisposed) {
+      if(_t.isTicking) throw StateError("A TickerNotifier can control only one T");
+      if (duration == Duration.zero) return Future.value(this);
+      duration=duration.abs();
+      Function onTick = (d) {
+        if (d>duration) return _t..stop()..dispose();
+        call();
+      };
+      _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
+      return _t.start().then((value)=>this);
+    }
+    return null;
+  }
+
+  @override
+  Future<Duration> poll(int times, {TickerProvider vsync}) {
+    if (_isNotDisposed) {
+      Duration end;
+      bool wasPlaying = _t.isTicking?true:_t.isActive?false:null;
+      if (times == 0) return Future.value(Duration.zero);
+      times = times.abs();
+      Function onTick = (d) {
+        if (times-- == 0) {
+          end = d;
+          return _t..stop()..dispose();
+        }
+        call();
+      };
+      _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
+      return _t.start().then((value){
+        _t = Ticker((d)=>this());
+        if(wasPlaying!=null) start(play: wasPlaying);
+        return end;
+      });
+    }
+    return null;
+  }
+
+  @override
+  bool init({
     T initialVal,
-    bool startOnInit = true,
-    bool muteOnStart = false,
+    bool startOnInit = false,
+    bool pauseOnInit = false,
     String debugLabel,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool Function(Function,dynamic) removeListenerOnError,
+  })
+  {
+    if(super.init(
+      initialVal: initialVal,
+      attachNotifiers: attachNotifiers,
+      listenToNotifiers: listenToNotifiers,
+      mergeNotifiers: mergeNotifiers,
+      initialListeners: initialListeners,
+      removeListenerOnError: removeListenerOnError,
+    )){
+      _t = Ticker((d)=>call(), debugLabel: debugLabel);
+      if(startOnInit??false) start(play: pauseOnInit!=true);
+      _t.muted = pauseOnInit==true;
+    }
+    return false;
+  }
+
+  TickerValNotifier({
+    T initialVal,
+    bool startOnInit = true,
+    bool pauseOnInit = false,
+    String debugLabel,
+    Iterable<Notifier> attachNotifiers,
+    Iterable<Notifier> listenToNotifiers,
+    Iterable<Notifier> mergeNotifiers,
+    Iterable<Function> initialListeners,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) : super(
     initialVal: initialVal,
     attachNotifiers: attachNotifiers,
@@ -2135,78 +2430,8 @@ class TickerValNotifier<T> extends ValNotifier<T>
     removeListenerOnError: removeListenerOnError
   ) {
     _t = Ticker((_)=>this(), debugLabel: debugLabel);
-    WidgetsFlutterBinding.ensureInitialized();
-    if(startOnInit) start(pause: muteOnStart);
-    else _t.muted = muteOnStart==true;
-  }
-
-  bool init({
-        T initialVal,
-        bool startOnInit = true,
-        bool muteOnStart = false,
-        String debugLabel,
-        Iterable<Notifier> attachNotifiers,
-        Iterable<Function> initialListeners,
-        Iterable<Notifier> listenToNotifiers,
-        Iterable<Notifier> mergeNotifiers,
-        bool Function(Error) removeListenerOnError}
-      ){
-    if(super.init(
-      initialVal: initialVal,
-      attachNotifiers: attachNotifiers,
-      initialListeners: initialListeners,
-      mergeNotifiers: mergeNotifiers,
-      removeListenerOnError: removeListenerOnError,
-    )){
-      _t = Ticker((_)=>this(), debugLabel: debugLabel);
-      if(startOnInit) start(pause: muteOnStart);
-      else _t.muted = muteOnStart==true;
-    }
-    return false;
-    }
-}
-
-extension Iterable_<T> on Iterable<T> {
-  /// A syntactic sugar for the [elementAt] function.
-  T operator [](int index) => elementAt(index);
-
-  /// The function [doWhileTrue] can be used to efficiently iterate an Iterable till the given condition is satisfied.
-  ///
-  /// If the function is able to iterate the list successfully the function will return [true] else [false].
-  bool doWhileTrue(bool Function(T) computation) {
-    for (T val in this) if (!computation(val)) return false;
-    return true;
-  }
-
-  /// The function [doWhileFalse] can be used to efficiently iterate a list until a given condition remains unsatisfied.
-  ///
-  /// If the function is able to iterate the list successfully the function will return [false] else [true].
-  bool doWhileFalse(bool Function(T) computation) {
-    for (T val in this) if (computation(val)) return true;
-    return false;
-  }
-
-  /// Checks whether the given element is present in the current [Iterable] by comparing it from the opposite
-  /// class's operator== method.
-  bool containsRevComp(Object element){
-    for (T val in this) if (element==val) return true;
-    return false;
-  }
-
-  /// Checks whether the given element is present in the current [Iterable] by comparing it with both classes'
-  /// operator== method. For any given element present in the array, it returns true if either of the method(s)
-  /// return true for any element else false is bluntly returned at the end.
-  bool containsEitherComp(Object element){
-    for (T val in this) if (element==val||val==element) return true;
-    return false;
-  }
-
-  /// Checks whether the given element is present in the current [Iterable] by comparing it with both classes'
-  /// operator== method. For any given element present in the array, it returns true if both the method(s)
-  /// return true, else false is bluntly returned at the end.
-  bool containsBothComp(Object element){
-    for (T val in this) if (element==val&&val==element) return true;
-    return false;
+    if(startOnInit) start(play: pauseOnInit!=true);
+    else _t.muted = pauseOnInit==true;
   }
 }
 
@@ -2219,27 +2444,19 @@ class TweenNotifier<T> extends ValNotifier<T>
 
   TweenNotifier({
     T initialVal,
-    Iterable<Tween<T>> performTweens,
-    Iterable<Tween<T>> performCircularTween,
-    Duration duration,
     String debugLabel,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
-  }) : assert((performTweens==null)==(duration==null),"Please ensure that both performTweens are either either initialized with some expected value, or simply are not."),
-        super(
+    bool Function(Function,dynamic) removeListenerOnError,
+  }) : super(
           initialVal: initialVal,
       attachNotifiers: attachNotifiers,
       listenToNotifiers: listenToNotifiers,
       mergeNotifiers: mergeNotifiers,
       initialListeners: initialListeners,
-      removeListenerOnError: removeListenerOnError)
-  {
-    WidgetsFlutterBinding.ensureInitialized();
-    if(performTweens!=null) this.performTweens(performTweens, duration);
-  }
+      removeListenerOnError: removeListenerOnError);
 
   bool play(){
     if(_isNotDisposed||_t==null){
@@ -2340,7 +2557,6 @@ class TweenNotifier<T> extends ValNotifier<T>
         call(tween.end);
         return t..stop();
       }
-      // print(duration);
       return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
     });
 
@@ -2369,8 +2585,6 @@ class TweenNotifier<T> extends ValNotifier<T>
     T _;
     reverse??=false;
 
-
-
     if(t==null){
       if(reverse) {
         _ = tween.begin;
@@ -2390,7 +2604,6 @@ class TweenNotifier<T> extends ValNotifier<T>
 
     loop = _times(loop);
     _t = t;
-    WidgetsFlutterBinding.ensureInitialized();
     while(loop--!=0) {
       _pD = Duration.zero;
       await _t.start();
@@ -2402,9 +2615,69 @@ class TweenNotifier<T> extends ValNotifier<T>
     }
     return _t;
   }
+
+  Future<Duration> poll(int times, {TickerProvider vsync}){
+    if(_isNotDisposed){
+      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot get polled while it's being animated. Please wait for the previous animation to get over using await/then.");
+      return super.poll(times, vsync: vsync);
+    }
+    return null;
+  }
+
+  Future<TweenNotifier> pollFor(Duration duration, {TickerProvider vsync}){
+    if(_isNotDisposed){
+      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot get polled while it's being animated. Please wait for the previous animation to get over using await/then.");
+      return super.pollFor(duration, vsync: vsync);
+    }
+    return null;
+  }
 }
 
 extension Iterable_ValNotifier<T> on Iterable<ValNotifier<T>> {
   Iterable<ValNotifier<T>> nullNotify() => map((n)=>n?.nullNotify()).toList();
   ValNotifier<T> merge([Iterable<ValNotifier<T>> notifiers]) => ValNotifier<T>._().._addListeners(_listeners).._addListeners(notifiers._listeners);
+}
+
+extension Iterable_<T> on Iterable<T> {
+  /// A syntactic sugar for the [elementAt] function.
+  T operator [](int index) => elementAt(index);
+
+  /// The function [doWhileTrue] can be used to efficiently iterate an Iterable till the given condition is satisfied.
+  ///
+  /// If the function is able to iterate the list successfully the function will return [true] else [false].
+  bool doWhileTrue(bool Function(T) computation) {
+    for (T val in this) if (!computation(val)) return false;
+    return true;
+  }
+
+  /// The function [doWhileFalse] can be used to efficiently iterate a list until a given condition remains unsatisfied.
+  ///
+  /// If the function is able to iterate the list successfully the function will return [false] else [true].
+  bool doWhileFalse(bool Function(T) computation) {
+    for (T val in this) if (computation(val)) return true;
+    return false;
+  }
+
+  /// Checks whether the given element is present in the current [Iterable] by comparing it from the opposite
+  /// class's operator== method.
+  bool containsRevComp(Object element){
+    for (T val in this) if (element==val) return true;
+    return false;
+  }
+
+  /// Checks whether the given element is present in the current [Iterable] by comparing it with both classes'
+  /// operator== method. For any given element present in the array, it returns true if either of the method(s)
+  /// return true for any element else false is bluntly returned at the end.
+  bool containsEitherComp(Object element){
+    for (T val in this) if (element==val||val==element) return true;
+    return false;
+  }
+
+  /// Checks whether the given element is present in the current [Iterable] by comparing it with both classes'
+  /// operator== method. For any given element present in the array, it returns true if both the method(s)
+  /// return true, else false is bluntly returned at the end.
+  bool containsBothComp(Object element){
+    for (T val in this) if (element==val&&val==element) return true;
+    return false;
+  }
 }

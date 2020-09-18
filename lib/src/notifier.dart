@@ -1090,6 +1090,7 @@ class ValNotifier<T> extends Notifier
     return performTween(Tween<T>(begin: begin, end: end), duration, loop: loop, reverse: reverse , curve: curve);
   }
 
+
   Future<ValNotifier<T>> circularAnimate(T begin, T end, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) {
     if(_isNotDisposed){
       if(T==dynamic) debugPrint("Calling circularAnimate on a ValNotifier<dynamic> might be an bad idea.\n"
@@ -1101,7 +1102,34 @@ class ValNotifier<T> extends Notifier
     return null;
   }
 
-  /// Performs a Tween given to it.
+  /// The [performTween] method performs a Tween<[T]> given to given to it via the [tween] parameter
+  /// over the given [duration] of time. Performing a tween, just means to pass a range of values to
+  /// the listeners of this [ValNotifier]<[T]>, where each value is directly generated at run-time
+  /// with the help of the [tween.transform] method that accepts a [double] between 0..1 and
+  /// returns the expected value at that point of time. This class does have an internal function
+  /// that transforms the [tween] to a method to the expected type based on the value of [T], but it
+  /// surely has it's own limitation and cannot detect a custom class/type that was implemented by you.
+  ///
+  /// A short explanation of the other parameters supported by this method,
+  ///
+  /// * One can directly perform the same tween n number of times by using the passing the number of
+  /// times the tween needs to be performed by the [loop] parameter (default: 1). Passing 0 will still
+  /// perform a tween and for a negative number, it's absolute value shall be taken into consideration.
+  ///
+  /// * If you want to perform the tween in the reverse direction, pass true to the optional arguments
+  /// [reverse] and the method will handle the rest for you. Passing any other value is equivalent of
+  /// performing in [forward] direction. (default: true/null -> forward)
+  ///
+  /// * The animation of the Tween can be performed in a specific [curve], by passing that [Curve] to
+  /// the [curve] parameter of this [ValNotifier]<[T]> (default: [Curves.linear])
+  ///
+  /// If you have encountered the [UnsupportedError] then please consider using/implementing a custom
+  /// that (in)directly extends the [Tween]<[T]> class and has properly implemented the transform method
+  /// in the expected way.
+  ///
+  /// A [ValNotifier]<[T]> by default, is not capable of controlling a animation that is being
+  /// performed on it and is actually unaware of it. If you want to control the animation that is being
+  /// performed by the [ValNotifier]<[T]> then please consider using a [TweenNotifier]<[T]> instead.
   Future<ValNotifier<T>> performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) async {
 
     if(_isNotDisposed) {
@@ -1122,7 +1150,7 @@ class ValNotifier<T> extends Notifier
         tween.transform(0.5);
       } catch(e){
         tween = _transform(tween);
-        if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
+        if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use/implement an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please directly use that instead of relying on a raw class.");
       }
 
       return _performTween(tween, duration, loop: loop, reverse: reverse, curve: curve).then((t){
@@ -1164,6 +1192,34 @@ class ValNotifier<T> extends Notifier
     return t;
   }
 
+  /// The [performCircularTween] method performs the [tween] passed to it in a circular manner over the
+  /// given [duration] (something like [tween.begin]...[tween.end]...[tween.begin]). The values
+  /// are obtained with the help of the [tween.transform] method. The first half of the circular
+  /// animation can be performed with a different [firstCurve] and the second half with a different one.
+  /// [secondCurve]. By default, they both are [Curves.linear].
+  ///
+  /// A short explanation of the parameters supported,
+  ///
+  /// * The named parameter [circles] can be used to perform the the same tween in a circular manner for
+  /// more than once. If it receives a negative value, it's absolute value is taken into consideration
+  /// and it is guaranteed to perform the tween in a circular once, even if it receives 0 or null.
+  ///
+  /// * The named parameter [reverse] can be used to perform the [tween] in the reverse direction
+  /// (something like [tween.end]...[tween.begin]...[tween.end]). Giving it any other value or not
+  /// giving it any value will (in)directly tell the method to perform the [tween] in the default
+  /// forward direction.
+  ///
+  /// * The named parameter [firstCurve] can be used to modify the way the animation is played in the
+  /// first half (default: [Curves.linear]). However, it must be noted that this wouldn't affect the way the second
+  /// half of the animation is played ([secondCurve]).
+  ///
+  /// * The named parameter [secondCurve] can be used to modify the way the animation is played in the
+  /// second half (while returning) (default: [Curves.linear]). The [firstCurve] will still remain
+  /// unchanged unless a value was specified for it.
+  ///
+  /// A [ValNotifier]<[T]> by default, is not capable of controlling a animation that is being
+  /// performed on it and is actually unaware of it. If you want to control the animation that is being
+  /// performed by the [ValNotifier]<[T]> then please consider using a [TweenNotifier]<[T]> instead.
   Future<ValNotifier<T>> performCircularTween(Tween<T> tween, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) async {
 
     if(_isNotDisposed){
@@ -1252,18 +1308,51 @@ class ValNotifier<T> extends Notifier
     return null;
   }
 
+  /// The method [interpolate] can be used to interpolate across multiple [values] over a fixed duration
+  /// ([totalDuration]). The [tween] that is passed to this method acts like a helper object whose
+  /// transform method is used to calculate the value at a specific point. The [Duration] that is passed
+  /// to this method's [totalDuration] parameter is the total duration over which the interpolation
+  /// shall take place. One can either modify the curve in which each transformation shall take place
+  /// through the [curves] parameter or pass a common [curve] for all (first preference shall always be
+  /// given to the [curves] parameter).
+  ///
+  /// A short explanation for each named parameter,
+  ///
+  /// * The named parameter [loop] specifies the number of times the interpolation should take place in
+  /// in total. Irrespective of the value passed, the method is guaranteed to interpolate for once.
+  ///
+  /// * The named parameter [reverse] specifies the direction in which the interpolation shall take
+  /// place [A..B..C]/[C..B..A]. If set to true, the interpolation shall be performed in the reverse
+  /// direction else in forward direction. (default: false/null -> forward)
+  ///
+  /// * The named parameter [curve] can be used to specify the curve in which all the transformations
+  /// during this interpolation shall be performed.
+  ///
+  /// * The named parameter [curves] can be used to specify the curve in which each transformation of
+  /// the interpolation shall take place. If the value at a specific index is null or if the number of
+  /// curves are less than expected, then those places shall be filled with the value passed in curve
+  /// (default [Curves.linear]). If that too is explicitly defined as null then an assertion shall fail.
+  ///
+  /// A [ValNotifier]<[T]> by default, is not capable of controlling a animation that is being
+  /// performed on it and is actually unaware of it. If you want to control the animation that is being
+  /// performed by the [ValNotifier]<[T]> then please consider using a [TweenNotifier]<[T]> instead.
   Future<ValNotifier<T>> interpolate(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
     if(_isNotDisposed){
 
-      if(curves!=null) curve = null;
+      List<Curve> _curves = curves?.toList();
 
       assert(tween!=null,"You cannot interpolate across values without a buffer Tween.");
       assert(values!=null,"The parameter values cannot be set to null.");
       assert(totalDuration!=null && totalDuration!=Duration.zero,"The total duration of the interpolation cannot be set to null.");
-      assert((curves==null)!=(curve==null),"Please either set curve or curves in order to interpolate.");
-      if(curves==null) curves = List.filled(values.length-1, curve);
-      assert(curves.length+1==values.length,"There should be a curve for each interpolation in order to interpolate");
       assert(values.length>1,"We need at least two values to successfully interpolate.");
+      if(curves==null) _curves = List.filled(values.length-1, curve);
+      else {
+        _curves = curves.map((e) => e ?? curve);
+        while(_curves.length<values.length) _curves.add(curve);
+        _curves.removeLast();
+        assert(!_curves.contains(null),"Please pass some value to the curve parameter in order to fill the null(s) in the passed curves Iterable with it or please fix it, if it was unexpected.");
+      }
+      assert(_curves.length+1==values.length,"Please make sure that you have a curve for each transformation and not each value. There were ${curves.length-values.length+1} more curves than expected.");
 
       try{
         tween.transform(0.5);
@@ -1273,9 +1362,9 @@ class ValNotifier<T> extends Notifier
       }
 
       loop = _times(loop);
-      totalDuration~/=curves.length;
+      totalDuration~/=_curves.length;
 
-      return _interpolate(tween, values, totalDuration, loop: loop, reverse: reverse, curves: curves);
+      return _interpolate(tween, values, totalDuration, loop: loop, reverse: reverse, curves: _curves);
     }
     return null;
   }
@@ -1292,20 +1381,68 @@ class ValNotifier<T> extends Notifier
     return null;
   }
 
+  /// The [circularInterpolation] method perform an interpolation in a circular manner over a fixed
+  /// duration of time ([totalDuration]) across the specified [values]. Something like A..B..C..B..A
+  /// instead of just A..B..C (normal interpolation). The [tween] that is passed just acts as an helper
+  /// object whose transform method is used to get the value between two consequent transformation
+  /// (during the interpolation).
+  ///
+  /// A short explanation of all the named parameters,
+  ///
+  /// * The named parameter [circles] decides the number of times the circular interpolation should
+  /// take place. It is guaranteed to take place for at least once, irrespective of the value passed to
+  /// this parameter.
+  ///
+  /// * The named parameter [firstCurve] decides how the each transformation should take place for the
+  /// first half of the interpolation. (default: [Curves.linear])
+  ///
+  /// * The named parameter [secondCurve] decides how the each transformation should take place for the
+  /// second half of the interpolation. (default: [Curves.linear])
+  ///
+  /// * The named parameter [firstCurves] if passed a non-null value, decides how each transformation
+  /// should take place for the first half of the interpolation. If the passed [Iterable] is shorter
+  /// than the expected length or if null is found in it, the iterable shall get filled with
+  /// [firstCurve] values to meet the expected requirement. If null is still found or if it's longer
+  /// than that, then an AssertionError is thrown.
+  ///
+  /// * The named parameter [secondCurves] if passed a non-null value, decides how each transformation
+  /// should take place for the second half of the interpolation. If the passed [Iterable] is shorter
+  /// than the expected length or if null is found in it, then the [Iterable] shall get filled with
+  /// [secondCurve] values to meet the expected requirement. If null is still found or if it's longer
+  /// than that, then an assertion fails.
   Future<ValNotifier<T>> circularInterpolation(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int circles=1, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
   {
 
     if(_isNotDisposed) {
 
-      if(firstCurves==null) firstCurves = firstCurve==null ? secondCurves : List.filled(values.length-1, firstCurve);
-      if(secondCurves==null) secondCurves = secondCurve==null ? firstCurves : List.filled(values.length-1, secondCurve);
-
       assert(tween!=null,"You cannot interpolate across values without a buffer Tween.");
       assert(values!=null,"The parameter values cannot be set to null.");
       assert(totalDuration!=null && totalDuration!=Duration.zero,"The total duration of the interpolation cannot be set to null.");
+      assert(values.length>1, "We need at least two values to successfully interpolate.");
+
+      assert(!(firstCurves==null&&firstCurve==null), "Please ensure that either firstCurve or firstCurves is not null.");
+      assert(!(secondCurves==null&&secondCurve==null), "Please ensure that either secondCurve or secondCurves is not null.");
+
+      List<Curve> _firstCurves = firstCurves?.toList(), _secondCurves = secondCurves?.toList();
+
+      if(firstCurves==null) _firstCurves = List.filled(values.length-1, firstCurve);
+      else {
+        _firstCurves = firstCurves.map((e) => e ?? firstCurve);
+        while(_firstCurves.length<values.length) _firstCurves.add(firstCurve);
+        _firstCurves.removeLast();
+        assert(!_firstCurves.contains(null),"Please pass some value to the firstCurve parameter in order to fill the null(s) in the passed firstCurve Iterable with it or please fix it, if it was unexpected.");
+      }
+
+      if(secondCurves==null) _secondCurves = List.filled(values.length-1, secondCurve);
+      else {
+        _secondCurves = secondCurves.map((e) => e ?? secondCurve);
+        while(_secondCurves.length<values.length) _secondCurves.add(secondCurve);
+        _secondCurves.removeLast();
+        assert(!_secondCurves.contains(null),"Please pass some value to the curve parameter in order to fill the null(s) in the passed curves secondCurve with it or please fix it, if it was unexpected.");
+      }
+
       assert(firstCurves.length==secondCurves.length,"The length of the two curve iterables should be equal.");
       assert(secondCurves.length+1==values.length,"There should be a curve for each interpolation in order to successfully interpolate (anti-clockwise)");
-      assert(values.length>1, "We need at least two values to successfully interpolate.");
 
       try{
         tween.transform(0.5);
@@ -1315,7 +1452,7 @@ class ValNotifier<T> extends Notifier
       }
 
       List<T> _values = []..addAll(values)..removeLast()..addAll(values.toList().reversed);
-      List<Curve> _curves = []..addAll(firstCurves)..addAll(secondCurves);
+      List<Curve> _curves = []..addAll(_firstCurves)..addAll(_secondCurves);
 
       circles = _times(circles);
       totalDuration~/=_curves.length;
@@ -1363,6 +1500,29 @@ class ValNotifier<T> extends Notifier
       });
   }
 
+  /// The [performTweens] method is just a helper method for the [performTween] method that can perform
+  /// multiple [tweens] with the same setting(/parameter) for multiple number of times.
+  ///
+  /// Note: The [duration] that is passed to this method is not the total duration, but the duration
+  /// for each tween shall animate.
+  ///
+  /// A short explanation for the named parameters supported by this method,
+  ///
+  /// * The named parameter [loop] specifies the number of times for which all the [tweens] shall be
+  /// performed. Each loop performs, the entire set once. (A..B..A..B and not A..A..B..B). One set of
+  /// [tweens] is guaranteed to be performed once irrespective of the value passed to this parameter.
+  ///
+  /// * The named parameter [reverse] if set to true performs the each tween in reverse direction at
+  /// an individual level. If you want to perform the entire set in the reverse direction (from end to
+  /// start) then please use the getter reversed on the [List] you were suppose to pass. If it isn't a
+  /// [List] but is a [Iterable] then please consider using the instance method toList() on to obtain
+  /// a list.
+  ///
+  /// * The named parameter [curve] can be used to modify the way each tween in [tweens] is played.
+  ///
+  /// This method was made with the intention of performing multiple tweens with the same setting.
+  /// If your requirements wish you to perform multiple tweens with different settings, then please
+  /// consider using [performTween] while awaiting each of them in an async to keep them in sync.
   Future<ValNotifier<T>> performTweens(Iterable<Tween<T>> tweens, Duration duration, {int loop=1,bool reverse=false, Curve curve = Curves.linear}) async {
     if(_isNotDisposed){
       assert(tweens != null,
@@ -1427,7 +1587,15 @@ class ValNotifier<T> extends Notifier
     return true;
   }
 
-
+  /// A method that overloads the operator() to enable the developer to directly call a [ValNotifier]<T>
+  /// to notify it's listeners. If the parameter [val] gets a non-null value of type T, it notifies all
+  /// the listeners with that value and if the [save] parameter receives true, it stores the value in the
+  /// internal buffer of this [ValNotifier]<T>. On the other hand if the parameter [val] receives null,
+  /// or if a value isn't passed to it (since it's a optional argument), it'll notify the listeners with
+  /// the value that was previously saved (default: null).
+  ///
+  /// If you want to clear the value stored internally in the buffer, then please consider using the
+  /// instance method [nullNotify] instead.
   ValNotifier<T> call([covariant T val, bool save = true]) {
     if (val == null) val = this._val;
     if (_isNotDisposed) {
@@ -1449,7 +1617,7 @@ class ValNotifier<T> extends Notifier
           }
         }
       }
-      if (save) _val = val;
+      if (save==true) _val = val;
       return this;
     }
     return null;
@@ -1517,6 +1685,11 @@ class ValNotifier<T> extends Notifier
   }
 
 
+  /// The method [init] can be used to re-init a disposed [ValNotifier]<[T]>.
+  ///
+  /// It re-init's the disposed Notifier and returns true, if it was previously disposed.
+  ///
+  /// else it just returns false.
   bool init({
     T initialVal,
     Iterable<Notifier> attachNotifiers,
@@ -2230,7 +2403,7 @@ class TickerNotifier extends Notifier
         mergeNotifiers: mergeNotifiers,
         initialListeners: initialListeners,
         removeListenerOnError: removeListenerOnError,
-    )){
+    )) {
       _t = Ticker(this, debugLabel: debugLabel);
       if(startOnInit??false) start(play: pauseOnInit!=true);
       _t.muted = pauseOnInit==true;
@@ -2638,6 +2811,8 @@ extension Iterable_ValNotifier<T> on Iterable<ValNotifier<T>> {
   ValNotifier<T> merge([Iterable<ValNotifier<T>> notifiers]) => ValNotifier<T>._().._addListeners(_listeners).._addListeners(notifiers._listeners);
 }
 
+/// An extension method that provides certain method to make certain operations easier in/while using
+/// this plugin.
 extension Iterable_<T> on Iterable<T> {
   /// A syntactic sugar for the [elementAt] function.
   T operator [](int index) => elementAt(index);

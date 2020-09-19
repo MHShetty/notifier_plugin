@@ -116,6 +116,14 @@ class Notifier extends Iterable<Notifier> {
         this();
       }).catchError(onError??(){});
 
+  /// The method [notifyAtInterval] notifies the current [Notifier] at the given/passed [interval].
+  ///
+  /// The notification that shall come at fixed interval can be be stopped by calling [Timer.cancel]
+  /// on the [Timer] that's returned by this method.
+  ///
+  /// If null is explicitly passed to this method, it'll automatically get resolved to [Duration.zero]
+  Timer notifyAtInterval(Duration interval) => _isNotDisposed ? Timer.periodic(interval??Duration.zero, (timer)=>this()) : null;
+
   /// Attach a ChangeNotifier to this [Notifier]
   // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
   bool attachChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed?addListener(changeNotifier.notifyListeners)!=null:null;
@@ -1347,7 +1355,8 @@ class ValNotifier<T> extends Notifier
       assert(values.length>1,"We need at least two values to successfully interpolate.");
       if(curves==null) _curves = List.filled(values.length-1, curve);
       else {
-        _curves = curves.map((e) => e ?? curve);
+
+        _curves = curves.map((e) => e ?? curve).toList();
         while(_curves.length<values.length) _curves.add(curve);
         _curves.removeLast();
         assert(!_curves.contains(null),"Please pass some value to the curve parameter in order to fill the null(s) in the passed curves Iterable with it or please fix it, if it was unexpected.");
@@ -1369,16 +1378,67 @@ class ValNotifier<T> extends Notifier
     return null;
   }
 
+  /// The method [circularInterpolationR] (R=raw) is a method that interfaces the method
+  /// [circularInterpolation] for the tween types known by a ValNotifier ([_transform] method).
+  /// It relies solely on the value of [T] to determine which type of tween the circular interpolation
+  /// of the passed values can be performed using. If it doesn't find one, an [UnsupportedError] error
+  /// is thrown with an appropriate message. That's the reason why using this method on a
+  /// [ValNotifier]<[dynamic]> might be an bad idea.
+  ///
+  /// To know more about circular interpolation, please read the docs of the method
+  /// [circularInterpolation].
   Future<ValNotifier<T>> circularInterpolationR(Iterable<T> values, Duration totalDuration, {int circles=1, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
   {
     if(_isNotDisposed){
-      if(T==dynamic) debugPrint("Calling circularAnimate on a ValNotifier<dynamic> might be an bad idea.\n"
-          "Please try being more specific while specifying the type of variable that holds the ValNotifier().");
-      // Error wasn't throw for the type dynamic since there is a very tiny possibility that someone might
-      // declare an extension method on Tween<dynamic>.
-      return circularInterpolation(Tween<T>(), values, totalDuration, circles: circles, firstCurve: firstCurve, secondCurve: secondCurve, firstCurves: firstCurves, secondCurves: secondCurves);
+      assert(values!=null,"The parameter values cannot be set to null.");
+      assert(values.length>1, "We need at least two values to successfully interpolate.");
+      return circularInterpolation(_sTween(values), values, totalDuration, circles: circles, firstCurve: firstCurve, secondCurve: secondCurve, firstCurves: firstCurves, secondCurves: secondCurves);
     }
     return null;
+  }
+
+  static final Map<Type,Tween Function(Tween)> _tweenMap = {
+    AlignmentGeometry: (t)=>AlignmentGeometryTween(begin: t.begin ?? Alignment.center, end: t.end ?? Alignment.center),
+    BorderRadius: (t)=> BorderRadiusTween(begin: t.begin ?? BorderRadius.zero, end: t.end ?? BorderRadius.zero),
+    Border: (t)=> BorderTween(begin: t.begin ?? const Border(), end: t.end ?? const Border()),
+    BoxConstraints: (t)=> BoxConstraintsTween(begin: t.begin ?? const BoxConstraints(), end: t.end ?? const BoxConstraints()),
+    Color: (t)=> ColorTween(begin: t.begin ?? Colors.transparent, end: t.end ??  Colors.transparent),
+    Decoration: (t)=> DecorationTween(begin: t.begin ?? const BoxDecoration(), end: t.end ?? const BoxDecoration()),
+    EdgeInsetsGeometry: (t)=> EdgeInsetsGeometryTween(begin: t.begin ?? EdgeInsets.zero, end: t.end ?? EdgeInsets.zero),
+    EdgeInsets: (t)=> EdgeInsetsTween(begin: t.begin ?? EdgeInsets.zero, end: t.end ?? EdgeInsets.zero),
+    FractionalOffset: (t)=> FractionalOffsetTween(begin: t.begin ?? const FractionalOffset(0,0), end: t.end ?? const FractionalOffset(0,0)),
+    int: (t)=> IntTween(begin: t.begin ?? 0, end: t.end ??  0),
+    Offset: (t)=> MaterialPointArcTween(begin: t.begin ??  Offset.zero, end: t.end ?? Offset.zero),
+    Matrix4: (t)=> Matrix4Tween(begin: t.begin ?? Matrix4.zero(), end: t.end ?? Matrix4.zero()),
+    Rect: (t)=> RectTween(begin: t.begin ?? Rect.zero, end: t.end ?? Rect.zero),
+    RelativeRect: (t)=> RelativeRectTween(begin: t.begin ?? RelativeRect.fill, end: t.end ?? RelativeRect.fill),
+    ShapeBorder: (t)=> ShapeBorderTween(begin: t.begin ?? const Border(), end: t.end ?? const Border()),
+    Size: (t)=> SizeTween(begin: t.begin ?? Size.zero, end: t.end ?? Size.zero),
+    TextStyle: (t)=> TextStyleTween(begin: t.begin ?? const TextStyle(), end: t.end ?? const TextStyle()),
+    ThemeData: (t)=> ThemeDataTween(begin: t.begin ?? ThemeData(), end: t.end ?? ThemeData()),
+  };
+
+  Tween _sTween(Iterable<T> values) {
+    if(values is Iterable<AlignmentGeometry>) return AlignmentGeometryTween(begin: Alignment.center, end: Alignment.center);
+    if(values is Iterable<Alignment>) return AlignmentTween(begin: Alignment.center, end: Alignment.center);
+    if(values is Iterable<BorderRadius>) return BorderRadiusTween(begin: BorderRadius.zero, end: BorderRadius.zero);
+    if(values is Iterable<Border>) return BorderTween(begin: const Border(), end: const Border());
+    if(values is Iterable<BoxConstraints>) return BoxConstraintsTween(begin: const BoxConstraints(), end: const BoxConstraints());
+    if(values is Iterable<Color>) return ColorTween(begin: Colors.transparent, end: Colors.transparent);
+    if(values is Iterable<Decoration>) return DecorationTween(begin: const BoxDecoration(), end: const BoxDecoration());
+    if(values is Iterable<EdgeInsetsGeometry>) return EdgeInsetsGeometryTween(begin: EdgeInsets.zero, end: EdgeInsets.zero);
+    if(values is Iterable<EdgeInsets>) return EdgeInsetsTween(begin: EdgeInsets.zero, end: EdgeInsets.zero);
+    if(values is Iterable<FractionalOffset>) return FractionalOffsetTween(begin: const FractionalOffset(0,0), end: const FractionalOffset(0,0));
+    if(values is Iterable<int>) return IntTween(begin: 0, end: 0);
+    if(values is Iterable<Offset>) return MaterialPointArcTween(begin: Offset.zero, end: Offset.zero);
+    if(values is Iterable<Matrix4>) return Matrix4Tween(begin: Matrix4.zero(), end: Matrix4.zero());
+    if(values is Iterable<Rect>) return RectTween(begin: Rect.zero, end: Rect.zero);
+    if(values is Iterable<RelativeRect>) return RelativeRectTween(begin: RelativeRect.fill, end: RelativeRect.fill);
+    if(values is Iterable<ShapeBorder>) return ShapeBorderTween(begin: const Border(), end: const Border());
+    if(values is Iterable<Size>) return SizeTween(begin: Size.zero, end: Size.zero);
+    if(values is Iterable<TextStyle>) return TextStyleTween(begin: const TextStyle(), end: const TextStyle());
+    if(values is Iterable<ThemeData>) return ThemeDataTween(begin: ThemeData(), end: ThemeData());
+    return _transform(Tween<T>());
   }
 
   /// The [circularInterpolation] method perform an interpolation in a circular manner over a fixed
@@ -1402,14 +1462,15 @@ class ValNotifier<T> extends Notifier
   /// * The named parameter [firstCurves] if passed a non-null value, decides how each transformation
   /// should take place for the first half of the interpolation. If the passed [Iterable] is shorter
   /// than the expected length or if null is found in it, the iterable shall get filled with
-  /// [firstCurve] values to meet the expected requirement. If null is still found or if it's longer
-  /// than that, then an AssertionError is thrown.
+  /// [firstCurve] values to meet the expected requirement. If null is still found in the passed
+  /// iterable or if it's longer than that, then an assertion fails.
   ///
   /// * The named parameter [secondCurves] if passed a non-null value, decides how each transformation
   /// should take place for the second half of the interpolation. If the passed [Iterable] is shorter
-  /// than the expected length or if null is found in it, then the [Iterable] shall get filled with
-  /// [secondCurve] values to meet the expected requirement. If null is still found or if it's longer
-  /// than that, then an assertion fails.
+  /// than the expected length or if null is found in it at any index, the [Iterable] shall then get
+  /// filled with [secondCurve] values to meet the expected requirement. If null is still found in the
+  /// passed iterable since [secondCurve] could have been null or if it's longer than that, the
+  /// expected length an assertion fails.
   Future<ValNotifier<T>> circularInterpolation(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int circles=1, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
   {
 
@@ -1427,7 +1488,8 @@ class ValNotifier<T> extends Notifier
 
       if(firstCurves==null) _firstCurves = List.filled(values.length-1, firstCurve);
       else {
-        _firstCurves = firstCurves.map((e) => e ?? firstCurve);
+        assert(firstCurves.length<values.length,"Please make sure that there is a (first)Curve for every interpolation and not every value. The firstCurves iterable had ${firstCurves.length-values.length} more curves than expected!");
+        _firstCurves = firstCurves.map((e) => e ?? firstCurve).toList();
         while(_firstCurves.length<values.length) _firstCurves.add(firstCurve);
         _firstCurves.removeLast();
         assert(!_firstCurves.contains(null),"Please pass some value to the firstCurve parameter in order to fill the null(s) in the passed firstCurve Iterable with it or please fix it, if it was unexpected.");
@@ -1435,14 +1497,12 @@ class ValNotifier<T> extends Notifier
 
       if(secondCurves==null) _secondCurves = List.filled(values.length-1, secondCurve);
       else {
-        _secondCurves = secondCurves.map((e) => e ?? secondCurve);
+        assert(secondCurves.length<values.length,"Please make sure that there is a (first)Curve for every interpolation and not every value. The firstCurves iterable had ${secondCurves.length-values.length} more curves than expected!");
+        _secondCurves = secondCurves.map((e) => e ?? secondCurve).toList();
         while(_secondCurves.length<values.length) _secondCurves.add(secondCurve);
         _secondCurves.removeLast();
-        assert(!_secondCurves.contains(null),"Please pass some value to the curve parameter in order to fill the null(s) in the passed curves secondCurve with it or please fix it, if it was unexpected.");
+        assert(!_secondCurves.contains(null),"Please pass some value to the secondCurve parameter in order to fill the null(s) in the passed curves secondCurve with it or please fix it, if it was unexpected.");
       }
-
-      assert(firstCurves.length==secondCurves.length,"The length of the two curve iterables should be equal.");
-      assert(secondCurves.length+1==values.length,"There should be a curve for each interpolation in order to successfully interpolate (anti-clockwise)");
 
       try{
         tween.transform(0.5);
@@ -2270,7 +2330,18 @@ class HttpNotifier extends ValNotifier {
 class TickerNotifier extends Notifier
 {
   Ticker _t;
+  Duration _pD = Duration.zero;
+  DateTime _pT;
 
+  /// The [start] method can be used to start the default ticker of the current [TickerNotifier] if
+  /// no other ticker operation like polling (or even the default operation) is going on.
+  ///
+  /// The parameter [play] in this context can be used to not play the ticker operation as soon as
+  /// the ticker starts by passing false to it. Passing any other value (true/null) to this parameter
+  /// will make it perform the default operation (play).
+  ///
+  /// It starts the default operation and returns true, if an operation was not previously active else
+  /// just returns false.
   bool start({bool play=true}){
     if(_isNotDisposed){
       if(_t.isActive) return false;
@@ -2281,12 +2352,23 @@ class TickerNotifier extends Notifier
     return null;
   }
 
+  /// This is a simple method that interfaces the [start] and tries to start the ticker that could
+  /// have been ticking after the given [duration] of time. It returns the return value returned by
+  /// the [pause] method as a [Future]<[bool]>
   Future<bool> startAfter(Duration d) => _isNotDisposed ? Future.delayed(d,start) : null;
-  Future<bool> tickAfter(Duration d)  => startAfter(d);
 
+  /// The [play] method resumes the playing of an ticker operation that had been previously either
+  /// stopped by the [pause] method or had been set to pause by default while starting it via
+  /// the named parameter 'play' of the [start] method which could have implicitly done by the
+  /// constructor, if the 'startOnInit' parameter was set to [true].
+  ///
+  /// Resumes the default ticker operation is it was previously paused and returns true else just
+  /// returns false.
   bool play(){
     if(_isNotDisposed){
+      if(_t.isActive) debugPrint("Please call the start method() before calling the play() method.");
       if(_t.muted) {
+        _pD += DateTime.now().difference(_pT);
         _t.muted = false;
         return true;
       }
@@ -2295,18 +2377,39 @@ class TickerNotifier extends Notifier
     return null;
   }
 
+  /// This is a simple method that interfaces the [play] and tries to resume the playing of a ticker
+  /// after the given [duration] of time. It returns the return value returned by the [play] method
+  /// as a [Future]<[bool]>.
   Future<bool> playAfter(Duration d) => _isNotDisposed ? Future.delayed(d,play) : null;
 
+  /// The [pause] method pauses the ticker operation that's currently active. This doesn't make the
+  /// current ticker inactive but just pauses it (abstract). Calling this method on an un-disposed
+  /// [TickerNotifier] makes the getter [isPlaying] return false and [isNotPlaying] return true.
+  ///
+  /// This method pauses the current ticker and returns [true], if it was previously paused and active,
+  /// else returns [false].
   bool pause(){
     if(_isNotDisposed){
       if(_t.muted) return false;
+      _pT = DateTime.now();
       return _t.muted = true;
     }
     return null;
   }
 
+  /// This is a simple method that interfaces the [pause] and tries to pause the ticker that could
+  /// have been ticking after the given [duration] of time. It returns the return value returned by
+  /// the [pause] method as a [Future]<[bool]>
   Future<bool> pauseAfter(Duration d) => _isNotDisposed ? Future.delayed(d,pause) : null;
 
+  /// Stops the current async operation that is being performed by the [TickerNotifier]. If you are
+  /// trying to [stop] the polling being done by the async method [poll] or [pollFor] with the
+  /// intention of being able to start it again via the [stop] method then it is recommended to use
+  /// the method [pause]/[play] instead, as the [start] method would only work for the
+  /// [TickerNotifier]'s default internal ticker.
+  ///
+  /// This method stops the ticker and returns true, if the ticker was previously active else just
+  /// returns false.
   bool stop() {
     if(_isNotDisposed) {
       if(_t.isActive) {
@@ -2318,8 +2421,15 @@ class TickerNotifier extends Notifier
     return null;
   }
 
-  Future<bool> stopAfter(Duration d) => _isNotDisposed ? Future.delayed(d,stop) : null;
+  /// This is a simple method that interfaces the [stop] and tries to stop the ticker that could have
+  /// been active after the given [duration] of time. It returns the return value returned by the
+  /// [stop] method as a [Future]<[bool]>.
+  Future<bool> stopAfter(Duration duration) => _isNotDisposed ? Future.delayed(duration,stop) : null;
 
+  /// Disposes the current [TickerNotifier]. In order to re-use this instance, you'll need to call
+  /// the method [init]. However, it is highly recommended that you complete all the operations that
+  /// you perform and then dispose it in one go, unless you want to re-use the state in your code's
+  /// logic.
   bool dispose() {
     if(super.dispose()){
       _t.stop(canceled: true);
@@ -2329,63 +2439,103 @@ class TickerNotifier extends Notifier
     return false;
   }
 
-  Future<bool> tickFor(Duration d) async {
-    if(_isNotDisposed) {
-      if(_t.isTicking) return false;
-      _t.start();
-      // null is returned to specify that the TickerNotifier was stopped/disposed by some other source
-      // and to distinguish it from the [false] that was previously returned.
-      return Future.delayed(d,()=>stop()?true:null);
-    }
-    return null;
-  }
-
+  /// The return value states whether a poll/tick operation is currently being performed [true] or
+  /// not [false]. This getter shall throw an error if the [TickerNotifier] is already disposed.
+  ///
+  /// Returns [true] when the ticker is not paused or has not been stopped else false.
   bool get isPlaying => _isNotDisposed ? _t.isTicking : null;
+
+  /// The return value states whether a poll/tick operation is currently being performed [false] or
+  /// not [true]. This getter shall throw an error if the [TickerNotifier] is already disposed.
+  ///
+  /// Returns [true] when the ticker is paused or has been stopped or has not started yet, else false.
   bool get isNotPlaying => _isNotDisposed ? !_t.isTicking : null;
 
+  /// The return value states whether a poll/tick operation is currently active [true] or
+  /// not [false]. This getter shall throw an error if the [TickerNotifier] is already disposed.
+  ///
+  /// Returns [true] when the ticker has not been stopped or is in pause/play state, else [false] in
+  /// stopped state.
   bool get isActive => _isNotDisposed ? _t.isActive : null;
+
+  /// The return value states whether a poll/tick operation is currently being performed [true] or
+  /// not [false]. This getter shall throw an error if the [TickNotifier] is already disposed.
+  ///
+  /// Returns [true] when the ticker has been stopped or has not started yet else [false].
   bool get isNotActive => _isNotDisposed ? !_t.isActive : null;
 
-  Future<TickerNotifier> pollFor(Duration duration, {TickerProvider vsync}) {
+  /// This method polls a [TickerNotifier] with notifications over a fixed [duration] of time and
+  /// returns the current instance of [Notifier] as a [Future]. A TickerProvider can be provided to
+  /// this method via the [vsync] parameter.
+  ///
+  /// This polling can be:
+  ///
+  /// * Paused by the instance method [pause],
+  /// * Continued by the instance method [play],
+  /// * Completely stopped by the instance method [stop].
+  /// * Restarted by calling this method again. (the [start] method is for the default ticker)
+  ///
+  /// By default, a [TickerNotifier] can only handle one polling or ticking at a time. Trying to
+  /// call this method when a polling or ticking is already active would lead to a [StateError].
+  /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
+  /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
+  Future<TickerNotifier> pollFor(Duration duration, {TickerProvider vsync, bool stopPrevious=false}) {
     if (_isNotDisposed) {
-      if(_t.isTicking) throw StateError("A TickerNotifier can control only one T");
+      if(stopPrevious??false) _t.dispose();
+      if(_t.isActive) throw StateError("A TickerNotifier can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
       if (duration == Duration.zero) return Future.value(this);
       duration=duration.abs();
+      _pD = Duration.zero;
       Function onTick = (d) {
+        d-=_pD;
         if (d>duration) return _t..stop()..dispose();
         call();
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value)=>this);
+      return _t.start().then((value){_t = Ticker(this);return this;});
     }
     return null;
   }
 
-  @override
-  Future<Duration> poll(int times, {TickerProvider vsync}) {
+  /// This method polls the [TickerNotifier] with notifications for a fixed number of [times] and
+  /// returns the duration taken to poll the Notifier as a future. A TickerProvider can be passed
+  /// via the [vsync] parameter.
+  ///
+  /// This polling can be:
+  ///
+  /// * Paused by the instance method [pause],
+  /// * Continued by the instance method [play],
+  /// * Completely stopped by the instance method [stop].
+  /// * Restarted by calling this method again. (the [start] method is for the default ticker)
+  ///
+  /// By default, a [TickerNotifier] can only handle one polling or ticking at a time. Trying to
+  /// call this method when a polling or ticking is already active would lead to a [StateError].
+  /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
+  /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
+  Future<Duration> poll(int times, {TickerProvider vsync, bool stopPrevious=false}) {
     if (_isNotDisposed) {
       Duration end;
-      bool wasPlaying = _t.isTicking?true:_t.isActive?false:null;
+      if(stopPrevious??false) _t.dispose();
+      if(_t.isActive) throw StateError("A TickerNotifier can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
       if (times == 0) return Future.value(Duration.zero);
       times = times.abs();
       Function onTick = (d) {
-        if (times-- == 0) {
+        if (times--==0) {
           end = d;
           return _t..stop()..dispose();
         }
         call();
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value){
-        _t = Ticker(this);
-        if(wasPlaying!=null) start(play: wasPlaying);
-        return end;
-      });
+      return _t.start().then((value){_t = Ticker(this); return end;});
     }
     return null;
   }
 
-  @override
+  /// The [init] method can be used to re-init a disposed [TickerNotifier].
+  ///
+  /// If the [TickerNotifier] was previously disposed, it re-init s it with the specified values and
+  /// returns true, else it just returns false.
   bool init({
     bool startOnInit = false,
     bool pauseOnInit = false,
@@ -2441,7 +2591,18 @@ class TickerNotifier extends Notifier
 class TickerValNotifier<T> extends ValNotifier<T>
 {
   Ticker _t;
+  Duration _pD = Duration.zero;
+  DateTime _pT;
 
+  /// The [start] method can be used to start the default ticker of the current [TickerValNotifier] if
+  /// no other ticker operation like polling (or even the default operation) is going on.
+  ///
+  /// The parameter [play] in this context can be used to not play the ticker operation as soon as
+  /// the ticker starts by passing false to it. Passing any other value (true/null) to this parameter
+  /// will make it perform the default operation (play).
+  ///
+  /// It starts the default operation and returns true, if an operation was not previously active else
+  /// just returns false.
   bool start({bool play=true}){
     if(_isNotDisposed){
       if(_t.isActive) return false;
@@ -2452,9 +2613,18 @@ class TickerValNotifier<T> extends ValNotifier<T>
     return null;
   }
 
+  /// This is a simple method that interfaces the [start] and tries to start the ticker that could
+  /// have been ticking after the given [duration] of time. It returns the return value returned by
+  /// the [pause] method as a [Future]<[bool]>
   Future<bool> startAfter(Duration d) => _isNotDisposed ? Future.delayed(d,start) : null;
-  Future<bool> tickAfter (Duration d) => startAfter(d);
 
+  /// The [play] method resumes the playing of an ticker operation that had been previously either
+  /// stopped by the [pause] method or had been set to pause by default while starting it via
+  /// the named parameter 'play' of the [start] method which could have implicitly done by the
+  /// constructor, if the 'startOnInit' parameter was set to [true].
+  ///
+  /// Resumes the default ticker operation is it was previously paused and returns true else just
+  /// returns false.
   bool play(){
     if(_isNotDisposed){
       if(_t.muted) {
@@ -2466,18 +2636,39 @@ class TickerValNotifier<T> extends ValNotifier<T>
     return null;
   }
 
+  /// This is a simple method that interfaces the [play] and tries to resume the playing of a ticker
+  /// after the given [duration] of time. It returns the return value returned by the [play] method
+  /// as a [Future]<[bool]>.
   Future<bool> playAfter(Duration d) => _isNotDisposed ? Future.delayed(d,play) : null;
 
+  /// The [pause] method pauses the ticker operation that's currently active. This doesn't make the
+  /// current ticker inactive but just pauses it (abstract). Calling this method on an un-disposed
+  /// [TickerValNotifier] makes the getter [isPlaying] return false and [isNotPlaying] return true.
+  ///
+  /// This method pauses the current ticker and returns [true], if it was previously paused and active,
+  /// else returns [false].
   bool pause(){
     if(_isNotDisposed){
       if(_t.muted) return false;
+      _pT = DateTime.now();
       return _t.muted = true;
     }
     return null;
   }
 
+  /// This is a simple method that interfaces the [pause] and tries to pause the ticker that could
+  /// have been ticking after the given [duration] of time. It returns the return value returned by
+  /// the [pause] method as a [Future]<[bool]>
   Future<bool> pauseAfter(Duration d) => _isNotDisposed ? Future.delayed(d,pause) : null;
 
+  /// Stops the current async operation that is being performed by the [TickerValNotifier]. If you are
+  /// trying to [stop] the polling being done by the async method [poll] or [pollFor] with the
+  /// intention of being able to start it again via the [stop] method then it is recommended to use
+  /// the method [pause]/[play] instead, as the [start] method would only work for the
+  /// [TickerValNotifier]'s default internal ticker.
+  ///
+  /// This method stops the ticker and returns true, if the ticker was previously active else just
+  /// returns false.
   bool stop() {
     if(_isNotDisposed) {
       if(_t.isActive) {
@@ -2489,8 +2680,15 @@ class TickerValNotifier<T> extends ValNotifier<T>
     return null;
   }
 
+  /// This is a simple method that interfaces the [stop] and tries to stop the ticker that could have
+  /// been active after the given [duration] of time. It returns the return value returned by the
+  /// [stop] method as a [Future]<[bool]>.
   Future<bool> stopAfter(Duration d) => _isNotDisposed ? Future.delayed(d,stop) : null;
 
+  /// Disposes the current [TickerNotifier]. In order to re-use this instance, you'll need to call
+  /// the method [init]. However, it is highly recommended that you complete all the operations that
+  /// you perform and then dispose it in one go, unless you want to re-use the state in your code's
+  /// logic.
   bool dispose() {
     if(super.dispose()){
       _t.stop(canceled: true);
@@ -2500,63 +2698,103 @@ class TickerValNotifier<T> extends ValNotifier<T>
     return false;
   }
 
-  Future<bool> tickFor(Duration d) async {
-    if(_isNotDisposed) {
-      if(_t.isTicking) return false;
-      _t.start();
-      // null is returned to specify that the TickerNotifier was stopped/disposed by some other source
-      // and to distinguish it from the [false] that was previously returned.
-      return Future.delayed(d,()=>stop()?true:null);
-    }
-    return null;
-  }
-
+  /// The return value states whether a poll/tick operation is currently being performed [true] or
+  /// not [false]. This getter shall throw an error if the [TickerValNotifier] is already disposed.
+  ///
+  /// Returns [true] when the ticker is not paused or has not been stopped else false.
   bool get isPlaying => _isNotDisposed ? _t.isTicking : null;
+
+  /// The return value states whether a poll/tick operation is currently being performed [false] or
+  /// not [true]. This getter shall throw an error if the [TickerValNotifier] is already disposed.
+  ///
+  /// Returns [true] when the ticker is paused or has been stopped or has not started yet, else false.
   bool get isNotPlaying => _isNotDisposed ? !_t.isTicking : null;
 
+  /// The return value states whether a poll/tick operation is currently active [true] or
+  /// not [false]. This getter shall throw an error if the [TickerValNotifier] is already disposed.
+  ///
+  /// Returns [true] when the ticker has not been stopped or is in pause/play state, else [false] in
+  /// stopped state.
   bool get isActive => _isNotDisposed ? _t.isActive : null;
+
+  /// The return value states whether a poll/tick operation is currently being performed [true] or
+  /// not [false]. This getter shall throw an error if the [TickerValNotifier] is already disposed.
+  ///
+  /// Returns [true] when the ticker has been stopped or has not started yet else [false].
   bool get isNotActive => _isNotDisposed ? !_t.isActive : null;
 
-  Future<TickerValNotifier<T>> pollFor(Duration duration, {TickerProvider vsync}) {
+  /// This method polls a [TickerValNotifier] with notifications over a fixed [duration] of time and
+  /// returns the current instance of [Notifier] as a [Future]. A TickerProvider can be provided to
+  /// this method via the [vsync] parameter.
+  ///
+  /// This polling can be:
+  ///
+  /// * Paused by the instance method [pause],
+  /// * Continued by the instance method [play],
+  /// * Completely stopped by the instance method [stop].
+  /// * Restarted by calling this method again. (the [start] method is for the default ticker)
+  ///
+  /// By default, a [TickerValNotifier] can only handle one polling or ticking at a time. Trying to
+  /// call this method when a polling or ticking is already active would lead to a [StateError].
+  /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
+  /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
+  Future<TickerValNotifier<T>> pollFor(Duration duration, {TickerProvider vsync, bool stopPrevious=false}) {
     if (_isNotDisposed) {
-      if(_t.isTicking) throw StateError("A TickerNotifier can control only one T");
+      if(stopPrevious??false) _t.dispose();
+      if(_t.isActive) throw StateError("TickerValNotifier<$T> can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
       if (duration == Duration.zero) return Future.value(this);
       duration=duration.abs();
+      _pD = Duration.zero;
       Function onTick = (d) {
+        d-=_pD;
         if (d>duration) return _t..stop()..dispose();
         call();
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value)=>this);
+      return _t.start().then((value){_t = Ticker((d)=>this()); return this;});
     }
     return null;
   }
 
-  @override
-  Future<Duration> poll(int times, {TickerProvider vsync}) {
+  /// This method polls the [TickerValNotifier] with notifications for a fixed number of [times] and
+  /// returns the duration taken to poll the Notifier as a future. A TickerProvider can be passed
+  /// via the [vsync] parameter.
+  ///
+  /// This polling can be:
+  ///
+  /// * Paused by the instance method [pause],
+  /// * Continued by the instance method [play],
+  /// * Completely stopped by the instance method [stop].
+  /// * Restarted by calling this method again. (the [start] method is for the default ticker)
+  ///
+  /// By default, a [TickerValNotifier] can only handle one polling or ticking at a time. Trying to
+  /// call this method when a polling or ticking is already active would lead to a [StateError].
+  /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
+  /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
+  Future<Duration> poll(int times, {TickerProvider vsync, bool stopPrevious=false}) {
     if (_isNotDisposed) {
       Duration end;
-      bool wasPlaying = _t.isTicking?true:_t.isActive?false:null;
+      if(stopPrevious??false) _t.dispose();
+      if(_t.isActive) throw StateError("TickerValNotifier<$T> can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
       if (times == 0) return Future.value(Duration.zero);
       times = times.abs();
       Function onTick = (d) {
-        if (times-- == 0) {
+        if (times--==0) {
           end = d;
           return _t..stop()..dispose();
         }
         call();
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value){
-        _t = Ticker((d)=>this());
-        if(wasPlaying!=null) start(play: wasPlaying);
-        return end;
-      });
+      return _t.start().then((value){_t = Ticker((d)=>this()); return end;});
     }
     return null;
   }
 
-  @override
+  /// The [init] method can be used to re-init a disposed [TickerNotifier].
+  ///
+  /// If the [TickerNotifier] was previously disposed, it re-init s it with the specified values and
+  /// returns true, else it just returns false.
   bool init({
     T initialVal,
     bool startOnInit = false,
@@ -2586,7 +2824,7 @@ class TickerValNotifier<T> extends ValNotifier<T>
 
   TickerValNotifier({
     T initialVal,
-    bool startOnInit = true,
+    bool startOnInit = false,
     bool pauseOnInit = false,
     String debugLabel,
     Iterable<Notifier> attachNotifiers,
@@ -2809,6 +3047,192 @@ class TweenNotifier<T> extends ValNotifier<T>
 extension Iterable_ValNotifier<T> on Iterable<ValNotifier<T>> {
   Iterable<ValNotifier<T>> nullNotify() => map((n)=>n?.nullNotify()).toList();
   ValNotifier<T> merge([Iterable<ValNotifier<T>> notifiers]) => ValNotifier<T>._().._addListeners(_listeners).._addListeners(notifiers._listeners);
+}
+
+/// [TimedNotifier] is just a simple Notifier class that interfaces a [Timer] to make polling 'at a
+/// specific interval' instead of just polling it over a (un)fixed duration of time.
+///
+/// * The [start] method can be used to start the polling, either at a specific interval or as soon
+/// as it can (default).
+///
+/// * The [stop] method can be used to stop the [Timer] that was started either by the [start] or the
+/// [notifyAtInterval] method.
+///
+/// * The [pause] method can be used to mute the internal [Timer] from notifying it's listeners,
+///
+/// * and the [play] method can be used to un-mute the internal [Timer] that was previously muted.
+///
+/// Note: The [TimedNotifier] can also directly be started while instantiating it by giving its
+/// interval parameter a non-null [Duration] and also optionally paused
+class TimedNotifier extends Notifier
+{
+
+  Timer _t;
+  Duration _interval;
+
+  DateTime _lastTick;
+  Duration _pending;
+
+  DateTime get _nextTick => _lastTick.add(_interval);
+  Duration get timeForNextTick => _nextTick.difference(DateTime.now());
+
+  Duration get interval => _isNotDisposed?_interval:null;
+  set interval(Duration interval){
+    _t.cancel();
+    if(isPlaying) call();
+    _interval = interval;
+    _genTimer();
+  }
+
+  /// A getter whose return value determines whether the [Timer] that is internally maintained
+  /// [isActive] or not. If it returns true, that means its active else is inactive.
+  bool get isActive => _isNotDisposed ? _t?.isActive==true : null;
+
+  /// A getter whose return value determines whether the [Timer] that is internally maintained
+  /// [isInActive] or not. If it returns true, that means its inactive else its active.
+  bool get isInActive => _isNotDisposed ? _t?.isActive!=true : null;
+
+  /// The [start] method starts the internal timer of the [TickerNotifier] to notify the listeners
+  /// at a specific [interval] (default: [Duration.zero]). The [play] parameter specifies whether
+  /// or not the internal [Timer] start in play state as soon as it starts or in paused state.
+  ///
+  /// If the [play] parameter, receives false the [TickerNotifier] will start the internal [Timer]
+  /// in the paused state else for true/null(/default) it shall start in play state.
+  ///
+  /// This method starts the internal timer with the specified [duration] and returns true if it was
+  /// previously inactive else it will return false.
+  ///
+  /// In order to force start the internal [Timer] one can use the [reset] method, that stops the
+  /// previous timer (if any) and starts a new one with a new duration internally.
+  bool start([Duration interval=Duration.zero, bool play=true])
+  {
+    if(_isNotDisposed) {
+      if(_t?.isActive ?? false) return false;
+      _interval = interval;
+      _pending = play!=true?Duration.zero:null;
+      _genTimer();
+      return true;
+    }
+    return null;
+  }
+
+  void _genTimer() => _t = Timer.periodic(_interval, (d)=>isPlaying?this():null);
+
+  /// The return value of this getter determines whether the [Timer] that is internally maintained by
+  /// this [TickerNotifier] is notifying it's listeners on each interval or not.
+  ///
+  /// If it returns true, that means it is notifying it's listeners else false.
+  bool get isPlaying => _isNotDisposed ? _pending==null : null;
+
+  /// The return value of this getter determines whether the [Timer] that is internally maintained by
+  /// this [TickerNotifier] is notifying it's listeners on each interval or not.
+  ///
+  /// If it returns true, that means it is not notifying it's listeners else it is (false).
+  bool get isPaused  => _isNotDisposed ? _pending!=null : null;
+
+  /// The [play] method can be used to resume notifications of the timer that is being internally
+  /// maintained.
+  bool play() {
+    if(_isNotDisposed){
+      if(isPlaying) return false;
+      Future.delayed(_pending,(){
+        _pending=null;
+        _t = Timer.periodic(_interval, (d)=>isPlaying?this():null);
+      });
+      return true;
+    }
+    return null;
+  }
+
+  bool pause() {
+    if(_isNotDisposed){
+      if(isPlaying){
+        // _pending = ;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  bool stop()
+  {
+    if(_isNotDisposed) {
+      if(_t.isActive) {
+        _t.cancel();
+        return true;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  Timer notifyAtInterval(Duration interval){
+    if(_isNotDisposed){
+      stop();
+      // return _t = Timer.periodic(interval, (d)=>_m?null:this());
+    }
+    return null;
+  }
+
+  void reset([Duration duration=Duration.zero, bool play=true]){
+    if(_isNotDisposed){
+      stop();
+      _interval = interval;
+      _pending = play!=true?Duration.zero:null;
+      _t = Timer.periodic(duration, (d)=>isPlaying?this():null);
+    }
+  }
+
+  bool init({
+    Duration interval,
+    bool pauseOnInit = false,
+    Iterable<Notifier> attachNotifiers,
+    Iterable<Notifier> listenToNotifiers,
+    Iterable<Notifier> mergeNotifiers,
+    Iterable<Function> initialListeners,
+    bool Function(Function,dynamic) removeListenerOnError,
+  }){
+    if(super.init(
+      attachNotifiers: attachNotifiers,
+      listenToNotifiers: listenToNotifiers,
+      mergeNotifiers: mergeNotifiers,
+      initialListeners: initialListeners,
+      removeListenerOnError: removeListenerOnError,
+    )) {
+      if(interval!=null) start(interval);
+      else _pending = pauseOnInit==true ? Duration.zero : null;
+      return true;
+    }
+    return false;
+  }
+
+  bool dispose() {
+    if(super.dispose()){
+      _t.cancel();
+      _t = null;
+      _pending = null;
+      _interval = null;
+      return true;
+    }
+    return false;
+  }
+
+  TimedNotifier({
+    Duration interval,
+    bool pauseOnInit = false,
+    Iterable<Notifier> attachNotifiers,
+    Iterable<Notifier> listenToNotifiers,
+    Iterable<Notifier> mergeNotifiers,
+    Iterable<Function> initialListeners,
+    bool Function(Function,dynamic) removeListenerOnError
+  }) : super(
+      attachNotifiers: attachNotifiers,
+      listenToNotifiers: listenToNotifiers,
+      mergeNotifiers: mergeNotifiers,
+      initialListeners: initialListeners) {
+    if(interval!=null) start(interval, pauseOnInit!=true);
+    else _pending = pauseOnInit==true?Duration.zero:null;
+  }
 }
 
 /// An extension method that provides certain method to make certain operations easier in/while using

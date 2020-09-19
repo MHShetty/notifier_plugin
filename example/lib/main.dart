@@ -1,8 +1,6 @@
 import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart';
 import 'package:notifier_plugin/notifier_plugin.dart';
 
 /* The examples for this plugin haven't been properly designed yet.
@@ -15,20 +13,18 @@ void main() {
 
 class TestApp extends StatelessWidget {
 
-  ValNotifier valNotifier = ValNotifier();
-
-  StreamController s = StreamController(onListen: ()=>print("Me"));
-  StreamSubscription streamSubscription;
+  TimedNotifier tn = TimedNotifier();
+  int i = 0;
 
   Widget build(BuildContext context) {
 
-
+    // tn.reset(Duration(seconds: 1));
+    // tn.addListener(print);
+    print(tn.isPaused);
 
     return MaterialApp(
       home: Scaffold(
-        body: Center(
-          child: Text("Hello World"),
-        ),
+        body: Center(child: tn - ()=>Text((++i).toString())),
       ),
     );
 

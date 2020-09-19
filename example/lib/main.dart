@@ -18,9 +18,7 @@ class TestApp extends StatelessWidget {
 
   Widget build(BuildContext context) {
 
-    // tn.reset(Duration(seconds: 1));
-    // tn.addListener(print);
-    print(tn.isPaused);
+    print(tn.interval = Duration(milliseconds: 1));
 
     return MaterialApp(
       home: Scaffold(

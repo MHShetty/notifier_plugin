@@ -3069,14 +3069,13 @@ class TimedNotifier extends Notifier
 
   Timer _t;
   Duration _interval;
-
   DateTime _lastTick;
   Duration _pending;
 
   DateTime get _nextTick => _lastTick.add(_interval);
-  Duration get timeForNextTick => _nextTick.difference(DateTime.now());
+  Duration get timeForNextTick => _pending??_nextTick.difference(DateTime.now());
 
-  Duration get interval => _isNotDisposed?_interval:null;
+  Duration get interval => _isNotDisposed ? _interval : null;
   set interval(Duration interval){
     _t.cancel();
     if(isPlaying) call();
@@ -3116,7 +3115,10 @@ class TimedNotifier extends Notifier
     return null;
   }
 
-  void _genTimer() => _t = Timer.periodic(_interval, (d)=>isPlaying?this():null);
+  void _genTimer() => _t = Timer.periodic(_interval, (d){
+    _lastTick = DateTime.now();
+    if(isPlaying) call();
+  });
 
   /// The return value of this getter determines whether the [Timer] that is internally maintained by
   /// this [TickerNotifier] is notifying it's listeners on each interval or not.
@@ -3137,7 +3139,7 @@ class TimedNotifier extends Notifier
       if(isPlaying) return false;
       Future.delayed(_pending,(){
         _pending=null;
-        _t = Timer.periodic(_interval, (d)=>isPlaying?this():null);
+        _genTimer();
       });
       return true;
     }
@@ -3147,7 +3149,9 @@ class TimedNotifier extends Notifier
   bool pause() {
     if(_isNotDisposed){
       if(isPlaying){
-        // _pending = ;
+        _pending = timeForNextTick;
+        _t.cancel();
+        return true;
       }
       return false;
     }
@@ -3169,7 +3173,8 @@ class TimedNotifier extends Notifier
   Timer notifyAtInterval(Duration interval){
     if(_isNotDisposed){
       stop();
-      // return _t = Timer.periodic(interval, (d)=>_m?null:this());
+      _genTimer();
+      return _t;
     }
     return null;
   }
@@ -3179,7 +3184,7 @@ class TimedNotifier extends Notifier
       stop();
       _interval = interval;
       _pending = play!=true?Duration.zero:null;
-      _t = Timer.periodic(duration, (d)=>isPlaying?this():null);
+      _genTimer();
     }
   }
 

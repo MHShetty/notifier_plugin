@@ -13,16 +13,28 @@ void main() {
 
 class TestApp extends StatelessWidget {
 
-  TimedNotifier tn = TimedNotifier();
-  int i = 0;
+  SWNotifier sw = SWNotifier(startOnInit: true);
+
+  Timer t;
 
   Widget build(BuildContext context) {
 
-    print(tn.interval = Duration(milliseconds: 1));
+    sw(Duration.zero);
 
     return MaterialApp(
       home: Scaffold(
-        body: Center(child: tn - ()=>Text((++i).toString())),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              sw - (v)=> Text(v.toString()),
+              RaisedButton(
+                onPressed: sw,
+                child: Text("+2"),
+              )
+            ],
+          ),
+        ),
       ),
     );
 

@@ -1397,26 +1397,26 @@ class ValNotifier<T> extends Notifier
     return null;
   }
 
-  static final Map<Type,Tween Function(Tween)> _tweenMap = {
-    AlignmentGeometry: (t)=>AlignmentGeometryTween(begin: t.begin ?? Alignment.center, end: t.end ?? Alignment.center),
-    BorderRadius: (t)=> BorderRadiusTween(begin: t.begin ?? BorderRadius.zero, end: t.end ?? BorderRadius.zero),
-    Border: (t)=> BorderTween(begin: t.begin ?? const Border(), end: t.end ?? const Border()),
-    BoxConstraints: (t)=> BoxConstraintsTween(begin: t.begin ?? const BoxConstraints(), end: t.end ?? const BoxConstraints()),
-    Color: (t)=> ColorTween(begin: t.begin ?? Colors.transparent, end: t.end ??  Colors.transparent),
-    Decoration: (t)=> DecorationTween(begin: t.begin ?? const BoxDecoration(), end: t.end ?? const BoxDecoration()),
-    EdgeInsetsGeometry: (t)=> EdgeInsetsGeometryTween(begin: t.begin ?? EdgeInsets.zero, end: t.end ?? EdgeInsets.zero),
-    EdgeInsets: (t)=> EdgeInsetsTween(begin: t.begin ?? EdgeInsets.zero, end: t.end ?? EdgeInsets.zero),
-    FractionalOffset: (t)=> FractionalOffsetTween(begin: t.begin ?? const FractionalOffset(0,0), end: t.end ?? const FractionalOffset(0,0)),
-    int: (t)=> IntTween(begin: t.begin ?? 0, end: t.end ??  0),
-    Offset: (t)=> MaterialPointArcTween(begin: t.begin ??  Offset.zero, end: t.end ?? Offset.zero),
-    Matrix4: (t)=> Matrix4Tween(begin: t.begin ?? Matrix4.zero(), end: t.end ?? Matrix4.zero()),
-    Rect: (t)=> RectTween(begin: t.begin ?? Rect.zero, end: t.end ?? Rect.zero),
-    RelativeRect: (t)=> RelativeRectTween(begin: t.begin ?? RelativeRect.fill, end: t.end ?? RelativeRect.fill),
-    ShapeBorder: (t)=> ShapeBorderTween(begin: t.begin ?? const Border(), end: t.end ?? const Border()),
-    Size: (t)=> SizeTween(begin: t.begin ?? Size.zero, end: t.end ?? Size.zero),
-    TextStyle: (t)=> TextStyleTween(begin: t.begin ?? const TextStyle(), end: t.end ?? const TextStyle()),
-    ThemeData: (t)=> ThemeDataTween(begin: t.begin ?? ThemeData(), end: t.end ?? ThemeData()),
-  };
+  // static final Map<Type,Tween Function(Tween)> _tweenMap = {
+  //   AlignmentGeometry: (t)=>AlignmentGeometryTween(begin: t.begin ?? Alignment.center, end: t.end ?? Alignment.center),
+  //   BorderRadius: (t)=> BorderRadiusTween(begin: t.begin ?? BorderRadius.zero, end: t.end ?? BorderRadius.zero),
+  //   Border: (t)=> BorderTween(begin: t.begin ?? const Border(), end: t.end ?? const Border()),
+  //   BoxConstraints: (t)=> BoxConstraintsTween(begin: t.begin ?? const BoxConstraints(), end: t.end ?? const BoxConstraints()),
+  //   Color: (t)=> ColorTween(begin: t.begin ?? Colors.transparent, end: t.end ??  Colors.transparent),
+  //   Decoration: (t)=> DecorationTween(begin: t.begin ?? const BoxDecoration(), end: t.end ?? const BoxDecoration()),
+  //   EdgeInsetsGeometry: (t)=> EdgeInsetsGeometryTween(begin: t.begin ?? EdgeInsets.zero, end: t.end ?? EdgeInsets.zero),
+  //   EdgeInsets: (t)=> EdgeInsetsTween(begin: t.begin ?? EdgeInsets.zero, end: t.end ?? EdgeInsets.zero),
+  //   FractionalOffset: (t)=> FractionalOffsetTween(begin: t.begin ?? const FractionalOffset(0,0), end: t.end ?? const FractionalOffset(0,0)),
+  //   int: (t)=> IntTween(begin: t.begin ?? 0, end: t.end ??  0),
+  //   Offset: (t)=> MaterialPointArcTween(begin: t.begin ??  Offset.zero, end: t.end ?? Offset.zero),
+  //   Matrix4: (t)=> Matrix4Tween(begin: t.begin ?? Matrix4.zero(), end: t.end ?? Matrix4.zero()),
+  //   Rect: (t)=> RectTween(begin: t.begin ?? Rect.zero, end: t.end ?? Rect.zero),
+  //   RelativeRect: (t)=> RelativeRectTween(begin: t.begin ?? RelativeRect.fill, end: t.end ?? RelativeRect.fill),
+  //   ShapeBorder: (t)=> ShapeBorderTween(begin: t.begin ?? const Border(), end: t.end ?? const Border()),
+  //   Size: (t)=> SizeTween(begin: t.begin ?? Size.zero, end: t.end ?? Size.zero),
+  //   TextStyle: (t)=> TextStyleTween(begin: t.begin ?? const TextStyle(), end: t.end ?? const TextStyle()),
+  //   ThemeData: (t)=> ThemeDataTween(begin: t.begin ?? ThemeData(), end: t.end ?? ThemeData()),
+  // };
 
   Tween _sTween(Iterable<T> values) {
     if(values is Iterable<AlignmentGeometry>) return AlignmentGeometryTween(begin: Alignment.center, end: Alignment.center);
@@ -2605,7 +2605,11 @@ class TickerValNotifier<T> extends ValNotifier<T>
   /// just returns false.
   bool start({bool play=true}){
     if(_isNotDisposed){
-      if(_t.isActive) return false;
+      if(_t.isActive){
+        if(isNotPlaying) debugPrint("$runtimeType#$hashCode: I have already been started! Please consider using the play() method.");
+        return false;
+      }
+      _pD = Duration.zero;
       _t.start();
       _t.muted = play!=true;
       return true;
@@ -2628,6 +2632,7 @@ class TickerValNotifier<T> extends ValNotifier<T>
   bool play(){
     if(_isNotDisposed){
       if(_t.muted) {
+        _pD += DateTime.now().difference(_pT);
         _t.muted = false;
         return true;
       }
@@ -2746,12 +2751,12 @@ class TickerValNotifier<T> extends ValNotifier<T>
       duration=duration.abs();
       _pD = Duration.zero;
       Function onTick = (d) {
-        d-=_pD;
+        d -= _pD;
         if (d>duration) return _t..stop()..dispose();
-        call();
+        call(_val,false);
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value){_t = Ticker((d)=>this()); return this;});
+      return _t.start().then((value){_t = Ticker((d)=>this(_val)); return this;});
     }
     return null;
   }
@@ -2783,7 +2788,7 @@ class TickerValNotifier<T> extends ValNotifier<T>
           end = d;
           return _t..stop()..dispose();
         }
-        call();
+        call(_val,false);
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
       return _t.start().then((value){_t = Ticker((d)=>this()); return end;});
@@ -3058,12 +3063,18 @@ extension Iterable_ValNotifier<T> on Iterable<ValNotifier<T>> {
 /// * The [stop] method can be used to stop the [Timer] that was started either by the [start] or the
 /// [notifyAtInterval] method.
 ///
-/// * The [pause] method can be used to mute the internal [Timer] from notifying it's listeners,
+/// * The [pause] method can be used to pause the internal [Timer] of the [TimedNotifier]
 ///
-/// * and the [play] method can be used to un-mute the internal [Timer] that was previously muted.
+/// * The [play] method can be used to resume the internal [Timer] of the [TimedNotifier]
+///
+/// * The [interval] getter and setter can be used to either get the current interval or dynamically
+/// change it to another Duration, even when it's active or is ticking.
 ///
 /// Note: The [TimedNotifier] can also directly be started while instantiating it by giving its
-/// interval parameter a non-null [Duration] and also optionally paused
+/// interval parameter a non-null [Duration] and also optionally paused.
+///
+/// Also, this is not the right class if you are looking for a [Notifier] to create a timer that
+/// actually display the current time or perhaps a stopwatch.
 class TimedNotifier extends Notifier
 {
 
@@ -3073,13 +3084,18 @@ class TimedNotifier extends Notifier
   Duration _pending;
 
   DateTime get _nextTick => _lastTick.add(_interval);
-  Duration get timeForNextTick => _pending??_nextTick.difference(DateTime.now());
 
+  Duration get timeForNextTick => _pending??_nextTick.difference(DateTime.now());
+  Duration get timeSinceLastTick => DateTime.now().difference(_lastTick);
+  DateTime get lastTick => _isNotDisposed ? _lastTick : null;
   Duration get interval => _isNotDisposed ? _interval : null;
-  set interval(Duration interval){
-    _t.cancel();
+
+  set interval(Duration interval) {
+    assert(interval!=null,"Could not set the timer to a null duration.");
+    if(interval==_interval) return;
+    _t?.cancel();
     if(isPlaying) call();
-    _interval = interval;
+    _interval = interval.abs();
     _genTimer();
   }
 
@@ -3108,7 +3124,7 @@ class TimedNotifier extends Notifier
     if(_isNotDisposed) {
       if(_t?.isActive ?? false) return false;
       _interval = interval;
-      _pending = play!=true?Duration.zero:null;
+      _pending = play!=true ? Duration.zero : null;
       _genTimer();
       return true;
     }
@@ -3137,6 +3153,8 @@ class TimedNotifier extends Notifier
   bool play() {
     if(_isNotDisposed){
       if(isPlaying) return false;
+      _t.cancel();
+
       Future.delayed(_pending,(){
         _pending=null;
         _genTimer();
@@ -3150,7 +3168,6 @@ class TimedNotifier extends Notifier
     if(_isNotDisposed){
       if(isPlaying){
         _pending = timeForNextTick;
-        _t.cancel();
         return true;
       }
       return false;
@@ -3204,8 +3221,8 @@ class TimedNotifier extends Notifier
       initialListeners: initialListeners,
       removeListenerOnError: removeListenerOnError,
     )) {
-      if(interval!=null) start(interval);
-      else _pending = pauseOnInit==true ? Duration.zero : null;
+      if(interval!=null) start(interval.abs(), pauseOnInit!=true);
+      else _pending = pauseOnInit==true?Duration.zero:null;
       return true;
     }
     return false;
@@ -3235,8 +3252,260 @@ class TimedNotifier extends Notifier
       listenToNotifiers: listenToNotifiers,
       mergeNotifiers: mergeNotifiers,
       initialListeners: initialListeners) {
-    if(interval!=null) start(interval, pauseOnInit!=true);
+    if(interval!=null) start(interval.abs(), pauseOnInit!=true);
     else _pending = pauseOnInit==true?Duration.zero:null;
+  }
+}
+
+extension DateTime_Ease on DateTime
+{
+  DateTime operator +(Duration duration) => add(duration??Duration.zero);
+  Duration operator -(DateTime dateTime)=>difference(dateTime);
+}
+
+/// The [SWNotifier] class is a maintains an internal abstract stopwatch that can be [start]ed,
+/// [stop]ped, [pause]d and then [play]ed as per your requirements. You can even dynamically change
+/// the [elapsed] duration by overwriting it, or adding/deducting/multiply/dividing it by a certain
+/// [Duration] or [num]. This class was made with the intention of making creating a stopwatch
+/// easier, however it can also be indirectly used as a live timer with negative duration and by
+/// considering the absolute duration with the help of [Duration.abs]. (A simple listener can be
+/// attached to see when the [Timer] should be cancelled)
+class SWNotifier extends TickerValNotifier<Duration>
+{
+  DateTime _start;
+
+  /// Returns the duration elapsed by the internal abstract stopwatch.
+  ///
+  /// If the internal ticker is not active, it will return [Duration.zero] else the elapsed time.
+  Duration get elapsed => _isNotDisposed ? (isActive ? _elapsed : Duration.zero) : null;
+  Duration get _elapsed => (isPlaying?DateTime.now():_pT).difference(_start) - _pD;
+
+  /// Sets a new elapsed duration for the internal abstract stopwatch. If the internal ticker or
+  /// abstract stopwatch isn't active it throws an [StateError]. Also, the [elapsed] duration passed
+  /// to this setter method is expected to not be null.
+  set elapsed(Duration elapsed) {
+    assert(elapsed!=null,"SWNotifier#$hashCode: The elapsed duration of cannot be set to null!");
+    if(isNotActive) throw StateError("SWNotifier#$hashCode: Couldn't modify the elapsed duration since I have not been started yet. Please use the start() method on me before trying to modify/play with this value.");
+    _start=DateTime.now()+(-elapsed);
+  }
+
+  /// Starts the internal ticker (and hence the abstract stopwatch) of the current [SWNotifier].
+  /// If the stopwatch has already been start it returns false else starts the stopwatch and returns
+  /// true.
+  ///
+  /// One can optionally decide to pause the stopwatch while starting it by passing false to the
+  /// named parameter [play].
+  bool start({bool play=true}) {
+    if(_isNotDisposed) {
+      if(super.start(play: play)) {
+        if(play!=true) _pT = _start = DateTime.now();
+        else _start = DateTime.now();
+        return true;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  /// Stops the internal ticker (and hence the abstract stopwatch) of the current [SWNotifier].
+  /// If the stopwatch has already been stopped it returns false else it stops the stopwatch and
+  /// returns true. If you want to reset the stopwatch while stopping it, then please pass true to
+  /// the named parameter [reset] when the abstract stopwatch is active. Trying to reset it when the
+  /// stopwatch is inactive wouldn't reset the [elapsed] duration of the abstract stopwatch. You
+  /// could use the [reset] method then and pass values to it's parameters as per your requirements.
+  bool stop({bool reset=false})
+  {
+    if(_isNotDisposed) {
+      if(super.stop()){
+        _start = null;
+        if(reset==true) call(Duration.zero, false);
+        return true;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  /// The method [reset] force resets the internal abstract stopwatch that is maintained by this
+  /// [SWNotifier]. By default, this method starts playing the stopwatch as soon as it is reset.
+  /// To change this behavior, please pass false to the named parameter [play] of this method.
+  void reset({bool play=true}) {
+    if(_isNotDisposed){
+      stop(reset: true);
+      start(play: play);
+    }
+  }
+
+  /// This method jumps the abstract stopwatch to the given [duration]. If the [SWNotifier] is
+  /// not active it returns false else it jumps to the given [duration] and then returns true.
+  ///
+  /// This method is just an abstraction to the setter method [elapsed]= that returns false instead
+  /// of throwing an error unless its an assertion.
+  bool jumpTo(Duration duration){
+    if(_isNotDisposed) {
+      assert(duration!=null,"SWNotifier:$hashCode Could not jump to duration null.");
+      if(isActive){
+        elapsed = duration;
+        return false;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  /// This method adds the given [duration] to the [elapsed] duration if the [SWNotifier] is active
+  /// and returns true, else it just returns false.
+  ///
+  /// This method is just an abstraction to the setter method [elapsed]+= that returns false instead
+  /// of throwing an error (if the [SWNotifier] is inactive) unless its an assertion.
+  bool addElapsed(Duration duration){
+    if(_isNotDisposed){
+      assert(duration!=null,"SWNotifier:$hashCode Could not add null duration to elapsed.");
+      if(isActive){
+        elapsed+=duration;
+        return false;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  /// This method deducts the given [duration] to the [elapsed] duration if the [SWNotifier] is
+  /// active and returns true, else it just returns false.
+  ///
+  /// This method is just an abstraction to the setter method [elapsed]-= that returns false instead
+  /// of throwing an error (if the [SWNotifier] is inactive) unless its an assertion.
+  bool deductElapsed(Duration duration) {
+    if(_isNotDisposed){
+      assert(duration!=null,"SWNotifier:$hashCode Could not deduct null duration to elapsed.");
+      if(isActive){
+        elapsed-=duration;
+        return false;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  /// This method multiplies the [elapsed] duration by the given number of [times]. If the
+  /// [SWNotifier] is active it will return true else false.
+  ///
+  /// This method is just an abstraction to the setter method [elapsed]+= that returns false instead
+  /// of throwing an error (if the [SWNotifier] is inactive) unless its an assertion.
+  bool multiplyElapsed(num times){
+    if(_isNotDisposed){
+      assert(times!=null,"SWNotifier:$hashCode Could not multiply null to elapsed duration.");
+      if(isActive){
+        elapsed*=times;
+        return false;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  /// This method divides the [elapsed] duration by the given number of [times]. If the [SWNotifier]
+  /// is active it will return true else false.
+  ///
+  /// This method is just an abstraction to the setter method [elapsed]+= that returns false instead
+  /// of throwing an error (if the [SWNotifier] is inactive) unless its an assertion.
+  bool divideElapsed(num times){
+    if(_isNotDisposed) {
+      assert(times!=null,"SWNotifier:$hashCode Could not divide null to elapsed duration.");
+      if(isActive){
+        elapsed~/=times;
+        return false;
+      }
+      return false;
+    }
+    return null;
+  }
+
+  /// Returns the duration elapsed by the [SWNotifier]. Was created with the intention of hinting
+  /// the user that elapsed can be used to perform laps (auto-complete).
+  Duration lap() => elapsed;
+
+  /// Returns the duration elapsed by the [SWNotifier]. Was created with the intention of hinting
+  /// the user that elapsed can be used to perform splits (auto-complete).
+  Duration split() => elapsed;
+
+  /// The call method has been modified in a special way for the [SWNotifier].
+  ///
+  /// If you pass some non-null [elapsed] duration while calling a [SWNotifier] it simply jumps
+  /// to that duration and starts playing from there. If you just want to notify a Duration for
+  /// a moment while the [SWNotifier] is playing then please pass false to the second parameter
+  /// [save]. This wouldn't jump to that the passed duration but would just notify it for a moment.
+  /// However, it must be noted that it saves it, even if the save parameter is set to false.
+  SWNotifier call([Duration elapsed,bool save=true]){
+    if(_isNotDisposed) {
+      if(_t.isActive&&save==true){
+          if(elapsed!=null) _start=DateTime.now()+(-elapsed);
+          return super.call(_elapsed);
+        }
+        return super.call(elapsed);
+    }
+    return null;
+  }
+
+  /// Can be used to re-init the [SWNotifier] once it's disposed. If its already disposed then
+  /// it re-init s it and returns true else just returns false.
+  /// 
+  /// Note: The [initialVal] parameter just means initial value. It doesn't directly jump to that
+  /// value, once the internal abstract stopwatch starts.
+  bool init({
+    Duration initialVal,
+    bool startOnInit = false,
+    bool pauseOnInit = false,
+    String debugLabel,
+    Iterable<Notifier> attachNotifiers,
+    Iterable<Notifier> listenToNotifiers,
+    Iterable<Notifier> mergeNotifiers,
+    Iterable<Function> initialListeners,
+    bool Function(Function,dynamic) removeListenerOnError,
+  })
+  {
+    if(super.init(
+      initialVal: initialVal ?? Duration.zero,
+      debugLabel: debugLabel,
+      attachNotifiers: attachNotifiers,
+      listenToNotifiers: listenToNotifiers,
+      mergeNotifiers: mergeNotifiers,
+      initialListeners: initialListeners,
+      removeListenerOnError: removeListenerOnError,
+    )){
+      if(startOnInit==true) start(play: pauseOnInit!=true);
+      else _t.muted = pauseOnInit==true;
+    }
+    return false;
+  }
+
+  /// Disposes the current [SWNotifier]. Returns false if it was already disposed else disposes the
+  /// [SWNotifier] and returns true.
+  bool dispose() {
+    if(super.dispose()){
+      _start = null;
+      return true;
+    }
+    return false;
+  }
+  
+  SWNotifier({
+    Duration initialVal,
+    bool startOnInit = false,
+    bool pauseOnInit = false,
+    Iterable<Notifier> attachNotifiers,
+    Iterable<Notifier> listenToNotifiers,
+    Iterable<Notifier> mergeNotifiers,
+    Iterable<Function> initialListeners,
+    bool Function(Function,dynamic) removeListenerOnError,
+  }) : super(
+      initialVal: initialVal ?? Duration.zero,
+      attachNotifiers: attachNotifiers,
+      listenToNotifiers: listenToNotifiers,
+      mergeNotifiers: mergeNotifiers,
+      initialListeners: initialListeners) {
+    if(startOnInit==true) start(play: pauseOnInit!=true);
+    else _t.muted = pauseOnInit==true;
   }
 }
 

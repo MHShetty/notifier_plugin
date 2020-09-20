@@ -459,14 +459,12 @@ class Notifier extends Iterable<Notifier> {
   ///
   /// If it has any, the method returns [true] else false.
   bool get hasListeners => _isNotDisposed && _hasListeners;
-
   bool get _hasListeners => _listeners.isNotEmpty;
 
   /// Checks if the current [Notifier] has at least any one of the given [listeners].
   ///
   /// Returns [true] if it finds it else [false].
-  bool hasAnyListener(Iterable<Function> listeners) =>
-      _isNotDisposed ? _hasAnyListener(listeners) : null;
+  bool hasAnyListener(Iterable<Function> listeners) => _isNotDisposed ? _hasAnyListener(listeners) : null;
 
   bool _hasAnyListener(Iterable<Function> listeners) {
     for (Function listener in listeners)
@@ -477,22 +475,13 @@ class Notifier extends Iterable<Notifier> {
   /// Checks if the current [Notifier] has all of the given [listeners].
   ///
   /// Returns [true] if it finds all else [false].
-  bool hasAllListeners(Iterable<Function> listeners) =>
-      _isNotDisposed ? _hasAllListeners(listeners) : null;
+  bool hasAllListeners(Iterable<Function> listeners) => _isNotDisposed ? _hasAllListeners(listeners) : null;
 
   bool _hasAllListeners(Iterable<Function> listeners) {
     for (Function listener in listeners)
       if (!_listeners.containsEitherComp(listener)) return false;
     return true;
   }
-
-  // static bool hasTheseListeners(
-  //         Notifier notifier, Iterable<Function> listeners) =>
-  //     notifier?.hasAllListeners(listeners);
-  //
-  // static Iterable<bool> sHaveTheseListeners(
-  //         Iterable<Notifier> notifiers, Iterable<Function> listeners) =>
-  //     notifiers?.map((notifier) => notifier.hasAllListeners(listeners));
 
   void _call(Function listener) => listener is Function() ? listener() : listener(null);
 
@@ -526,11 +515,19 @@ class Notifier extends Iterable<Notifier> {
     return null;
   }
 
+  /// Calls the [Notifier] with the value that was stored in the buffer.
   Notifier operator ~() => notify();
+
+  /// Helper getter that abstracts the call method for readability.
   Notifier get notify => this;
-  Function get _notify => this;
+
+  /// Helper getter that abstracts the call method for readability.
   Notifier get notifyListeners => this;
+
+  /// Helper getter that abstracts the call method for readability.
   Notifier get sendNotification => this;
+
+  Function get _notify => this;
 
   /// A static function that notifies the [notifier] passed to it.
   static Notifier notifyNotifier(Notifier notifier) => ~notifier;
@@ -558,8 +555,7 @@ class Notifier extends Iterable<Notifier> {
   /// This function can be used to remove a specific listener by it's [hashCode], which can either be obtained as the
   /// return value of [addListener] or by manually storing the function as a variable and then obtaining it with the
   /// help of the getter hashCode. The return value determines if the transaction was successful or not.
-  bool removeListenerByHashCode(int hashCode) =>
-      _isNotDisposed ? _removeListenerByHashCode(hashCode) : null;
+  bool removeListenerByHashCode(int hashCode) => _isNotDisposed ? _removeListenerByHashCode(hashCode) : null;
 
   bool _removeListenerByHashCode(int hashCode) {
     try {
@@ -574,9 +570,7 @@ class Notifier extends Iterable<Notifier> {
   /// An implementation of [removeListenerByHashCode] which deals with multiple [hashCodes]. Returns an [Iterable<bool>]
   /// based on the result of each transactions which equals the length of the passed list of [hashCodes].
   Iterable<bool> removeListenersByHashCodes(Iterable<int> hashCodes) =>
-      _isNotDisposed
-          ? hashCodes?.map(_removeListenerByHashCode)?.toList()
-          : null;
+      _isNotDisposed ? hashCodes?.map(_removeListenerByHashCode)?.toList() : null;
 
   Iterable<bool> _removeListenersByHashCodes(Iterable<int> hashCodes) =>
       hashCodes?.map(_removeListenerByHashCode)?.toList();
@@ -645,16 +639,26 @@ class Notifier extends Iterable<Notifier> {
     return isNotDisposed;
   }
 
-
+  /// It is a special operator method that eases the process of creating dynamic UI and working with
+  /// multiple notifiers.
+  ///
+  /// This method,
+  ///
+  /// * Returns null if null was passed.
+  /// * Combines the two notifiers as a [Notifier], if a [Notifier]/[Iterable]<[Notifier]> was passed.
+  /// * Returns a [NotificationBuilder] that just rebuilds when the [Notifier] is notified,
+  /// if a method that accepts no parameters is passed.
+  /// * Returns a [NotificationBuilder] that rebuilds while passing null, if a method that accepts
+  /// a single parameter is passed.
+  /// * Returns a [NotificationBuilder] that rebuilds while passing the [BuildContext] and value, if such a
+  /// method is passed.
   operator -(_) {
     if (_ == null) return null;
-    if (_ is Iterable<Notifier>)
-      return clone(this)..removeListeners(_._listeners);
+    if (_ is Iterable<Notifier>) return merge(_);
     if (_ is Widget) return NotifiableChild(notifier: this, child: _);
-    if (_ is WidgetBuilder)
-      return SimpleNotificationBuilder(notifier: this, builder: _);
-    if (_ is Function())
-      return SimpleNotificationBuilder(notifier: this, builder: (c) => _());
+    if (_ is Function(dynamic)) return SimpleNotificationBuilder(notifier: this, builder: _(null));
+    if (_ is Function()) return SimpleNotificationBuilder(notifier: this, builder: (c) => _());
+    if (_ is Function(BuildContext,dynamic)) return SimpleNotificationBuilder(notifier: this, builder: (c) => _(c,null));
     throw UnsupportedError(
         "Notifier#$hashCode: Notifier's operator - does not support ${_.runtimeType}.");
   }
@@ -1400,9 +1404,33 @@ class ValNotifier<T> extends Notifier
     return times.abs();
   }
 
+  /// The method [interpolateR] can be used to interpolate across multiple [values] over a fixed period of time
+  /// ([totalDuration]). This method interfaces the the method [interpolate] for types that are internally known by
+  /// this class.
+  ///
+  /// A short description about the named parameters,
+  ///
+  /// * The named parameter [loop] can be used to perform the same interpolation multiple times (minimum: 1; assuming
+  /// no assertion has failed or error has been thrown)
+  ///
+  /// * The named parameter [reverse] can be set to true to reverse the direction of interpolation, i.e. Iterable end
+  /// to start. (default: false; start to end)
+  ///
+  /// * The named parameter [curve] can be used to specify a single [Curve] for all the transformations that occur
+  /// during the interpolation. (default: [Curves.linear])
+  ///
+  /// * The named parameter [curves] can be used to specify the curve for each transformation taking place between each
+  /// pair of values. All the empty space and null values are filled with the value of the parameter [curve]. However,
+  /// if null values still found in the iterable, an assertion fails. To avoid that one can either give an expected
+  /// value to the parameter [curve] or ensure that there is one curve for every transformation that takes place (pair
+  /// of values, i.e. [values.length]-1)
+  ///
+  /// A animation animation/interpolation performed by a [ValNotifier] cannot be controlled in any way, once it starts.
+  /// If you want to be control this interpolation, then please consider using a [TweenNotifier] instead. It performs
+  /// only one animation at a time that can be controlled by the instance methods provided by it's class.
   Future<ValNotifier<T>> interpolateR(Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
     if(_isNotDisposed) {
-      if(T==dynamic) debugPrint("Calling interpolateR on a ValNotifier<dynamic> might be an bad idea.\n"
+      if(T==dynamic) debugPrint("Calling interpolateR on a $runtimeType<dynamic> might be an bad idea.\n"
           "Please try being more specific while specifying the type of variable that holds the ValNotifier().");
       return interpolate(Tween<T>(),values, totalDuration, loop: loop, reverse: reverse, curve: curve, curves: curves);
     }
@@ -1448,7 +1476,6 @@ class ValNotifier<T> extends Notifier
       assert(values.length>1,"We need at least two values to successfully interpolate.");
       if(curves==null) _curves = List.filled(values.length-1, curve);
       else {
-
         _curves = curves.map((e) => e ?? curve).toList();
         while(_curves.length<values.length) _curves.add(curve);
         _curves.removeLast();
@@ -1813,28 +1840,26 @@ class ValNotifier<T> extends Notifier
   ///
   /// This method,
   ///
-  /// * Combines the two Notifiers as a Notifier, if a Notifier was passed
-  /// * Combines the two ValNotifiers as a ValNotifier, if a ValNotifier was passed.
-  /// * Returns a NotificationBuilder that just rebuilds when the ValNotifier is notified,
+  /// * Returns null if null was passed.
+  /// * Combines the two [ValNotifier] as a [ValNotifier], if a [ValNotifier] was passed.
+  /// * Combines the two [Notifier]s as a [Notifier], if a [Notifier] was passed
+  /// * Returns a [NotificationBuilder] that just rebuilds when the ValNotifier is notified,
   /// if a method that accepts no parameters is passed.
-  /// * Returns a NotificationBuilder that rebuilds while passing the value, if a method that accepts
-  /// a single parameter (of the current type) or something that has a wider scope (including this type)
-  /// else an UnsupportedError shall been thrown.
-  /// * Returns a NotificationBuilder that rebuilds while passing the BuildContext and value, if such a
+  /// * Returns a [NotificationBuilder] that rebuilds while passing the value, if a method that accepts
+  /// a single parameter (of the current type [T]) or something that has a wider scope (including this type)
+  /// else an [UnsupportedError] shall been thrown.
+  /// * Returns a [NotificationBuilder] that rebuilds while passing the [BuildContext] and value, if such a
   /// method is passed. If the two types differ in any way or are not within the scope of expected types
-  /// an UnsupportedError shall been thrown.
+  /// an [UnsupportedError] shall been thrown.
   operator -(_) {
-    if (_ is Notifier) return Notifier.merge([this, _]);
+    if(_ == null) return null;
     if (_ is ValNotifier<T>) return ValNotifier.merge<T>([this, _]);
-    if (_ is Function())
-      return NotificationBuilder(notifier: this, builder: (c) => _());
-    if (_ is Function(T))
-      return NotificationBuilder(notifier: this, builder: (c) => _(_val));
-    if (_ is Function(BuildContext, T))
-      return NotificationBuilder(notifier: this, builder: (c) => _(c, _val));
+    if (_ is Iterable<Notifier>) return merge(_);
+    if (_ is Function()) return NotificationBuilder(notifier: this, builder: (c) => _());
+    if (_ is Function(T)) return NotificationBuilder(notifier: this, builder: (c) => _(_val));
+    if (_ is Function(BuildContext, T)) return NotificationBuilder(notifier: this, builder: (c) => _(c, _val));
     if (_ is Widget) return NotifiableChild(notifier: this, child: _);
-    throw UnsupportedError(
-        "$runtimeType<$T>#$hashCode: $runtimeType<$T>'s operator - does not support ${_.runtimeType}.");
+    throw UnsupportedError("$runtimeType<$T>#$hashCode: $runtimeType<$T>'s operator - does not support ${_.runtimeType}.");
   }
 
 

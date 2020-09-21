@@ -17,6 +17,9 @@ part of notifier_plugin;
 /// * Clear the listeners of a notifier.
 /// * Check the state of the notifier through different getter/setter methods.
 /// * Use the - operator to attach a WidgetBuilder(/handled function) to a Notifier (abstract)
+///
+/// However, you'll have to maintain a separate buffer and design your widget tree according to that buffer to actually
+/// deal with data. To overcome that, the [ValNotifier] class was made.
 class Notifier extends Iterable<Notifier> {
 
   List<Function> _listeners = <Function>[]; // Auto-init
@@ -659,31 +662,29 @@ class Notifier extends Iterable<Notifier> {
     if (_ is Function(dynamic)) return SimpleNotificationBuilder(notifier: this, builder: _(null));
     if (_ is Function()) return SimpleNotificationBuilder(notifier: this, builder: (c) => _());
     if (_ is Function(BuildContext,dynamic)) return SimpleNotificationBuilder(notifier: this, builder: (c) => _(c,null));
-    throw UnsupportedError(
-        "Notifier#$hashCode: Notifier's operator - does not support ${_.runtimeType}.");
+    throw UnsupportedError("Notifier#$hashCode: Notifier's operator - does not support ${_.runtimeType}.");
   }
 
-  /// Creates a new instance of [Notifier] that holds the listeners of the current [Notifier] and the passed [notifier].
-  Notifier operator +(Notifier notifier) =>
-      _isNotDisposed ? (clone(this).._addListeners(notifier._listeners)) : null;
-
-  /// Creates a new instance of [Notifier] that holds the listeners common to the current [Notifier] and passed [notifier].
-  Notifier operator &(Iterable<Notifier> notifier) =>
-      _isNotDisposed ? (clone(this).._addListeners(notifier._listeners)) : null;
-
-  /// Creates a new instance of [Notifier] that holds the listeners of both the current [Notifier] and passed [notifier].
-  Notifier operator |(Iterable<Notifier> notifier) =>
-      clone(this)..removeListeners(notifier._listeners);
-
-  /// Adds all the listeners of the passed [notifier] to the current [Notifier]
-  Notifier operator <<(Iterable<Notifier> notifier) =>
-      this..addListeners(notifier._listeners);
-
-  /// Adds all the listeners of the current [Notifier] to the passed [notifier]
-  Notifier operator >>(Iterable<Notifier> notifier) {
-    notifier.addListeners(notifier._listeners);
-    return this;
-  }
+//  /// Creates a new instance of [Notifier] that holds the listeners of the current [Notifier] and the passed [notifier].
+//  Notifier operator +(Notifier notifier) =>
+//      _isNotDisposed ? (clone(this).._addListeners(notifier._listeners)) : null;
+//
+//  /// Creates a new instance of [Notifier] that holds the listeners common to the current [Notifier] and passed [notifier].
+//  Notifier operator &(Iterable<Notifier> notifier) =>
+//      _isNotDisposed ? (clone(this).._addListeners(notifier._listeners)) : null;
+//
+//  /// Creates a new instance of [Notifier] that holds the listeners of both the current [Notifier] and passed [notifier].
+//  Notifier operator |(Iterable<Notifier> notifier) =>
+//      clone(this)..removeListeners(notifier._listeners);
+//
+//  /// Adds all the listeners of the passed [notifier] to the current [Notifier]
+//  Notifier operator <<(Iterable<Notifier> notifier) => this..addListeners(notifier._listeners);
+//
+//  /// Adds all the listeners of the current [Notifier] to the passed [notifier]
+//  Notifier operator >>(Iterable<Notifier> notifier) {
+//    notifier.addListeners(notifier._listeners);
+//    return this;
+//  }
 
   /// Reverse the order of all the _listeners.
   ///
@@ -852,7 +853,7 @@ extension IterableExtension on Iterable<bool> {
     return false;
   }
 
-  Iterable<bool> notAll([int start, int end]) => map((e) => !e).toList();
+  Iterable<bool> notAll([int start, int end]) => map((e) => !(e??true)).toList();
 
   bool hasNullValue([int start, int end]) {
     assert((start ??= 0) >= 0 && (end ??= length - 1) < length);
@@ -881,154 +882,369 @@ extension IterableExtension on Iterable<bool> {
 //    or
 //    Create a list of Notifiers that holds both the Notifier and then notify that list as per your requirements.""");
 extension Iterable_Notifier on Iterable<Notifier> {
+
+  /// Re-init s all the notifiers present in this [Iterable]. Interfaces the [Notifier.init] for multiple notifiers.
   Iterable<bool> init() => map(Notifier.initNotifier).toList();
+
+  /// Disposes all the notifiers present in this [Iterable]. Interfaces the [Notifier.dispose] for multiple notifiers.
   Iterable<bool> dispose() => map(Notifier.disposeNotifier).toList();
-  Iterable<bool> hasListener(Function listener) =>
-      map((notifier) => notifier?.hasListener(listener)).toList();
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// this [Iterable] had the given [listener] or not. Interfaces the [Notifier.hasListener] for multiple notifiers.
+  Iterable<bool> hasListener(Function listener) => map((notifier) => notifier?.hasListener(listener)).toList();
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// this [Iterable] had at least one of the passed [listeners] or not. Interfaces the [Notifier.hasAnyListener] for
+  /// multiple notifiers.
   Iterable<bool> hasAnyListener(Iterable<Function> listeners) =>
-      map((notifier) => notifier.hasAnyListener(listeners)).toList();
+      map((notifier) => notifier?.hasAnyListener(listeners)).toList();
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// this [Iterable] has all of the given [listeners] or not. Interfaces the [Notifier.hasAllListeners] for multiple
+  /// notifiers.
   Iterable<bool> hasAllListeners(Iterable<Function> listeners) =>
-      map((notifier) => notifier.hasAllListeners(listeners)).toList();
-  Iterable<bool> attach(Iterable<Notifier> attachments) =>
-      map((notifier) => notifier.attach(attachments)).toList();
-  Iterable<Iterable<bool>> attachAll(Iterable<Notifier> notifiers) =>
-      map((notifier) => notifier._attachAll(notifiers)).toList();
-  Iterable<bool> hasAttached(Notifier notifier) =>
-      map((n) => n?.hasAttached(notifier)).toList();
-  Iterable<bool> hasAttachedAll(Iterable<Notifier> notifiers) =>
-      map((n) => n?.hasAttachedAll(notifiers)).toList();
-  Iterable<bool> detach(Notifier attachment) =>
-      map((notifier) => notifier?.detach(attachment)).toList();
+      map((notifier) => notifier?.hasAllListeners(listeners)).toList();
+
+  /// Tries to attach the passed [Notifier] [attachment] to the notifiers in this [Iterable]<[Notifier]> and returns an
+  /// [Iterable]<[bool]> based on the return value obtained while trying to [Notifier.attach] the given [attachment] to
+  /// each notifier.
+  Iterable<bool> attach(Notifier attachment) => map((notifier) => notifier.attach(attachment)).toList();
+
+  /// Tries to attach all the passed [attachments] to the notifiers in this [Iterable]<[Notifier]> and returns an
+  /// [Iterable]<[Iterable]<[bool]>> based on the return value obtained while trying to [Notifier.attachAll] the given
+  /// [attachments] to each notifier.
+  Iterable<Iterable<bool>> attachAll(Iterable<Notifier> attachments) =>
+      map((notifier) => notifier?.attachAll(attachments)).toList();
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// this [Iterable] has attached the passed [attachment] or not. Interfaces the [Notifier.hasAttached] for
+  /// multiple notifiers.
+  Iterable<bool> hasAttached(Notifier attachment) => map((n) => n?.hasAttached(attachment)).toList();
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// this [Iterable] has attached the passed [attachments] or not. Interfaces the [Notifier.hasAttachedAll] for
+  /// multiple notifiers.
+  Iterable<bool> hasAttachedAll(Iterable<Notifier> notifiers) => map((n) => n?.hasAttachedAll(notifiers)).toList();
+
+  /// Tries to detach the passed [Notifier] [attachment] to the notifiers in this [Iterable]<[Notifier]> and returns an
+  /// [Iterable]<[bool]> based on the return value obtained while trying to [Notifier.detach] the given [attachment]
+  /// from each notifier.
+  Iterable<bool> detach(Notifier attachment) => map((notifier) => notifier?.detach(attachment)).toList();
+
+  /// Tries to detach all the passed [attachments] to the notifiers in this [Iterable]<[Notifier]> and returns an
+  /// [Iterable]<[Iterable]<[bool]>> based on the return value obtained while trying to [Notifier.detachAll] the given
+  /// [attachments] from each notifier.
   Iterable<Iterable<bool>> detachAll(Iterable<Notifier> attachments) =>
       map((notifier) => notifier?.detachAll(attachments)).toList();
-  Iterable<bool> startListeningTo(Notifier notifier) =>
-      map((n) => notifier?.attach(n))?.toList();
+
+  /// Tries to make every notifier present in this [Iterable] start listening to the given [notifier]. This method is
+  /// an interface to [Notifier.startListeningTo] for multiple notifiers.
+  Iterable<bool> startListeningTo(Notifier notifier) => map((n) => notifier?.attach(n))?.toList();
+
+  /// Tries to make every notifier present in this [Iterable] start listening to all the given [notifiers].
+  /// This method is an interface to [Notifier.startListeningToAll] for multiple notifiers.
   Iterable<Iterable<bool>> startListeningToAll(Iterable<Notifier> notifiers) =>
       notifiers?.map((n) => n?.attachAll(notifiers))?.toList();
-  Iterable<bool> stopListeningTo(Notifier notifier) =>
-      map((n) => notifier?.detach(n)).toList();
-  Iterable<Iterable<bool>> stopListeningToAll(Iterable<Notifier> notifiers) =>
-      notifiers?.detachAll(this);
-  Iterable<bool> isListeningTo(Notifier notifier) =>
-      map((n) => n?.isListeningTo(notifier));
-  Iterable<bool> isListeningToAll(Iterable<Notifier> notifiers) =>
-      map((n) => n?.isListeningTo(notifiers));
-  Iterable<int> addListener(Function listener) =>
-      map((notifier) => notifier?.addListener(listener)).toList();
+
+  /// Tries to make every notifier present in this [Iterable] stop listening to the given [notifier]. This method is an
+  /// interface to [Notifier.stopListeningTo] for multiple notifiers.
+  Iterable<bool> stopListeningTo(Notifier notifier) => map((n) => notifier?.detach(n)).toList();
+
+  /// Tries to make every notifier present in this [Iterable] stop listening to all the given [notifiers].
+  /// This method is an interface to [Notifier.stopListeningToAll] for multiple notifiers.
+  Iterable<Iterable<bool>> stopListeningToAll(Iterable<Notifier> notifiers) => notifiers?.detachAll(this);
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// the [Iterable] is listening to the passed [notifier] or not. Interfaces the [Notifier.isListeningTo] for
+  /// multiple notifiers.
+  Iterable<bool> isListeningTo(Notifier notifier) => map((n) => n?.isListeningTo(notifier));
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// the [Iterable] is listening to the passed [notifiers] or not. Interfaces the [Notifier.isListeningToAll] for
+  /// multiple notifiers.
+  Iterable<Iterable<bool>> isListeningToAll(Iterable<Notifier> notifiers) =>
+      map((n) => n?.isListeningToAll(notifiers)).toList();
+
+  /// Tries to add the given [listener] to the notifiers present in this [Iterable]. This method just interfaces the
+  /// [Notifier.addListener] method for multiple notifiers (present in this [Iterable]).
+  Iterable<int> addListener(Function listener) => map((notifier) => notifier?.addListener(listener)).toList();
+
+  /// Tries to add all the given [listeners] to the notifiers present in this [Iterable]. This method just interfaces
+  /// the [Notifier.addListeners] method for multiple notifiers (present in this [Iterable]).
   Iterable<Iterable<int>> addListeners(Iterable<Function> listeners) =>
       map((notifier) => notifier.addListeners(listeners)).toList();
-  Iterable<bool> removeListener(Function listener) =>
-      map((notifier) => notifier.removeListener(listener)).toList();
-  Iterable<Iterable<bool>> removeListeners(Iterable<Function> listeners) =>
-      map((n) => n?.removeListeners(listeners)).toList();
-  Iterable<bool> notifyByHashCode(int hashCode) =>
-      map((n) => n?.notifyByHashCode(hashCode)).toList();
-  Iterable<Iterable<bool>> notifyByHashCodes(Iterable<int> hashCodes) =>
-      map((n) => n?.notifyByHashCodes(hashCodes)).toList();
-  Iterable<bool> removeListenerByHashCode(int hashCode) =>
-      map((n) => n?.removeListenerByHashCode(hashCode)).toList();
-  Iterable<Iterable<bool>> removeListenersByHashCodes(
-          Iterable<int> hashCodes) =>
-      map((n) => n?.removeListenersByHashCodes(hashCodes)).toList();
+
+  /// Tries to remove the passed [listener] from all the notifiers present in this [Iterable]. This method just
+  /// interfaces the method [Notifier.removeListener].
+  Iterable<bool> removeListener(Function listener) => map((notifier) => notifier.removeListener(listener)).toList();
+
+  /// Tries to remove the passed [listeners] from all the notifiers present in this [Iterable]. This method just
+  /// interfaces the method [Notifier.removeListeners].
+  Iterable<Iterable<bool>> removeListeners(Iterable<Function> listeners) => map((n) => n?.removeListeners(listeners)).toList();
+
+  /// Tries to notify a listener with the given [hashCode] for all the notifiers present in this [Iterable]. This
+  /// method just interfaces the method [Notifier.notifyByHashCode] for multiple notifiers.
+  Iterable<bool> notifyByHashCode(int hashCode) => map((n) => n?.notifyByHashCode(hashCode)).toList();
+
+  /// Tries to notify the listeners with the given [hashCodes] for all the notifiers present in this [Iterable]. This
+  /// method just interfaces the method [Notifier.notifyByHashCodes] for multiple notifiers.
+  Iterable<Iterable<bool>> notifyByHashCodes(Iterable<int> hashCodes) => map((n) => n?.notifyByHashCodes(hashCodes)).toList();
+
+  /// Tries to remove a listener with the given [hashCode] for all the notifiers present in this [Iterable]. This
+  /// method just interfaces the method [Notifier.removeListenerByHashCode] for multiple notifiers.
+  Iterable<bool> removeListenerByHashCode(int hashCode) => map((n) => n?.removeListenerByHashCode(hashCode)).toList();
+
+  /// Tries to remove the listeners with the given [hashCodes] for all the notifiers present in this [Iterable]. This
+  /// method just interfaces the method [Notifier.removeListenersByHashCodes] for multiple notifiers.
+  Iterable<Iterable<bool>> removeListenersByHashCodes(Iterable<int> hashCodes) => map((n) => n?.removeListenersByHashCodes(hashCodes)).toList();
+
+  /// Tries to clear the listeners of the notifiers present in this [Iterable]. Interfaces the method
+  /// [Notifier.clearListeners] for multiple notifiers (present in this Iterable).
   Iterable<bool> clearListeners() => map((n) => n?.clearListeners()).toList();
 
+  /// Tries to lock the listeners of the notifiers present in this [Iterable]. Interfaces the method
+  /// [Notifier.lockListeners] for multiple notifiers (present in this Iterable).
   Iterable<bool> lockListeners() => map((n)=>n?.lockListeners()).toList();
+
+  /// Tries to unlock the listeners of the notifiers present in this [Iterable]. Interfaces the method
+  /// [Notifier.unlockListeners] for multiple notifiers (present in this Iterable).
   Iterable<bool> unlockListeners() => map((n)=>n?.lockListeners()).toList();
 
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// this [Iterable] had the given [listener] or not. Interfaces the [Notifier.hasListener] for multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> hasListenerAtomic(Function listener) =>
-      _atomicTest("hasListener")
-          ? map((n) => n?._hasListener(listener)).toList()
-          : null;
+      _atomicTest("hasListener") ? map((n) => n?._hasListener(listener)).toList() : null;
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// this [Iterable] had at least one of the passed [listeners] or not. Interfaces the [Notifier.hasAnyListener] for
+  /// multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> hasAnyListenerAtomic(Iterable<Function> listeners) =>
-      _atomicTest("hasAnyListener")
-          ? map((n) => n._hasAnyListener(listeners)).toList()
-          : null;
+      _atomicTest("hasAnyListener") ? map((n) => n._hasAnyListener(listeners)).toList() : null;
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// this [Iterable] has all of the given [listeners] or not. Interfaces the [Notifier.hasAllListeners] for multiple
+  /// notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> hasAllListenersAtomic(Iterable<Function> listeners) =>
-      _atomicTest("hasAllListeners")
-          ? map((n) => n._hasAllListeners(listeners)).toList()
-          : null;
+      _atomicTest("hasAllListeners") ? map((n) => n._hasAllListeners(listeners)).toList() : null;
+
+  /// Tries to attach the passed [Notifier] [attachment] to the notifiers in this [Iterable]<[Notifier]> and returns an
+  /// [Iterable]<[bool]> based on the return value obtained while trying to [Notifier.attach] the given [attachment] to
+  /// each notifier.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> attachAtomic(Iterable<Notifier> attachments) =>
-      _atomicTest("attach")
-          ? map((notifier) => notifier?._attach(attachments)).toList()
-          : null;
+      _atomicTest("attach") ? map((notifier) => notifier?._attach(attachments)).toList() : null;
+
+  /// Tries to attach all the passed [attachments] to the notifiers in this [Iterable]<[Notifier]> and returns an
+  /// [Iterable]<[Iterable]<[bool]>> based on the return value obtained while trying to [Notifier.attachAll] the given
+  /// [attachments] to each notifier.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<Iterable<bool>> attachAllAtomic(Iterable<Notifier> notifiers) =>
-      _atomicTest("attachAll")
-          ? map((notifier) => notifier._attachAll(notifiers)).toList()
-          : null;
+      _atomicTest("attachAll") ? map((notifier) => notifier._attachAll(notifiers)).toList() : null;
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// this [Iterable] has attached the passed [attachment] or not. Interfaces the [Notifier.hasAttached] for
+  /// multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> hasAttachedAtomic(Notifier notifier) =>
-      _atomicTest("hasAttached")
-          ? map((n) => n._hasAttached(notifier)).toList()
-          : null;
+      _atomicTest("hasAttached") ? map((n) => n._hasAttached(notifier)).toList() : null;
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// this [Iterable] has attached the passed [attachments] or not. Interfaces the [Notifier.hasAttachedAll] for
+  /// multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> hasAttachedAllAtomic(Iterable<Notifier> notifiers) =>
-      _atomicTest("hasAttachedAll")
-          ? map((n) => n._hasAttachedAll(notifiers)).toList()
-          : null;
+      _atomicTest("hasAttachedAll") ? map((n) => n._hasAttachedAll(notifiers)).toList() : null;
+
+  /// Tries to detach the passed [Notifier] [attachment] to the notifiers in this [Iterable]<[Notifier]> and returns an
+  /// [Iterable]<[bool]> based on the return value obtained while trying to [Notifier.detach] the given [attachment]
+  /// from each notifier.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> detachAtomic(Notifier attachment) =>
       _atomicTest("detach") ? map((n) => n._detach(attachment)).toList() : null;
+
+  /// Tries to detach all the passed [attachments] to the notifiers in this [Iterable]<[Notifier]> and returns an
+  /// [Iterable]<[Iterable]<[bool]>> based on the return value obtained while trying to [Notifier.detachAll] the given
+  /// [attachments] from each notifier.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<Iterable<bool>> detachAllAtomic(Iterable<Notifier> attachments) =>
       _atomicTest("detachAll")
           ? map((notifier) => notifier?._detachAll(attachments)).toList()
           : null;
+
+  /// Tries to make every notifier present in this [Iterable] start listening to the given [notifier]. This method is
+  /// an interface to [Notifier.startListeningTo] for multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> startListeningToAtomic(Notifier notifier) =>
       _atomicTest("startListeningTo")
           ? map((n) => notifier._attach(n))?.toList()
           : null;
+
+  /// Tries to make every notifier present in this [Iterable] start listening to all the given [notifiers].
+  /// This method is an interface to [Notifier.startListeningToAll] for multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<Iterable<bool>> startListeningToAllAtomic(
           Iterable<Notifier> notifiers) =>
       _atomicTest("startListeningToAll")
           ? notifiers?.map((n) => n._attachAll(notifiers))?.toList()
           : null;
+
+  /// Tries to make every notifier present in this [Iterable] stop listening to the given [notifier]. This method is an
+  /// interface to [Notifier.stopListeningTo] for multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> stopListeningToAtomic(Notifier notifier) =>
       _atomicTest("stopListeningTo") ? map((n) => n._detach(n)).toList() : null;
+
+  /// Tries to stop listening to all the given [notifiers] and returns an [Iterable]<[bool]> based
+  /// on it.
+  ///
+  /// This method is basically an extension of [stopListeningTo] that performs the same operation
+  /// on multiple [notifiers].
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> stopListeningToAllAtomic(Iterable<Notifier> notifiers) =>
       _atomicTest("stopListeningToAll")
           ? map((n) => n._stopListeningTo(n)).toList()
           : null;
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// the [Iterable] is listening to the passed [notifier] or not. Interfaces the [Notifier.isListeningTo] for
+  /// multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> isListeningToAtomic(Notifier notifier) =>
       _atomicTest("isListeningTo")
           ? map((n) => n._isListeningTo(notifier))
           : null;
-  Iterable<bool> isListeningToAllAtomic(Iterable<Notifier> notifiers) =>
+
+  /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
+  /// the [Iterable] is listening to the passed [notifiers] or not. Interfaces the [Notifier.isListeningToAll] for
+  /// multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
+  Iterable<Iterable<bool>> isListeningToAllAtomic(Iterable<Notifier> notifiers) =>
       _atomicTest("isListeningToAll")
-          ? map((n) => n._isListeningTo(notifiers))
+          ? map((n) => n.isListeningToAll(notifiers))
           : null;
+
+  /// Tries to add the given [listener] to the notifiers present in this [Iterable]. This method just interfaces the
+  /// [Notifier.addListener] method for multiple notifiers (present in this [Iterable]).
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<int> addListenerAtomic(Function listener) =>
       _atomicTest("addListener")
           ? map((n) => n._addListener(listener)).toList()
           : null;
+
+  /// Tries to add all the given [listeners] to the notifiers present in this [Iterable]. This method just interfaces
+  /// the [Notifier.addListeners] method for multiple notifiers (present in this [Iterable]).
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<Iterable<int>> addListenersAtomic(Iterable<Function> listeners) =>
       _atomicTest("addListeners")
           ? map((n) => n._addListeners(listeners).toList())
           : null;
+
+  /// Tries to remove the passed [listener] from all the notifiers present in this [Iterable]. This method just
+  /// interfaces the method [Notifier.removeListener].
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> removeListenerAtomic(Function listener) =>
       _atomicTest("removeListener")
           ? map((n) => n._removeListener(listener)).toList()
           : null;
+
+  /// Tries to remove the passed [listeners] from all the notifiers present in this [Iterable]. This method just
+  /// interfaces the method [Notifier.removeListeners].
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<Iterable<bool>> removeListenersAtomic(
           Iterable<Function> listeners) =>
       _atomicTest("removeListeners")
           ? map((n) => n._removeListeners(listeners)).toList()
           : null;
+
+  /// Tries to notify a listener with the given [hashCode] for all the notifiers present in this [Iterable]. This
+  /// method just interfaces the method [Notifier.notifyByHashCode] for multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> notifyByHashCodeAtomic(int hashCode) =>
       _atomicTest("notifyByHashCode")
           ? map((n) => n._notifyByHashCode(hashCode)).toList()
           : null;
+
+  /// Tries to notify the listeners with the given [hashCodes] for all the notifiers present in this [Iterable]. This
+  /// method just interfaces the method [Notifier.notifyByHashCodes] for multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<Iterable<bool>> notifyByHashCodesAtomic(Iterable<int> hashCodes) =>
       _atomicTest("notifyByHashCodes")
           ? map((n) => n._notifyByHashCodes(hashCodes)).toList()
           : null;
+
+  /// Tries to remove a listener with the given [hashCode] for all the notifiers present in this [Iterable]. This
+  /// method just interfaces the method [Notifier.removeListenerByHashCode] for multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> removeListenerByHashCodeAtomic(int hashCode) =>
-      _atomicTest("removeListenerByHashCode")
-          ? map((n) => n._removeListenerByHashCode(hashCode)).toList()
-          : null;
-  Iterable<Iterable<bool>> removeListenersByHashCodesAtomic(
-          Iterable<int> hashCodes) =>
+      _atomicTest("removeListenerByHashCode") ? map((n) => n._removeListenerByHashCode(hashCode)).toList() : null;
+
+  /// Tries to remove the listeners with the given [hashCodes] for all the notifiers present in this [Iterable]. This
+  /// method just interfaces the method [Notifier.removeListenersByHashCodes] for multiple notifiers.
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
+  Iterable<Iterable<bool>> removeListenersByHashCodesAtomic(Iterable<int> hashCodes) =>
       _atomicTest("removeListenersByHashCodes")
           ? map((n) => n._removeListenersByHashCodes(hashCodes)).toList()
           : null;
+
+  /// Tries to clear the listeners of the notifiers present in this [Iterable]. Interfaces the method
+  /// [Notifier.clearListeners] for multiple notifiers (present in this Iterable).
+  ///
+  /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
+  /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   void clearListenersAtomic() => _atomicTest("clearListeners")
       ? forEach((n) => n._listeners.clear())
       : null;
+
+
   bool _atomicTest(String _) {
     if (contains(null))
       throw "Could not atomically perform $_() as this Iterable<Notifier>#$hashCode contained atleast one null value.";
@@ -1037,45 +1253,77 @@ extension Iterable_Notifier on Iterable<Notifier> {
     return true;
   }
 
+
+  /// Returns the disposed status of each notifier in this [Iterable].
+  ///
+  /// At any given index, if the value is true it means that the [Notifier] at that index of this Iterable is disposed
+  /// else it is not disposed.
   Iterable<bool> isDisposed() => _isDisposed().toList();
+
+  /// Returns the disposed status of each notifier in this [Iterable].
+  ///
+  /// At any given index, if the value is true it means that the [Notifier] at that index of this Iterable is not
+  /// disposed else it is not disposed.
   Iterable<bool> isNotDisposed() => _isDisposed().notAll();
-  Iterable<bool> _isDisposed() => map((n) => n.isDisposed);
+
+  Iterable<bool> _isDisposed() => map((n) => n?.isDisposed ?? true );
+
+  /// Returns true if any notifier in this list of notifiers is disposed or is null else false.
   bool get isAnyDisposed {
     for (Notifier notifier in this)
       if (notifier?.isDisposed ?? true) return true;
     return false;
   }
 
+  /// Returns true if all the notifiers in this [Iterable] are not disposed else false.
   bool get isAllNotDisposed => isAnyDisposed;
+
+  /// Returns true if all the notifiers present in this [Iterable] are disposed/null else false.
   bool get isAllDisposed => !isAnyDisposed;
+
+  /// Return true if any notifier present in this [Iterable] is not disposed else false.
   bool get isAnyNotDisposed => !isAnyDisposed;
-  Iterable<Notifier> get unDisposedNotifiers => where((notifier) => notifier.isNotDisposed);
+
+  /// Returns the notifiers that are not disposed/not null in this [Iterable] as a [Iterable].
+  Iterable<Notifier> get unDisposedNotifiers => where((notifier) => notifier?.isNotDisposed ?? false);
 
   Iterable<Notifier> get notify => this;
   Iterable<Function> get _notify => map((notifier) => notifier?.notify);
 
   void get printMe => print(toString());
 
-  Iterable<bool> get listenersAreLocked => map((n)=>n?.listenersAreLocked).toList();
-  Iterable<bool> get listenersAreUnlocked => map((n)=>n?.listenersAreUnlocked).toList();
+  /// Interfaces the getter [Notifier.listenersAreLocked] for multiple notifiers (present in this [Iterable])
+  Iterable<bool> get listenersAreLocked => map((n)=>n?.listenersAreLocked)?.toList();
 
+  /// Interfaces the getter [Notifier.listenersAreUnlocked] for multiple notifiers (present in this [Iterable])
+  Iterable<bool> get listenersAreUnlocked => map((n)=>n?.listenersAreUnlocked)?.toList();
+
+  /// Merges the current [Iterable]'s notifiers with the other [notifiers] into a single [Notifier].
   Notifier merge([Iterable<Notifier> notifiers, bool Function(Function, dynamic) removeListenerOnError]){
-    assert(!notifiers.isAnyDisposed, "This method expects you to pass an Iterable of undisposed notifiers.");
+    assert(notifiers.isAnyNotDisposed, "This method expects you to pass an Iterable of un-disposed notifiers.");
+    assert(isAnyNotDisposed, "Couldn't merge another Iterable as the current iterable had disposed/null values.");
     Notifier n = Notifier._();
     n._addListeners(_listeners);
     n._addListeners(notifiers._listeners);
     return n.._handleError=removeListenerOnError;
   }
 
+  /// Reverses the listening of all the un-disposed notifiers present in this [Iterable]
   void reverseListeningOrder() => unDisposedNotifiers.forEach((n) => n?.reverseListeningOrder());
+
+  /// Reverses the listening of the notifier present in the given [index].
   void reverseListeningOrderOf(int index) => this.elementAt(index)?.reverseListeningOrder();
+
+  /// Clones every [Notifier] present in this [Iterable].
   Iterable<Notifier> clone() => map(Notifier.clone);
 
-  Iterable<int> get numberOfListeners => map((n) => n.numberOfListeners).toList();
+  /// Gets the number of listeners in each notifier present in this [Iterable].
+  Iterable<int> get numberOfListeners => map((n) => n?.numberOfListeners).toList();
 
+  /// Gets the number of listeners present in every notifier as a total (default: 0)
   int get totalNumberOfListeners {
     int totalNumberOfListeners = 0;
-    forEach((notifier) => totalNumberOfListeners+=notifier.numberOfListeners);
+    unDisposedNotifiers.forEach((notifier) => totalNumberOfListeners+=notifier.numberOfListeners);
     return totalNumberOfListeners;
   }
 
@@ -1085,6 +1333,7 @@ extension Iterable_Notifier on Iterable<Notifier> {
     return result;
   }
 
+  /// Gets the listeners present in each notifier of this [Iterable] as an [Iterable] of those iterables.
   Iterable<Iterable<Function>> get listeners => map((n)=>n?.listeners).toList();
 
   Iterable<Function> get allListeners {
@@ -1093,14 +1342,13 @@ extension Iterable_Notifier on Iterable<Notifier> {
     return result;
   }
 
-  Iterable<Notifier> call([dynamic _, bool atomic = false]) =>
-      atomic && !_atomicTest("call") ? null : Notifier.notifyAll(this);
+  /// Can be used to call all the notifiers present in this listener.
+  Iterable<Notifier> call([dynamic _, bool atomic = false]) => atomic && !_atomicTest("call") ? null : Notifier.notifyAll(this);
+
   SimpleNotificationBuilder operator -(Widget Function() builder) =>
       SimpleNotificationBuilder(notifier: this, builder: (c) => builder());
-  Iterable<Notifier> operator <<(Iterable<Notifier> notifiers) =>
-      map((n) => n << notifiers).toList();
-  Iterable<Notifier> operator >>(Iterable<Notifier> notifiers) =>
-      map((n) => n >> notifiers).toList();
+//  Iterable<Notifier> operator <<(Iterable<Notifier> notifiers) => map((n) => n << notifiers).toList();
+//  Iterable<Notifier> operator >>(Iterable<Notifier> notifiers) => map((n) => n >> notifiers).toList();
 }
 
 /// A [ValNotifier]<[T]> is just a [Notifier] that has realized that can notify its listeners along with a value while
@@ -1961,7 +2209,11 @@ class HttpNotifier extends ValNotifier {
   /// A buffer that stores the URL (for sync)
   String _url;
 
+  /// A getter that returns the url that is internally stored by this [HttpNotifier].
   String get url => _isNotDisposed ? _url : null;
+
+  /// A setter that can be used to change the default url of this [HttpNotifier] assuming that the passed [url] is a
+  /// valid one.
   set url(String url) {
     if (_isNotDisposed) {
       assert(url != null, "$runtimeType#$hashCode could not set the url to null.");
@@ -1974,17 +2226,23 @@ class HttpNotifier extends ValNotifier {
   /// A buffer that stores the headers (for sync)
   Map<String, String> _headers;
 
+  /// A setter that can be used to set the default headers of this [HttpNotifier].
   set headers(Map<String, String> headers){
     if(_isNotDisposed){
       _headers = headers;
     }
   }
+
+  /// A getter that can be used to get the default headers of this [HttpNotifier].
   get headers => _isNotDisposed?_headers:null;
 
   /// A buffer that stores the request type (for sync)
   HttpRequestType _requestType;
 
+  /// A getter that can be used to get the default request type of this [HttpNotifier].
   HttpRequestType get requestType => _isNotDisposed ? _requestType : null;
+
+  /// A setter that can be used to set the default request type of this [HttpNotifier].
   set requestType(HttpRequestType requestType) {
     if (_isNotDisposed) {
       assert(requestType != null, "$runtimeType#$hashCode cannot set requestType to null");
@@ -1996,16 +2254,20 @@ class HttpNotifier extends ValNotifier {
   /// A buffer that stores the body (for sync)
   String _body;
 
+  /// A getter that can be used to get the default body for this [HttpNotifier].
   get body {
     if(_isNotDisposed){
       if(HttpRequestType.values.indexOf(requestType) <= 4) throw "$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body.\n\nPlease try setting the requestType of the $runtimeType to something that actually supports sending a body as the request.\n";
       return _body;
     }
   }
+
+  /// A setter that can be used to set the default body for this [HttpNotifier].
   set body(dynamic body) {
     if (_isNotDisposed) {
+      assert(body!=null,"The setter body expected the passed body to be a non-null value.");
       if(HttpRequestType.values.indexOf(requestType) <= 4) throw "$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body.\n\nPlease either set the requestType of the $runtimeType to something that actually supports sending a body as the request.";
-      if (body != null && (body is String || body is Map<String, dynamic>)) throw Exception("$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
+      if (body is String || body is Map<String, dynamic>) throw Exception("$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
       if (body is Map<String, dynamic>) body = json.encode(body);
       _body = body;
     }
@@ -2014,12 +2276,15 @@ class HttpNotifier extends ValNotifier {
   /// A buffer that stores the encoding (for sync)
   Encoding _encoding;
 
+  /// A getter that can be used to get the default body encoding for this [HttpNotifier].
   get encoding {
     if(_isNotDisposed){
       if(HttpRequestType.values.indexOf(requestType) <= 4) throw "$runtimeType#$hashCode has not been set to a type that requires a body. Therefore the body couldn't be retrieved.\n";
       return _encoding;
     }
   }
+
+  /// A setter that can be used to set the default body encoding for this [HttpNotifier].
   set encoding(Encoding encoding) {
     if(_isNotDisposed){
       if(HttpRequestType.values.indexOf(requestType) <= 4) throw "$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body that could be 'encoded' in a specific way.\n\nPlease either set the requestType of the $runtimeType to something that could actually support it.";
@@ -2031,23 +2296,76 @@ class HttpNotifier extends ValNotifier {
   /// actually need or be designed for.
   dynamic Function(dynamic) _parseResponse;
 
+  /// Get the function that is used to transform the value obtained from a http request before calling the
+  /// [HttpNotifier] with it.
   get parseResponse => _isNotDisposed?_parseResponse:null;
+
+  /// Set a function that can be used to transform the value received after performing an http request before calling
+  /// the [HttpNotifier] with the obtained value.
   set parseResponse(Function(dynamic) parseResponse) => _isNotDisposed?_parseResponse = parseResponse:null;
 
   bool _isLoading = false;
 
-  bool get isLoading => _isNotDisposed?(_isLoading==true):null;
-  bool get isIdle    => _isNotDisposed?!isLoading:null;
+  /// The return value of this getter determines whether the [HttpNotifier] is trying to load something over the
+  /// internet (true) or is idle (false).
+  bool get isSyncing => _isNotDisposed ? _isLoading==true : null;
+
+  /// The return value of this getter determines whether the [HttpNotifier] is idle (true) or is trying to load
+  /// something over the internet (false)
+  bool get isNotSyncing => _isNotDisposed ? !isSyncing : null;
+
+  /// The return value of this getter determines whether the [HttpNotifier] had received an error the last time it
+  /// performed a network call (true) or not.
   bool get hadError  => _isNotDisposed?_isLoading==null:null;
 
+  /// This constructor is called after instantiating the [HttpNotifier]
+  ///
+  /// The named parameter [url] logically accepts the initial url to be stored in the buffer of this [HttpNotifier]
+  /// which can be overwritten later. It is required and expects a valid http(s) url, else an assertion fails.
+  ///
+  /// The named parameter [requestType] logically accepts the initial request type for this [HttpNotifier]. If it does
+  /// not receive any value (null) it defaults to [HttpRequestType.GET] if the body is not present else it defaults
+  /// to [HttpRequestType.POST].
+  ///
+  /// The named parameter [headers] accepts the headers to be sent while performing an http request through the [sync]
+  /// method or any other method that just re-uses it.
+  ///
+  /// The named parameter [body] accepts the body to be sent while performing an http request. The constructor
+  /// cannot accept a body is the passed request type cannot send one and neither shall it accept one if the request
+  /// type of the [HttpNotifier] is something that cannot accept one (at a later stage). However, changing the
+  /// request type from something that can hold a body to something that cannot and then back to something that can
+  /// will keep the body stored by the [HttpNotifier] persistent.
+  ///
+  /// The named parameter [encoding] accepts the format in which a body is expected to be sent. It follows the same
+  /// rules/has the same boundaries as the [body] parameter.
+  ///
+  /// The [syncOnCreate] decides whether the constructor should call the [sync] method on create or not (default: true)
+  ///
+  /// The named parameter [initialVal] the default value of the buffer maintained by the internally by the
+  /// [HttpNotifier] This is the only time where the value of the ValNotifier can be modified without notifying
+  /// it's listeners.
+  ///
+  /// The named parameter [attachNotifiers] attaches the given notifier(s) to the current [HttpNotifier].
+  ///
+  /// The named parameter [listenToNotifiers] makes the current [HttpNotifier] listen to the call events of the given
+  /// notifier(s).
+  ///
+  /// The named parameter [mergeNotifiers] statically merges the listeners of the passed un-disposed notifier(s) to
+  /// the current [HttpNotifier].
+  ///
+  /// The named parameter [initialListeners] can be used to specify the initial listeners of the [HttpNotifier].
+  ///
+  /// The named parameter [removeListenerOnError] can be used to specify a function that can be called when an error is
+  /// thrown while notifying the listeners. If the function returns true, the method shall be removed, false the error
+  /// would be ignored and null then the error would be re-thrown.
   HttpNotifier({
     @required String url,
     HttpRequestType requestType,
     Map<String, String> headers,
     String body,
     Encoding encoding,
-    dynamic initialVal,
     bool syncOnCreate=true,
+    dynamic initialVal,
     Function(dynamic) parseResponse,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
@@ -2075,6 +2393,9 @@ class HttpNotifier extends ValNotifier {
       if(syncOnCreate) sync();
   }
 
+  /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.GET].
+  ///
+  /// This is just an syntactic sugar that ensures that the body/encoding parameter doesn't get accidentally passed.
   factory HttpNotifier.get({
     @required String url,
     Map<String, String> headers,
@@ -2086,8 +2407,7 @@ class HttpNotifier extends ValNotifier {
     Iterable<Function> initialListeners,
     bool Function(Error) removeListenerOnError,
   }) =>
-      HttpNotifier(
-          url: url,
+      HttpNotifier(url: url,
           initialVal: initialVal,
           requestType: HttpRequestType.GET,
           parseResponse: parseResponse,
@@ -2097,6 +2417,9 @@ class HttpNotifier extends ValNotifier {
           mergeNotifiers: mergeNotifiers,
           initialListeners: initialListeners);
 
+  /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.HEAD].
+  ///
+  /// This is just an syntactic sugar that ensures that the body/encoding parameter doesn't get accidentally passed.
   factory HttpNotifier.head({
     @required String url,
     Map<String, String> headers,
@@ -2119,6 +2442,9 @@ class HttpNotifier extends ValNotifier {
           mergeNotifiers: mergeNotifiers,
           initialListeners: initialListeners);
 
+  /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.DELETE].
+  ///
+  /// This is just an syntactic sugar that ensures that the body/encoding parameter doesn't get accidentally passed.
   factory HttpNotifier.delete({
     @required String url,
     Map<String, String> headers,
@@ -2141,6 +2467,9 @@ class HttpNotifier extends ValNotifier {
           mergeNotifiers: mergeNotifiers,
           initialListeners: initialListeners);
 
+  /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.READ].
+  ///
+  /// This is just an syntactic sugar that ensures that the body/encoding parameter doesn't get accidentally passed.
   factory HttpNotifier.read({
     @required String url,
     Map<String, String> headers,
@@ -2163,6 +2492,9 @@ class HttpNotifier extends ValNotifier {
           mergeNotifiers: mergeNotifiers,
           initialListeners: initialListeners);
 
+  /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.READBYTES].
+  ///
+  /// This is just an syntactic sugar that ensures that the body/encoding parameter doesn't get accidentally passed.
   factory HttpNotifier.readBytes({
     @required String url,
     Map<String, String> headers,
@@ -2185,6 +2517,7 @@ class HttpNotifier extends ValNotifier {
           mergeNotifiers: mergeNotifiers,
           initialListeners: initialListeners);
 
+  /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.POST] (syntactic sugar)
   factory HttpNotifier.post({
     @required String url,
     Map<String, String> headers,
@@ -2211,6 +2544,7 @@ class HttpNotifier extends ValNotifier {
           mergeNotifiers: mergeNotifiers,
           initialListeners: initialListeners);
 
+  /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.PUT]. (syntactic sugar)
   factory HttpNotifier.put({
     @required String url,
     Map<String, String> headers,
@@ -2237,6 +2571,7 @@ class HttpNotifier extends ValNotifier {
           mergeNotifiers: mergeNotifiers,
           initialListeners: initialListeners);
 
+  /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.PATCH]. (syntactic sugar)
   factory HttpNotifier.patch({
     @required String url,
     Map<String, String> headers,
@@ -2320,131 +2655,210 @@ class HttpNotifier extends ValNotifier {
     _isLoading = null;
   }
 
-  get({String url, Map<String, String> headers, bool saveResponse = true, bool saveParams = false, Function(dynamic) parseResponse,}) =>
+  /// Syntactic sugar for the method [sync] that just performs HTTP GET requests.
+  Future get({
+    String url,
+    Map<String, String> headers,
+    bool saveResponse = true,
+    bool saveParams = false,
+    Function(dynamic) parseResponse,
+    bool syncIfAlreadyLoading = false,
+  }) =>
       sync(
           url: url,
           parseResponse: parseResponse,
           requestType: HttpRequestType.GET,
           headers: headers,
           saveResponse: saveResponse,
-          saveParams: saveParams);
-  head({String url, Map<String, String> headers, bool saveResponse = true, bool saveParams = false, Function(dynamic) parseResponse}) =>
-      sync(
-          url: url,
+          saveParams: saveParams,
+          syncIfAlreadyLoading: syncIfAlreadyLoading,
+      );
+
+  /// Syntactic sugar for the method [sync] that just performs HTTP HEAD requests.
+  Future head({
+    String url,
+    Map<String, String> headers,
+    bool saveResponse = true,
+    bool saveParams = false,
+    Function(dynamic) parseResponse,
+    bool syncIfAlreadyLoading = false,
+  }) =>
+      sync(url: url,
           requestType: HttpRequestType.HEAD,
           parseResponse: parseResponse,
           headers: headers,
           saveResponse: saveResponse,
-          saveParams: saveParams);
-  delete(
-          {String url,
-          Map<String, String> headers,
-          Function(dynamic) parseResponse,
-          bool saveResponse = true,
-          bool saveParams = false}) =>
-      sync(
-          url: url,
-          headers: headers,
-          requestType: HttpRequestType.DELETE,
-          saveResponse: saveResponse,
-          saveParams: saveParams);
+          saveParams: saveParams,
+          syncIfAlreadyLoading: syncIfAlreadyLoading,
+      );
 
-  read({String url,
-          Map<String, String> headers,
-          Function(dynamic) parseResponse,
-          bool saveResponse = true,
-          bool saveParams = false}) =>
+  /// Syntactic sugar for the method [sync] that just performs HTTP DELETE requests.
+  Future delete({
+    String url,
+    Map<String, String> headers,
+    Function(dynamic) parseResponse,
+    bool saveResponse = true,
+    bool saveParams = false,
+    bool syncIfAlreadyLoading = false,
+  }) =>
       sync(
-          url: url,
-          headers: headers,
-          parseResponse: parseResponse,
-          requestType: HttpRequestType.READ,
-          saveResponse: saveResponse,
-          saveParams: saveParams);
+        url: url,
+        headers: headers,
+        requestType: HttpRequestType.DELETE,
+        saveResponse: saveResponse,
+        saveParams: saveParams,
+        syncIfAlreadyLoading: syncIfAlreadyLoading,
+      );
 
-  readBytes(
-          {String url,
-          Map<String, String> headers,
-          Function(dynamic) parseResponse,
-          bool saveResponse = true,
-          bool saveParams = false}) =>
+  /// Syntactic sugar for the method [sync] that just performs HTTP GET requests and returns the response's body as a
+  /// [String].
+   Future read({
+    String url,
+    Map<String, String> headers,
+    Function(dynamic) parseResponse,
+    bool saveResponse = true,
+    bool saveParams = false,
+    bool syncIfAlreadyLoading = false,
+  }) =>
+      sync(
+        url: url,
+        headers: headers,
+        parseResponse: parseResponse,
+        requestType: HttpRequestType.READ,
+        saveResponse: saveResponse,
+        saveParams: saveParams,
+        syncIfAlreadyLoading: syncIfAlreadyLoading,
+      );
+
+  /// Syntactic sugar for the method [sync] that just performs HTTP GET requests and returns the response's body as a
+  /// [Uint8List].
+   Future readBytes({
+    String url,
+    Map<String, String> headers,
+    Function(dynamic) parseResponse,
+    bool saveResponse = true,
+    bool saveParams = false,
+    bool syncIfAlreadyLoading = false,
+  }) =>
       sync(
           url: url,
           headers: headers,
           parseResponse: parseResponse,
           requestType: HttpRequestType.READBYTES,
           saveResponse: saveResponse,
-          saveParams: saveParams);
+          saveParams: saveParams,
+          syncIfAlreadyLoading: syncIfAlreadyLoading,
+      );
 
-  post(
-          {String url,
-          Map<String, String> headers,
-          dynamic body,
-          Encoding encoding,
-          Function(dynamic) parseResponse,
-          bool saveResponse = true,
-          bool saveParams = false}) =>
+  /// Syntactic sugar for the method [sync] that just performs HTTP POST requests.
+  Future post({
+    String url,
+    Map<String, String> headers,
+    dynamic body,
+    Encoding encoding,
+    Function(dynamic) parseResponse,
+    bool saveResponse = true,
+    bool saveParams = false,
+    bool syncIfAlreadyLoading = false,
+  }) =>
       sync(
           url: url,
           headers: headers,
+          body: body,
+          encoding: encoding,
           parseResponse: parseResponse,
           requestType: HttpRequestType.POST,
           saveResponse: saveResponse,
-          saveParams: saveParams);
-  put(
-          {String url,
+          saveParams: saveParams,
+          syncIfAlreadyLoading: syncIfAlreadyLoading,
+      );
+
+  /// Syntactic sugar for the method [sync] that just performs HTTP PUT requests.
+  Future put({String url,
           Map<String, String> headers,
           dynamic body,
           Encoding encoding,
           Function(dynamic) parseResponse,
           bool saveResponse = true,
-          bool saveParams = true}) =>
+          bool saveParams = true,
+          bool syncIfAlreadyLoading = false,
+          }) =>
       sync(
           url: url,
           headers: headers,
+          body: body,
+          encoding: encoding,
           parseResponse: parseResponse,
           requestType: HttpRequestType.PUT,
           saveResponse: saveResponse,
-          saveParams: saveParams);
+          saveParams: saveParams,
+          syncIfAlreadyLoading: syncIfAlreadyLoading,
+      );
 
-  patch(
-          {String url,
+  /// Syntactic sugar for the method [sync] that just performs HTTP PATCH requests.
+  Future patch({String url,
           Map<String, String> headers,
           dynamic body,
           Function(dynamic) parseResponse,
           Encoding encoding,
           bool saveResponse = true,
-          bool saveParams = false}) =>
+          bool saveParams = false,
+          bool syncIfAlreadyLoading = false}) =>
       sync(
-          url: url,
-          headers: headers,
-          parseResponse: parseResponse,
-          requestType: HttpRequestType.PATCH,
-          saveResponse: saveResponse,
-          saveParams: saveParams);
+        url: url,
+        headers: headers,
+        body: body,
+        encoding: encoding,
+        parseResponse: parseResponse,
+        requestType: HttpRequestType.PATCH,
+        saveResponse: saveResponse,
+        saveParams: saveParams,
+        syncIfAlreadyLoading: syncIfAlreadyLoading
+      );
 
+  /// The [sync] method tries to perform an HTTP request based on the given parameters (and defaults to the values
+  /// stored in the buffer for the parameters it does not receive).
+  ///
+  /// All the parameters follow the same rules as the constructor's parameters do, that are present here.
+  ///
+  /// The [saveResponse] parameter can be used to either save or not save the response in the [val] buffer of this
+  /// [HttpNotifier]. By default it saves the response. By passing false to the [saveResponse] parameter, one can
+  /// ensure that the response is just passed to each of the listener of this [HttpNotifier] and not saved in the
+  /// buffer that is internally maintained.
+  ///
+  /// The [saveParams] parameter can be used to over-write the values stored in the buffer of this [HttpNotifier] for
+  /// the passed and default parameters. (default: true) If you don't want the [HttpNotifier] to save the passed
+  /// parameters then, please explicitly pass false to this parameter.
+  ///
+  /// The [syncIfAlreadyLoading] parameter can be used to prevent the method from syncing if the [HttpNotifier] is
+  /// already syncing. By default, it does not sync, if a sync is already in process. In order to change this behavior,
+  /// set this parameter [syncIfAlreadyLoading] to true, which would attempt to sync even if the [HttpNotifier] is
+  /// already syncing.
+  ///
+  /// The method finally, if successful returns a Response/String/Uint8List else if an error is thrown 'while syncing',
+  /// the error is simply returned a Future and also passed to all the listeners.
+  Future sync({HttpRequestType requestType, String url, Map<String, String> headers, dynamic body, Encoding encoding,
+      Function(dynamic) parseResponse, bool saveResponse = true, bool saveParams = true, bool syncIfAlreadyLoading = false}) async {
 
-  Future sync({String url,
-      Map<String, String> headers,
-      HttpRequestType requestType,
-      dynamic body,
-      Encoding encoding,
-      Function(dynamic) parseResponse,
-      bool saveResponse = true,
-      bool saveParams = true}) async {
+    if(_isLoading==true&&syncIfAlreadyLoading==false){
+      print("A sync is already in progress. Please set syncIfAlreadyLoading parameter to true, to perform multiple sync"
+          " operations on the same $runtimeType.");
+      return;
+    }
+
+    // Defaulting the parameters that contain null to the values stored in the buffer
+    requestType ??= this._requestType;
+    url ??= this._url;
+    headers ??= this._headers;
+    body ??= this._body;
+    encoding ??= this._encoding;
+    parseResponse ??= this.parseResponse;
 
     // Parameter validation
     if (requestType != null) assert((HttpRequestType.values.indexOf(requestType) <= 4) == (body == null && encoding == null), "Please make sure that you only pass a body when the request type is capable of sending one!");
     if (body != null) assert(body is String || body is Map<String, dynamic>, "$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
+    // Regex Source: https://stackoverflow.com/a/55674757
     if (url!=null&&!RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url)) throw Exception("Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case).");
-
-    //
-    if (requestType == null) requestType = this._requestType;
-    if (url == null) url = this._url;
-    if (headers == null) headers = this._headers;
-    if (body == null) body = this._body;
-    if (encoding == null) encoding = this._encoding;
-    if(parseResponse==null) parseResponse = this.parseResponse;
 
     if (saveParams == true) {
       if(requestType!=null) this.requestType = requestType;
@@ -2459,6 +2873,7 @@ class HttpNotifier extends ValNotifier {
     }
 
     dynamic r;
+
     _isLoading = true;
     call();
 
@@ -2490,15 +2905,17 @@ class HttpNotifier extends ValNotifier {
           break;
       }
 
-      try{call(parseResponse==null?r:parseResponse(r) ?? r, saveResponse == true);}catch(e){throw e;}
       _isLoading = false;
-      return r;
-    } catch (e) {
+
+    } catch(e) {
       _isLoading = null;
-      call(parseResponse==null?e:parseResponse(e), saveResponse == true);
-      return e;
+      r = e;
     }
+
+    call(parseResponse==null?r:parseResponse(r) ?? r, saveResponse == true);
+    return r;
   }
+
 
   bool get hasData => _val != null && !(_val is Error);
   bool get hasError => _val != null && _val is Error;

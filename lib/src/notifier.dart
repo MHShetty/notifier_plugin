@@ -1,6 +1,6 @@
 part of notifier_plugin;
 
-/// A Notifier is a simple object that internally maintains a set of listeners and notifies them whenever
+/// A [Notifier] is a simple object that internally maintains a set of listeners and notifies them whenever
 /// it is asked to. While a Notifier might just seem like being capable of doing just that, this plugin
 /// has interfaced the same list of listeners with methods by re-using Dart in such a way that you can,
 ///
@@ -17,12 +17,23 @@ part of notifier_plugin;
 /// * Clear the listeners of a notifier.
 /// * Check the state of the notifier through different getter/setter methods.
 /// * Use the - operator to attach a WidgetBuilder(/handled function) to a Notifier (abstract)
-///
 class Notifier extends Iterable<Notifier> {
 
   List<Function> _listeners = <Function>[]; // Auto-init
   bool Function(Function,dynamic) _handleError;
 
+  /// This constructor instantiates a [Notifier].
+  ///
+  /// * The named parameter [attachedNotifiers] attaches the given notifier(s) given to it.
+  ///
+  /// * The named parameter [listenToNotifiers] listens to notifiers given to it, once its
+  /// instantiated.
+  ///
+  /// * The named parameter [mergeNotifiers] merges the other notifiers given to it/adds the
+  /// listeners of those notifiers available at that point of time (static).
+  ///
+  /// * The named parameter [initialListeners] can be used to pass a set of listeners that would
+  /// added to it, as soon as it is instantiated.
   Notifier({
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
@@ -42,9 +53,9 @@ class Notifier extends Iterable<Notifier> {
 
   Notifier._();
 
-  /// This method polls a Notifier with notifications over a fixed [duration] of time and returns the
-  /// current instance of [Notifier] as a [Future]. A TickerProvider can be provided to this method
-  /// via the [vsync] parameter.
+  /// This method polls a Notifier with notifications over a fixed [duration] of time and returns
+  /// the current instance of [Notifier] as a [Future]. A TickerProvider can be provided to this
+  /// method via the [vsync] parameter.
   Future<Notifier> pollFor(Duration duration, {TickerProvider vsync}) {
     if (_isNotDisposed) {
       Ticker t;
@@ -62,8 +73,8 @@ class Notifier extends Iterable<Notifier> {
   }
 
   /// This method polls a Notifier with notifications for a fixed number of [times] and returns the
-  /// duration taken to poll the Notifier as a future. A TickerProvider can be passed via the [vsync]
-  /// parameter.
+  /// duration taken to poll the Notifier as a future. A TickerProvider can be passed via the
+  /// [vsync] parameter.
   Future<Duration> poll(int times, {TickerProvider vsync}) {
     Duration end;
     if (_isNotDisposed) {
@@ -90,8 +101,8 @@ class Notifier extends Iterable<Notifier> {
   /// completes or if it has already completed. You can tell the method what needs to be done
   /// if Future completes/has completed with an error or with an value.
   ///
-  /// This is different from load(ing) the error onto a [ValNotifier]. (It can't be strongly supported due to
-  /// type issues)
+  /// This is different from load(ing) the error onto a [ValNotifier]. (It cannot be strongly
+  /// supported due to type issues)
   void notifyOnComplete<R>(Future<R> res,[Function(R) onData, Function onError]) => res.then(onData??(_){}).catchError(onError??(){}).whenComplete(this);
 
   /// A method that notifies the listeners of the current [Notifier], if the passed Future completes
@@ -106,10 +117,11 @@ class Notifier extends Iterable<Notifier> {
       });
 
   /// A method that notifies the listeners of the current [Notifier], if the passed Future completes
-  /// with an error else nothing is done with the [Notifier]. You can tell the method what needs to be
-  /// done if the Future completes/has completed with an value or error.
+  /// with an error else nothing is done with the [Notifier]. You can tell the method what needs to
+  /// be done if the Future completes/has completed with an value or error.
   ///
-  /// This is different from load(ing) the data received after awaiting a Future onto a [ValNotifier].
+  /// This is different from load(ing) the data received after awaiting a Future onto a
+  /// [ValNotifier].
   void notifyIfSuccess<R>(Future<R> res, [Function(R) onData, Function onError]) =>
       res.then((_){
         onData?.call(_);
@@ -121,23 +133,38 @@ class Notifier extends Iterable<Notifier> {
   /// The notification that shall come at fixed interval can be be stopped by calling [Timer.cancel]
   /// on the [Timer] that's returned by this method.
   ///
-  /// If null is explicitly passed to this method, it'll automatically get resolved to [Duration.zero]
+  /// If null is explicitly passed to this method, it'll automatically get resolved to
+  /// [Duration.zero].
   Timer notifyAtInterval(Duration interval) => _isNotDisposed ? Timer.periodic(interval??Duration.zero, (timer)=>this()) : null;
 
-  /// Attach a ChangeNotifier to this [Notifier]
+  /// Attach a [ChangeNotifier] to this [Notifier].
+  ///
+  /// Attaches the passed [changeNotifier] and returns true, if it wasn't previously attached else
+  /// just returns false.
   // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
   bool attachChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed?addListener(changeNotifier.notifyListeners)!=null:null;
 
-  /// Detach a ChangeNotifier to this [Notifier]
+  /// Detach a [ChangeNotifier] from this [Notifier].
+  ///
+  /// Detaches the passed [changeNotifier] and returns true if it was previously attached, else
+  /// just returns false.
   // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
   bool detachChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed?removeListener(changeNotifier.notifyListeners):null;
 
-  /// Check if the [Notifier] has attached this [ChangeNotifier]
+  /// Checks if the [Notifier] has attached this [ChangeNotifier].
+  ///
+  /// Returns true if it has attached the [changeNotifier] else false.
   // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
   bool hasAttachedChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed?hasListener(changeNotifier.notifyListeners):null;
 
-  /// Make this [Notifier] listen to a [ChangeNotifier]. This method can be re-used for a [ValueNotifier]
+  /// Tries to start listening to the passed [changeNotifier].
+  ///
+  /// Starts listening to the notification events of the passed [changeNotifier] and returns true,
+  /// if it wasn't previously listening to it or else just returns false.
+  ///
+  /// Note: A [ValueNotifier] is also a [ChangeNotifier].
   bool startListeningToChangeNotifier(ChangeNotifier changeNotifier){
+    assert(changeNotifier!=null,"Could not start listening to a null.");
     if(_isNotDisposed){
       try {
         changeNotifier.addListener(this);
@@ -148,7 +175,10 @@ class Notifier extends Iterable<Notifier> {
   }
 
   /// Tries to stop listening to the [changeNotifier] it was previously listening to.
+  ///
+  /// Note: A [ValueNotifier] is also a [ChangeNotifier].
   bool stopListeningToChangeNotifier(ChangeNotifier changeNotifier) {
+    assert(changeNotifier!=null,"Could not start listening to a null.");
     if(_isNotDisposed){
       try {
         changeNotifier.removeListener(this);
@@ -160,18 +190,18 @@ class Notifier extends Iterable<Notifier> {
 
   /// Attach a Stream to this [Notifier]. Do not use this if your [Stream] is actually expecting some
   /// value apart from null!
-  bool attachStream(StreamController s) => _isNotDisposed?addListener(s.add)!=null:null;
+  bool attachStream(StreamController s) => _isNotDisposed&&s!=null?addListener(s.add)!=null:null;
 
   /// Detach a Stream that was previously attached to this [Notifier] using [attachStream].
-  bool detachStream(StreamController s) => _isNotDisposed?removeListener(s.add):null;
+  bool detachStream(StreamController s) => _isNotDisposed&&s!=null?removeListener(s.add):null;
 
   /// Checks if the Notifier has attached the Stream
-  bool hasAttachedStream(StreamController s) => _isNotDisposed?_hasListener(s.add):null;
+  bool hasAttachedStream(StreamController s) => _isNotDisposed&&s!=null?_hasListener(s.add):null;
 
   /// Makes the [Notifier] listen to an existing [stream]. In order to control or stop listening to
   /// this connection, you'll need to store the [StreamSubscription] returned by this function and use
   /// it as per your requirements.
-  StreamSubscription listenTo(Stream stream) => stream.listen(this);
+  StreamSubscription listenTo(Stream stream) => stream?.listen(this);
 
   /// Asynchronously notify the listeners without blocking the
   Future<Notifier> asyncNotify([dynamic _]) async => Future(()=>call(_));
@@ -195,7 +225,7 @@ class Notifier extends Iterable<Notifier> {
   Iterable<bool> attachAll(Iterable<Notifier> notifiers) {
     assert(notifiers != null,
         "You are trying to attach null to Notifier#$hashCode.");
-    assert(!notifiers.contains(this),
+    assert(!notifiers.containsEitherComp(this),
         "\nPlease make sure that you don't attach the Notifier to itself, as it would lead to an Stack Overflow error whenever the Notifier gets notified.\n");
     assert(!notifiers.hasListener(_notify).orAll(), """
         Cross-attaching multiple Notifier is highly not recommended as it would lead to endless cycle of notification 
@@ -212,31 +242,26 @@ class Notifier extends Iterable<Notifier> {
       ? null
       : addListeners(notifiers._notify).map((e) => e != null);
 
-  /// Attaches the [attachment]/passed Notifier to the current [Notifier].
-//  static bool attachNotifierTo(Notifier notifier, Notifier attachment) =>notifier.attach(attachment);
-//  /// A static implementation for [attach].
-//  static Iterable<bool> attachNotifiersTo(Notifier notifier, Iterable<Notifier> attachments) => notifier?.attach(attachments);
-//  /// A static implementation of [attach] that attaches a set of [Notifier] [attachments] to the given set of [notifiers].
-//  static Iterable<bool> listAttachNotifierTo(
-//          Iterable<Notifier> notifiers, Notifier attachment) =>
-//      notifiers.map((notifier) => Notifier.attachNotifierTo(notifier, attachment));
-//  /// A static implementation of [attach] that attaches a set of [Notifier] [attachments] to the given set of [notifiers].
-//  static Iterable<bool> listAttachNotifiersTo(
-//          Iterable<Notifier> notifiers, Iterable<Notifier> attachments) =>
-//      notifiers
-//          ?.map((notifier) => notifier.attach(attachments).elementAt(0))
-//          ?.toList();
+  /// Checks if the passed [notifier] is attached to this [Notifier].
+  ///
+  /// If it is attached to the passed [notifier] it returns true else false.
   bool hasAttached(Notifier notifier) =>
       _isNotDisposed ? _hasAttached(notifier) : null;
 
   bool _hasAttached(Notifier notifier) => _listeners.containsEitherComp(notifier);
 
+  /// Checks if the passed [notifiers] are attached to this [Notifier] and returns an [Iterable]
+  /// <[bool]>.
+  ///
+  /// This method is basically performs [hasAttached] for multiple notifiers.
   Iterable<bool> hasAttachedThese(Iterable<Notifier> notifiers) =>
       _isNotDisposed ? _hasAttachedThese(notifiers) : null;
 
   Iterable<bool> _hasAttachedThese(Iterable<Notifier> notifiers) =>
       notifiers?.map(_hasAttached)?.toList();
 
+  /// Checks if the passed [notifiers] have been attached to this [Notifier] and only return true
+  /// if all of them have been attached.
   bool hasAttachedAll(Iterable<Notifier> notifiers) =>
       _isNotDisposed ? _hasAttachedAll(notifiers) : null;
 
@@ -246,58 +271,91 @@ class Notifier extends Iterable<Notifier> {
     return true;
   }
 
-//  Iterable<bool> isNotAttachedTo(Iterable<Notifier> notifier)=>hasAttached(notifier).notAll();
+  /// Tries to detach the passed [notifier] from the current [Notifier].
+  ///
+  /// If it was previously attached, it detaches it and returns true else just returns false.
   bool detach(Notifier notifier) => _isNotDisposed ? _detach(notifier) : null;
 
   bool _detach(Notifier notifier) =>
       (notifier == null) ? null : removeListener(notifier);
 
+  /// Tries to detach the passed [notifiers] from the current [Notifier].
+  ///
+  /// This method basically performs [detach] on multiple [notifiers] and returns all their return
+  /// values as an [Iterable]<[bool]>.
   Iterable<bool> detachAll(Iterable<Notifier> notifiers) =>
       _isNotDisposed ? _detachAll(notifiers) : null;
 
   Iterable<bool> _detachAll(Iterable<Notifier> notifiers) =>
       removeListeners(notifiers?._notify);
 
-  static bool detachNotifierOf(Notifier notifier, Notifier attachment) =>
-      notifier?.removeListener(attachment);
-
-//  static Iterable<bool> detachNotifiersOf(Notifier notifier, Iterable<Notifier> attachments) => notifier?.detach(attachments);
-//  static Iterable<Iterable<bool>> listDetachNotifierOf(
-//      Iterable<Notifier> notifiers, Notifier attachment)
-//  => notifiers?.map((notifier) => notifier.detach(attachment));
-//  static Iterable<Iterable<bool>> listDetachNotifiersOf(
-//          Iterable<Notifier> notifiers, Iterable<Notifier> attachments) =>
-// //      notifiers?.map((notifier) => notifier.detach(attachments));
+  /// Starts listening to the given [notifier].
+  ///
+  /// Starts listening to the [notifier] and returns true if it was not previously listening to
+  /// that [notifier] else just returns false.
   bool startListeningTo(Notifier notifier) {
-    assert(notifier != null,
-        "Notifier#$hashCode: A notifier cannot start listening to null.");
-    assert(this != notifier,
-        "Notifier#$hashCode: A notifier cannot start listening to itself.");
+    assert(notifier != null, "$runtimeType#$hashCode: A notifier cannot start listening to null.");
+    assert(this != notifier, "$runtimeType#$hashCode: A notifier cannot start listening to itself.");
     return _startListeningTo(notifier);
   }
 
   bool _startListeningTo(Notifier notifier) => notifier?.attach(this);
 
+  /// Tries to start listening to all the given [notifiers] and returns an [Iterable]<[bool]>.
+  ///
+  /// This method is basically an extension of [startListeningTo] that performs the same operation
+  /// on multiple [notifiers].
   Iterable<bool> startListeningToAll(Iterable<Notifier> notifiers) =>
       _isNotDisposed ? _startListeningToAll(notifiers) : null;
 
   Iterable<bool> _startListeningToAll(Iterable<Notifier> notifiers) =>
       notifiers?.attach(notifiers);
 
+  /// Stops listening to [notifier] passed to it.
+  ///
+  /// If it was previously listening to it, it stops listening to it and returns true else just
+  /// returns false.
   bool stopListeningTo(Notifier notifier) =>
       _isNotDisposed ? _stopListeningTo(notifier) : null;
 
   bool _stopListeningTo(Notifier notifier) => notifier?._detach(this);
 
-  bool isListeningTo(Notifier notifiers) =>
-      _isNotDisposed ? _isListeningTo(notifiers) : null;
+  /// Tries to stop listening to all the given [notifiers] and returns an [Iterable]<[bool]> based
+  /// on it.
+  ///
+  /// This method is basically an extension of [stopListeningTo] that performs the same operation
+  /// on multiple [notifiers].
+  Iterable<bool> stopListeningToAll(Iterable<Notifier> notifiers) =>
+      _isNotDisposed ? _stopListeningToAll(notifiers) : null;
+
+  Iterable<bool> _stopListeningToAll(Iterable<Notifier> notifiers) => notifiers?.detach(this);
+
+  /// Checks if the current [Notifier] is listening to the passed [notifier].
+  ///
+  /// If it is listening to it, it returns true else false.
+  bool isListeningTo(Notifier notifier) =>
+      _isNotDisposed ? _isListeningTo(notifier) : null;
 
   bool _isListeningTo(Notifier notifier) =>
       notifier?._hasAttached(this);
 
+  /// Checks if the current [Notifier] is listening to the passed [notifiers].
+  ///
+  /// For every given index, if the current [Notifier] is listening to that notifier it sets true
+  /// else false and finally returns the Iterable that was finally created.
   Iterable<bool> isListeningToAll(Iterable<Notifier> notifiers) =>
       notifiers?.hasAttached(this);
 
+  /// This method can be used to re-init a disposed [Notifier], once it's disposed. However, it is
+  /// highly recommended that you dispose the [Notifier] only once you are done with it. This
+  /// method/concept was only introduced with the intenion of creating a reusable logic while
+  /// developing a plugin.
+  ///
+  /// A Notifier that has been re-init is as good as a new Notifier apart from the fact that it is
+  /// the same instance as the old one.
+  ///
+  /// If the [Notifier] has not been disposed or is not in disposed state it returns false else it
+  /// re-init s the current [Notifier] and returns true.
   bool init({
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
@@ -322,6 +380,10 @@ class Notifier extends Iterable<Notifier> {
   static Iterable<bool> initNotifiers(Iterable<Notifier> notifiers) =>
       notifiers?.init();
 
+  /// Disposes the current [Notifier].
+  ///
+  /// If it has already been disposed it returns false else it disposes the [Notifier] and returns
+  /// true.
   bool dispose() {
     if (isNotDisposed) {
       _dispose();
@@ -338,6 +400,12 @@ class Notifier extends Iterable<Notifier> {
   /// Adds a listener to the [Notifier] and returns the listener's [hashCode] if successfully added else returns [null].
   ///
   /// The [hashCode] can then be used to uniquely [notify] the listener using the [notifyListener] method.
+  ///
+  /// Only a function that accepts no parameters or the one that accepts a single parameter can be
+  /// added to this [Notifier].
+  ///
+  /// If the current [Notifier] already contains the given listener or if null is passed as a
+  /// listener, it returns false else true.
   int addListener(Function listener) => _isNotDisposed && !_listeners.containsEitherComp(listener)
       ? _addListener(listener) : null;
 
@@ -357,15 +425,6 @@ class Notifier extends Iterable<Notifier> {
     return listener.hashCode;
   }
 
-  /// Adds a listener to the [Notifier] and returns the listener's [hashCode] if successfully added else returns [null].
-  ///
-  /// A static implementation of [addListener].
-  static int addListenerToNotifier(Notifier notifier, Function listener) =>
-      notifier?.addListener(listener);
-
-  /// Adds a listener to all of the given [notifiers] and returns
-  static Iterable<int> addListenerToNotifiers(Iterable<Notifier> notifiers, Function listener) =>
-      notifiers.addListener(listener);
 
   static Map<Notifier, Iterable<int>> customListenerAdder(Map<Iterable<Notifier>, Function> options) =>
       options.map((notifiers, listener) =>
@@ -394,51 +453,54 @@ class Notifier extends Iterable<Notifier> {
   bool hasListener(Function listener) =>
       _isNotDisposed && _hasListener(listener);
 
-  bool _hasListener(Function listener) => _listeners.contains(listener);
+  bool _hasListener(Function listener) => _listeners.containsEitherComp(listener);
 
-  /// Checks if the passed [Notifier] has the passed [listener]. If it has it, it returns [true], else [false].
-  static bool hasThisListener(Notifier notifier, Function listener) =>
-      notifier?.hasListener(listener);
-
-  /// Checks if the current [Notifier] has any listeners. If it has any, the function returns [true] else false.
+  /// Checks if the current [Notifier] has any listeners.
+  ///
+  /// If it has any, the method returns [true] else false.
   bool get hasListeners => _isNotDisposed && _hasListeners;
 
   bool get _hasListeners => _listeners.isNotEmpty;
 
-  /// Checks if the passed [Notifier] has any listeners. If it has any, the function returns [true] else false.
-  static bool hasAListener(Notifier notifier) => notifier?.hasListeners;
-
-  /// Checks if the current [Notifier] has any of the given [listeners]. Returns [true] if it finds it else [false].
+  /// Checks if the current [Notifier] has at least any one of the given [listeners].
+  ///
+  /// Returns [true] if it finds it else [false].
   bool hasAnyListener(Iterable<Function> listeners) =>
       _isNotDisposed ? _hasAnyListener(listeners) : null;
 
   bool _hasAnyListener(Iterable<Function> listeners) {
     for (Function listener in listeners)
-      if (_listeners.contains(listener)) return true;
+      if (_listeners.containsEitherComp(listener)) return true;
     return false;
   }
 
-  /// Checks if the current [Notifier] has all of the given [listeners]. Returns [true] if it finds all else [false].
+  /// Checks if the current [Notifier] has all of the given [listeners].
+  ///
+  /// Returns [true] if it finds all else [false].
   bool hasAllListeners(Iterable<Function> listeners) =>
       _isNotDisposed ? _hasAllListeners(listeners) : null;
 
   bool _hasAllListeners(Iterable<Function> listeners) {
     for (Function listener in listeners)
-      if (!_listeners.contains(listener)) return false;
+      if (!_listeners.containsEitherComp(listener)) return false;
     return true;
   }
 
-  static bool hasTheseListeners(
-          Notifier notifier, Iterable<Function> listeners) =>
-      notifier?.hasAllListeners(listeners);
+  // static bool hasTheseListeners(
+  //         Notifier notifier, Iterable<Function> listeners) =>
+  //     notifier?.hasAllListeners(listeners);
+  //
+  // static Iterable<bool> sHaveTheseListeners(
+  //         Iterable<Notifier> notifiers, Iterable<Function> listeners) =>
+  //     notifiers?.map((notifier) => notifier.hasAllListeners(listeners));
 
-  static Iterable<bool> sHaveTheseListeners(
-          Iterable<Notifier> notifiers, Iterable<Function> listeners) =>
-      notifiers?.map((notifier) => notifier.hasAllListeners(listeners));
+  void _call(Function listener) => listener is Function() ? listener() : listener(null);
 
-  void _call(Function listener) =>
-      listener is Function() ? listener() : listener(null);
-
+  /// Calls/notifies the listeners of the current Notifier
+  ///
+  /// The value passed to the parameter [_] is not received by the listeners.
+  ///
+  /// If the current [Notifier] is not disposed it return itself else null.
   Notifier call([dynamic _]) {
     if (_isNotDisposed) {
       for (int i = 0; i < _listeners.length; i++) {
@@ -453,7 +515,7 @@ class Notifier extends Iterable<Notifier> {
               _listeners.removeAt(i--);
             } catch(e) {
               i++;
-              if(e is UnsupportedError) throw StateError("ValNotifier#$hashCode: Could not remove ${_listeners[i]} as my listeners had been locked!\nPlease call unlockListeners() on me.");
+              if(e is UnsupportedError) throw StateError("ValNotifier#$hashCode: Could not remove ${_listeners[i]} as my listeners have been locked!\nPlease call unlockListeners() on me.");
               rethrow; // For any other unexpected error
             }
           }
@@ -465,13 +527,9 @@ class Notifier extends Iterable<Notifier> {
   }
 
   Notifier operator ~() => notify();
-
   Notifier get notify => this;
-
   Function get _notify => this;
-
   Notifier get notifyListeners => this;
-
   Notifier get sendNotification => this;
 
   /// A static function that notifies the [notifier] passed to it.
@@ -587,7 +645,7 @@ class Notifier extends Iterable<Notifier> {
     return isNotDisposed;
   }
 
-  // bool get _isDisposed => !_isNotDisposed;
+
   operator -(_) {
     if (_ == null) return null;
     if (_ is Iterable<Notifier>)
@@ -641,6 +699,7 @@ class Notifier extends Iterable<Notifier> {
       (other is Notifier || other is Notifier Function([dynamic])) &&
           (other.hashCode == hashCode);
 
+  /// Returns the [hashCode] of the current [Notifier].
   int get hashCode => this.call.hashCode;
 
   /// Notifies a listener by it's [hashCode], which can be obtained by the return value of [addListener] or [addListeners]
@@ -659,31 +718,41 @@ class Notifier extends Iterable<Notifier> {
     try{
       _ is Function() ? _() : _(null);
     } catch(e){
-      debugPrint("Notifier#${this.hashCode}: An error was thrown while specifically notifying the listener#$hashCode (String rep.:$_)");
+      debugPrint(
+          "$runtimeType#${this.hashCode}: An error was thrown while specifically notifying the listener#$hashCode (String rep.:$_)");
       rethrow;
     }
     return true;
   }
 
+  /// Notifies all the listeners whose [hashCodes] have been passed via this method.
+  ///
+  /// For any given index of the returned [Iterable], it sets false if the listener was not found
+  /// else notifies that listener and sets true.
   Iterable<bool> notifyByHashCodes(Iterable<int> hashCodes) =>
       _isNotDisposed ? _notifyByHashCodes(hashCodes) : null;
 
   Iterable<bool> _notifyByHashCodes(Iterable<int> hashCodes) =>
       hashCodes?.map(_notifyByHashCode)?.toList();
 
-  int get numberOfListeners => _listeners.length;
+  /// Returns the number of listeners of the current [Notifier] as [int] if it is not disposed.
+  int get numberOfListeners => _isNotDisposed ? _listeners.length : null;
 
-  String toString() =>
-      "{\"id\": $hashCode, \"Number of Listeners\": ${_listeners.length}}";
+  /// Returns the string representation of an the current [Notifier].
+  String toString() => "$runtimeType#$hashCode";
 
+  /// Merges the passed set of [notifiers] into a single one.
+  ///
+  /// One can optionally set the [removeListenerOnError] parameter for the final returned [Notifier]
   static Notifier merge([Iterable<Notifier> notifiers, bool Function(Function, dynamic) removeListenerOnError]) =>
       notifiers == null ? Notifier._() : notifiers.merge(const [],removeListenerOnError);
 
+  /// Returns a copy/clone of the passed [notifier].
   static Notifier from(Notifier notifier) {
     if (notifier.isDisposed)
       throw ArgumentError(
-          """A disposed Notifier cannot be cloned!\nPlease make sure you clone it before disposing it, as a disposed Notifier
-    loses track of it's listeners, once it's disposed.""");
+          """A disposed Notifier cannot be cloned!\nPlease make sure you clone it before disposing
+           it, as a disposed Notifier loses track of it's listeners, once it's disposed.""");
     return Notifier(removeListenerOnError: notifier._handleError).._listeners = List.from(notifier._listeners);
   }
 
@@ -692,9 +761,11 @@ class Notifier extends Iterable<Notifier> {
   /// Print this [Notifier]'s details in-line while testing with the help of (..) operator
   void get printMe => print(toString());
 
-  /// Locks the listeners of the current [Notifier] and prevents anyone from adding a listener to it. (by any means)
+  /// Locks the listeners of the current [Notifier] and prevents anyone from adding/removing a
+  /// listener from/to it (by any means).
   ///
-  /// If the listeners are already locked, it returns false else it locks the listeners and returns true.
+  /// If the listeners are already locked, it returns false, else it locks the listeners and
+  /// returns true.
   bool lockListeners(){
     if(_isNotDisposed) return _lockListeners();
     return null;
@@ -711,7 +782,8 @@ class Notifier extends Iterable<Notifier> {
 
   /// Unlocks the listeners of the current [Notifier] and allows others to add a listener to it.
   ///
-  /// If the listeners are already locked, it returns false else it locks the listeners and returns true.
+  /// If the listeners are already locked it returns false else it locks the listeners and
+  /// returns true.
   bool unlockListeners(){
     if(_isNotDisposed) return _unlockListeners();
     return null;
@@ -728,6 +800,10 @@ class Notifier extends Iterable<Notifier> {
     }
   }
 
+  /// A getter method whose return value can determine whether the internal listeners of the current
+  /// [Notifier] are locked from addition/removal or not.
+  ///
+  /// If it returns true it means they are locked else false.
   bool get listenersAreLocked {
     if(_isNotDisposed){
       try {
@@ -739,14 +815,19 @@ class Notifier extends Iterable<Notifier> {
     return null;
   }
 
+  /// A getter method whose return value can determine whether the internal listeners of the current
+  /// [Notifier] are free for addition/removal or not.
+  ///
+  /// If it returns true if they are unlocked else false.
   bool get listenersAreUnlocked => !listenersAreLocked;
 
   Iterator<Notifier> get iterator => {this}.iterator;
-  Iterable<Function> get listeners => List.from(_listeners);
-}
 
-extension CallableList on Iterable<Function()> {
-  Iterable call() => map((_) => _()).toList();
+  /// Returns a clone of the internal list of listeners.
+  ///
+  /// Note: Modifying the returned [Iterable] would in no way affect the listeners that are being
+  /// internally maintained.
+  Iterable<Function> get listeners => List.from(_listeners);
 }
 
 extension IterableExtension on Iterable<bool> {
@@ -976,6 +1057,7 @@ extension Iterable_Notifier on Iterable<Notifier> {
   Iterable<bool> get listenersAreUnlocked => map((n)=>n?.listenersAreUnlocked).toList();
 
   Notifier merge([Iterable<Notifier> notifiers, bool Function(Function, dynamic) removeListenerOnError]){
+    assert(!notifiers.isAnyDisposed, "This method expects you to pass an Iterable of undisposed notifiers.");
     Notifier n = Notifier._();
     n._addListeners(_listeners);
     n._addListeners(notifiers._listeners);
@@ -1042,6 +1124,17 @@ class ValNotifier<T> extends Notifier
   /// A method that can be used to load an async resource of type T and then pass it to the [ValNotifier]'s
   /// listeners if it's successfully retrieved else the error is either passed to the onError function
   Future<T> load(covariant Future<T> res, [Function onError]) => res.then((_)=>this(_)._val).catchError(onError??(){});
+
+  /// The method [notifyAtInterval] notifies the current [ValNotifier] at the given/passed
+  /// [interval].
+  ///
+  /// The notification that shall come at fixed interval can be be stopped by calling [Timer.cancel]
+  /// on the [Timer] that's returned by this method.
+  ///
+  /// If null is explicitly passed to this method, it'll automatically get resolved to
+  /// [Duration.zero].
+  Timer notifyAtInterval(Duration interval) =>
+      _isNotDisposed ? Timer.periodic(interval??Duration.zero, (timer)=>this(_val,false)) : null;
 
   static ValNotifier<T> merge<T>([Iterable<ValNotifier<T>> notifiers]) =>
       notifiers == null ? ValNotifier._() : notifiers.merge();

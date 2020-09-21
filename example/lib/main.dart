@@ -19,7 +19,7 @@ class TestApp extends StatelessWidget {
 
   Widget build(BuildContext context) {
 
-    sw(Duration.zero);
+    sw(Duration.zero,false);
 
     return MaterialApp(
       home: Scaffold(
@@ -29,7 +29,7 @@ class TestApp extends StatelessWidget {
             children: [
               sw - (v)=> Text(v.toString()),
               RaisedButton(
-                onPressed: sw,
+                onPressed: ()=>null,
                 child: Text("+2"),
               )
             ],

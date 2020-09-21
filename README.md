@@ -135,17 +135,23 @@ If you have been overwhelemed by seeing all the example codes in one go, then ju
 
 `notifier_plugin` is a plugin that provides different classes and extension methods while overloading certain operators for widgets, in order to enable developers to swiftly develop dynamic user-interfaces (in Flutter) with minimal effort. The plugin can then be combined with (custom classes that contain) simple/complex declarations to manage the state of your app in your way. The plugin was purely made with the intention of doing things in the most simple and efficient way possible, while using minimal or no (extra) resources to implement different concepts.
 
-For now, this plugin mainly four types of Notifiers: `Notifier`, `ValNotifier`, `SelfNotifier`, `HttpNotifier`.
+For now, this plugin mainly seven types of Notifiers: `Notifier`, `ValNotifier`, `HttpNotifier`, `Ticker(Val)Notifier`, `TimedNotifier`, `TweenNotifier`, `SWNotifier`
 
 [Notifier](#notifier): A simple object that can maintain and notify a set of listeners. It supports attaching one/multiple Notifier and listening to other Notifiers. One could even poll it for certain number of times or over a fixed duration.
 
-[ValNotifier](#valnotifier): A `Notifier` that can notify its listeners with the value it was called with and maintains a buffer for the same. One could directly perform a Tween through the Notifier through the `performTween()` method. It supports all the methods and getters and setters of a Notifier.
+[ValNotifier](#valnotifier): A `Notifier` that can notify its listeners with the value it was called with and maintains a buffer for the same. One could use this `ValNotifier`. It supports all the methods and getters and setters of a Notifier.
 
 [HttpNotifier](#httpnotifier): A `ValNotifier` that maintains a separate buffer for the parameters of a HTTP request so as to avoid boiler-plate code, while performing those requests with same or similar parameters in different sections of the same app. Since a `HttpNotifier` is a `ValNotifier`, the  methods of `ValNotifier` can still be used, while using a `HttpNotifier`. The real benefit of using an (Http)Notifier can come by using it as a `Stream`. (Note: A `Notifier` is not a `Stream`)
 
-[TimedNotifier](#timednotifer): A `Notifier` that can be polled in a very controlled manner.
+[Ticker(Val)Notifier](#tickernotifer): A `(Val)Notifier` that can be polled in a very controlled manner and maintains an internal default ticker just for that (infinite-controlled polling)
 
-[TweenNotifier](#tweennotifier): A `ValNotifier` that can perform a Tween in a very controlled manner.
+[TimedNotifier](#timednotifier): A `Notifier` that can call itself at a certain interval (that can be varied at a later stage) with the help of a timer that is internally maintained it.
+
+[TweenNotifier](#tweennotifier): A `ValNotifier` that can perform a tween/interpolation in a very controlled manner.
+
+[SWNotifier](#swnotifier): A `ValNotifier<Duration>` that internally maintains an abstract stopwatch that 
+
+However, the main two classes that would cover most of your basic needs are [Notifier](#notifier) and [ValNotifier](#valnotifier).
 
 These `Notifier`(s) and the extension methods used on certain pre-defined types overload certain operator methods in a specific way to help developers quickly implement dynamic UI in Flutter in a scalable manner with minimal effort/code. (Read more about it in [this section](#the-magic-of-extension-methods-and-operator-overloading).)
 
@@ -212,7 +218,7 @@ This can be done with the help of two methods, namely,
   
   **b. addListeners** (Accepts an Iterable<Listener/Function>; returns an Iterable<int> of hashCodes. The success of adding of each method can be determined by the value at it's corresponding index in the Iterable)
   
-  **c. customListener(s)Adder**: Separately map one/multiple listeners to multiple different notifiers in one method call.
+  **c. customListener(s)Adder**: Separately map one/multiple listeners to multiple different notifiers in one (static) method call.
 
 An example for Notifier,
 
@@ -225,7 +231,7 @@ n0.addListener((v)=>print("null==$v")); // Adding a single listener to the Notif
 n0.addListeners([()=>print(0),(v)=>print("This is $v.")]); // Adding multiple listeners to the same Notifier with the help of an Iterable
 
 [n0,n1].addListener(print);
-[n0,n1].addListeners(()=>print("This should be"),()=>print("easy"));
+  [n0,n1].addListeners([()=>print("This should be"),()=>print("easy")]);
 
 Notifier.customListenerAdder({n0: ()=>print(0), n1: ()=>print(1)});
 Notifier.customListenersAdder({n0: [()=>print("Zero"),()=>print("0 == 0")], n1: [()=>print(":)"),()=>print(";)")]});
@@ -384,6 +390,9 @@ n[1].stopListeningToAll(n); // Will return false for itself
 
 /// Magic of extension methods
 
+Notifier n3 = Notifier();
+Notifier n4 = Notifier();
+
 n.startListeningTo(n3); // makes all the notifiers in iterable n, listen to n3
 n.stopListeningTo(n3);  // makes all the notifiers in iterable n, listen to n3
 
@@ -496,7 +505,7 @@ n.removeListeners([null,print]); // Removing multiple listeners (returns (false,
  
  /// Removing multiple listeners
  Iterable<int> hashCodes = n.addListeners([()=>print(123),()=>print(456)])
- n.removeListenersByHashCodes(hashCodes); // removes 
+ n.removeListenersByHashCodes(hashCodes); // removes the listeners that have those hashCodes from the Notifier
  ```
  
 ### Clearing all the listeners of a Notifier
@@ -561,7 +570,7 @@ n.dispose(); // Disposing the Notifier n
 n.clearListeners(); // throws a StateError
 ```
 
-### Tweening a ValNotifier (Not fully implemented)
+### Performing animations or interpolation via a ValNotifier
 
 > Future<ValNotifier<T>> performTween(Tween<T> tween, Duration duration, {Curve curve = Curves.linear})
 
@@ -574,7 +583,7 @@ Widget build(BuildContext context) {
 
   return Center(
     child: GestureDetector(
-      onTap: () => bgColor.performTween(IntTween(begin: Colors.red, end: Colors.green), Duration(seconds: 3)),
+      onTap: () => bgColor.performTween(ColorTween(begin: Colors.red, end: Colors.green), Duration(seconds: 3)),
       child: bgColor - (c) => Container(
         height: 100,
         width:  100,
@@ -612,7 +621,7 @@ Extension methods and operator overloading
 
 These classes might not directly be related to the plugin's title but they do make writing dynamic UI, easier with Flutter.
 
-#### 1. WFuture<T> (Not added to the plugin yet)
+#### 1. WFuture<T>
 
 Ever had some problem dealing with a resource that was loaded asynchronously or felt too lazy to write a similar `FutureBuilder` in different places of the app just to use the same resource (Future) multiple times? The **WFuture\<T>** and the extension method on **WFuture** and **Future** was written just for you!
 
@@ -680,75 +689,11 @@ class MyApp extends StatelessWidget {
 
 ## Notifier
 
-Instance method | Description
---------------- | -----------
-addListener(Function listener) → int | Adds a listener to the Notifier and returns the listener's `hashCode` if successfully added else returns `null` (adding a listener that already exists)
-addListeners(Iterable<Function> listeners) → Iterable\<int> | Adds multiple listeners to a Notifier and returns an Iterable<int> of hashCodes. If the corresponding index has an hashCode, then the listener at that index was added successfully added else null.
-call([dynamic _]) → Notifier | Calls a Notifier to notify it's listeners. (notifierInstance() invokes this method) 
-asyncNotify([dynamic _]) → Future\<Notifier> | Asynchronously notify the listeners without blocking the caller's execution thread.
-attach(Notifier notifier) → bool | Attaches the passed notifier to the current `Notifier`. The current `Notifier` will call the attached notifier whenever it gets called. 
-attachAll(Iterable\<Notifier> notifiers) → Iterable\<bool> | Attaches the passed notifier(s) to the current Notifier. The current Notifier calls all the attached notifiers (as long as they are attached to it) whenever it gets called. Calling `clearListeners()` clears the attached Notifiers too. Read the concepts section for more info.
-detach(Notifier notifier) → bool | Detaches a notifier attached to it. If the Notifier isn't attached then the method simply returns false, else true.
-detachAll(Iterable\<Notifier> notifiers) → Iterable\<bool> | Tries to detach all the notifiers given to it. Sets true at the corresponding index, if the Notifier was previously attached else false.
-startListeningTo(Notifier notifier) → bool | Starts listening to the passed Notifier (if it isn't currently doing so). Returns false if it was already somehow listening to it else true.
-startListeningToAll(Iterable<Notifier> notifiers) → Iterable\<bool> | Starts listening to all the passed notifiers and for any given index in the Iterable<bool> being returned, it sets false if the Notifier was already being listened to, else true.
-stopListeningTo(Notifier notifier) → bool | Stops listening to the passed Notifier. Returns false if it was never listening to one else true.
-**stopListeningToAll(Iterable<Notifier> notifiers) → Iterable\<bool> | Stops listening to all the notifiers in the passed Iterable\<Notifier>. For any given index, it sets true if the Notifier was previously listening to that Notifier else sets false.
-isListeningTo(Notifier notifier) → bool | Checks if the current Notifier isListening to the passed Notifier. If it is the returns true, else false.
-**isListeningToAll(Iterable<Notifier> notifiers) → Iterable\<bool> ** | **234**
-**notifyByHashCode(int hashCode) → bool | Just notifies a listener by hashCode (if it exists as a part of it). The hashCode can be obtained from the return value of addListener. Calls the listener and returns true if the listener is found else false.
-**notifyByHashCodes(Iterable\<int> hashCodes) → Iterable\<bool> | Notifies multiple listeners based on the given hashCodes. If the listener is found it sets true at the corresponding index of that listener else false.
-**hasAttached(Notifier notifier) → bool | Checks if the current Notifier is attached to another Notifier. Returns true if it is else false.
-**hasAttachedAll(Iterable\<Notifier> notifiers) → bool | Checks if the current Notifier is attached to all the passed notifier(s). If it is then true, else false.
-**hasAttachedAllThese(Iterable\<Notifier> notifiers) → Iterable\<bool> | Checks if the current Notifier isAttached to these Notifiers, while returning an Iterable\<bool> that describes the state of each Notifier in that regard.
-poll(int times, {TickerProvider vsync}) → Future\<Duration> | Polls the Notifier for a fixed number of times and returns the Duration taken to poll as a return as Future.
-pollFor(Duration duration, {TickerProvider vsync}) → Future\<Notifier> | Polls the Notifier over the given Duration of time. Returns the current instance as a Future.
-removeListener(Function listener) → bool | Tries to remove the passed listener from the Notifier. If it was previously a listener of that Notifier it returns true, else false.
-removeListenerByHashCode(int hashCode) → bool | Tries to remove a listener by it's hashCode (if a listener with that hashCode exists). If it was previously a listener of that Notifier then it returns true else false.
-removeListeners(Iterable\<Function> listeners) → Iterable\<bool> | Tries to remove multiple listeners from a Notifier. For any given index, if the listener was previously a listener of that notifier, it removes it and sets true else false and finally returns the complete Iterable\<bool>.
-removeListenersByHashCodes(Iterable\<int> hashCodes) → Iterable\<bool> | Tries to remove multiple listeners by their hashCode (if found). For any given index, if it is found then it's removed and true is it set for the Iterable\<bool> that'll be returned else false.
-clearListeners() | Clears all the listeners of the current Notifier (including attachments and stops notifying any listener listening to it)
-reverseListeningOrder() → void | Just as the name suggests, it reverses the order in which the listeners get notified.
-init({Iterable\<Notifier> attachNotifiers, Iterable\<Notifier> listenToNotifiers, Iterable\<Notifier> mergeNotifiers, Iterable\<Function> initialListeners, bool removeListenerOnError(Error)}) → bool | Manually initialize the Notifier (if it's disposed). Returns true if the Notifier was previously disposed, else just does nothing and returns false. Values can be set through other methods.
-dispose() → bool | Disposes the current Notifier. The Notifier can be re-init with the help of the `init()` (however the reused Notifier will be as good as using a new one). If the Notifier was already disposed it'll return false else true.
-
-Getter methods | Description
--------------- | -----------
-isDisposed → bool | Checks if the given Notifier is disposed or not. If it's disposed it returns true else false.
-isNotDisposed → bool | Checks if the given Notifier is disposed or not. If it's disposed it returns false else true.
-notify → Notifier | Returns the current instance as a Notifier. Generally used as `notifier.notify()`
-notifyListener → Notifier | Returns the current instance as a Notifier. Generally used as `notifier.notifyListeners()`
-notifyListener → Notifier | Returns the current instance as a Notifier. Generally used as `notifier.notifyListeners()`
-sendNotification → Notifier | Returns the current instance as a Notifier. Generally used as `notifier.sendNotification()`
-numberOfListeners → int | Returns the number of listeners that Notifier is responsible for.
-**containsListeners → bool | Returns true if the Notifier has at least one listener else false.
-
-Static method | Description
-------------- | -----------
-addListenerToNotifier(Notifier notifier, Function listener) → int | Adds the passed listener to the passed Notifier. A static implementation of the instance method `addListener`.
-addListenersToNotifier(Notifier notifier, Iterable\<Function> listeners) → Iterable\<int> | Adds the listeners present in the passed Iterable\<Notifier> to the passed Notifier. A static implementation of the instance method `addListeners`.
-addListenerToNotifiers(Iterable\<Notifier> notifiers, Function listener) → Iterable\<int> | Adds the passed listener to all of the passed notifiers. A static implementation of `addListener` of Iterable<Notifier>
-addListenersToNotifiers(Iterable\<Notifier> notifiers, Iterable\<Function> listeners) → Iterable\<int> | Adds the passed listeners to the passed notifiers. A static 
-customListenerAdder(Map\<Notifier, Function> options) → Map\<Notifier, int> | It is a static method that can used to add multiple listeners to multiple Notifiers separately in a single method call.
-**customListenersAdder(Map\<Notifier, Iterable\<Function>> options) → Map\<Notifier, Iterable\<int>> | It is a static method that can used to add multiple listeners to multiple notifiers separately in a single method call.
-notifyNotifier(Notifier notifier) → Notifier | Calls the Notifier passed to it. A static implementation of the instance method `call()`.
-notifyAll(Iterable\<Notifier> notifiers) → Iterable\<Notifier> | Notifies all the listeners present in the passed Iterable\<Notifier>. A static implementation of Iterable\<Notifier>'s call method.
-clearListenersOfNotifier(Notifier notifier) → bool | Clears all the listeners of the passed Notifier. (A static implementation of the instance method `clearListeners()`)
-clearListenersOfNotifiers(Iterable\<Notifier> notifiers) → Iterable\<bool> | Clears all the listeners of the given list of Notifiers. A static implementation of `clearListeners()` for multiple notifiers.
-**merge([Iterable\<Notifier> notifiers, bool Function(dynamic) removeListenerOnError]) → Notifier |  A static method that merges the listeners of a Notifier into a new Notifier while setting the error handler as that of the first Notifier of the passed Iterable\<Notifier> or as the passed function (if not null).**
-from(Notifier notifier) → Notifier | Instantiate a new notifier from an existing Notifier (the Notifier that was passed)
-initNotifier(Notifier notifier) → bool | Initializes the passed Notifier. A static implementation of instance method `init()`
-initNotifiers(Iterable\<Notifier> notifiers) → Iterable\<bool> | Initializes all the passed notifiers. A static implementation of instance method `init()` of Iterable\<Notifier>
-disposeNotifier(Notifier notifier) → bool | Disposes the passed Notifier. A static implementation of the instance method `dispose()`
-disposeNotifiers(Iterable\<Notifier> notifiers) → Iterable\<bool> | Disposes the notifiers passed in the Iterable\<Notifier>. An static implementation of `dispose()` of Iterable\<Notifier>
-sHaveTheseListeners(Iterable\<Notifier> notifiers, Iterable\<Function> listeners) → Iterable\<bool> | Checks if all Notifier(s) in 
-removeListenersFromNotifiers(Iterable\<Notifier> notifiers, Iterable\<Function> listeners) → Iterable<Iterable\<bool>> | Removes the passed listeners from the passed Notifiers. A static implementation of `removeListeners()` of Iterable\<Notifier>.
-hasAListener(Notifier notifier) → bool | Checks if the passed Notifier has any listeners. If it has any, the function returns true else false.
-hasTheseListeners(Notifier notifier, Iterable<Function> listeners) → bool | Checks the Notifier has all the mentioned listener
-hasThisListener(Notifier notifier, Function listener) → bool | Checks if the passed Notifier has the passed listener. If it has it, it returns true else false.
 
 
 ## ValNotifier
+
+
 
 ## HttpNotifier 
 
@@ -790,7 +735,7 @@ Summarizing the things that you need to remember while using this approach,
 
 5. Create your own principles while developing apps and keep testing them on the go (later stage) (please keep it simple, let the simplicity create the paradigm and not the complexity)
 
-> It's highly recommended that you try developing a few apps (that are complete) to see where you stand with this approach before giving any sort of commitment to anyone.
+> It's highly recommended that you try developing a few apps (that are complete) to see where you stand with this approach before giving any sort of commitment to anyone. Also, it's important to be really dedicated to whichever project you take with the approach for it to successfully complete.
 
 ### The common-class approach
 

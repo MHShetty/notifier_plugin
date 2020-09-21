@@ -860,10 +860,9 @@ extension IterableExtension on Iterable<bool> {
     return false;
   }
 
-  bool fillNullValuesWith([bool value = true, int start, int end]) {
+  Iterable<bool> fillNullValuesWith([bool value = true, int start, int end]) {
     assert((start ??= 0) >= 0 && (end ??= length - 1) < length);
-//    while (start != end)
-    return false;
+    return toList().sublist(start,end).map((e) => e ?? value);
   }
 }
 
@@ -1104,10 +1103,54 @@ extension Iterable_Notifier on Iterable<Notifier> {
       map((n) => n >> notifiers).toList();
 }
 
+/// A [ValNotifier]<[T]> is just a [Notifier] that has realized that can notify its listeners along with a value while
+/// storing the value that it notifies in a buffer so that no one has to re-specify the value while re-calling it just
+/// to refresh it's listeners. In order to clear the value stored in the buffer, one could use the method [nullNotify].
+///
+/// So what makes the [ValNotifier] class so special? It can perform different animations just with the help of a
+/// simple method call. For eg.
+///
+/// * One could call the [performTween] method while specifying the tween and duration to animate across the values
+/// specified in the tween and also do it in the reverse direction by simply passing true to the named parameter
+/// reverse or even perform the same tween multiple times by specifying the times in [int] to its loop parameter.
+/// Not sure which Tween class to use? Just specify the values using the [animate] method. If we support it, we'll
+/// animate it for you else we'll just throw an [UnsupportedError] to let you know.
+///
+/// * One could call the [performCircularTween] method to perform the same tween in a circular manner (start..end..start)
+/// or even in the reverse direction (end..start..end) for any number of times (n>1).
+///
+/// * Want to animate across multiple values? How about interpolating across them? The [interpolate] method was made
+/// just for you! Uncertain about the Tween class to be used? Use the [interpolateR] method instead.
+///
+/// * You could even perform a circular interpolation with the help of the [circularInterpolation] method by passing
+/// the same values to it or if the type is unknown, [circularInterpolationR] is always there to help.
+///
+/// However, the animation and interpolations performed by the [ValNotifier]<[T]> class cannot be controlled in any
+/// way. If you want to control the animations you perform, please try using the [TweenNotifier]<[T]> class, which
+/// again is a [ValNotifier]<[T]>. However, it can only perform/control a single tween at a time (for a good reason)
+/// and trying to violate this rule would throw an error.
 class ValNotifier<T> extends Notifier
 {
   T _val;
 
+  /// This constructor is called after instantiating the [ValNotifier]<[T]>.
+  ///
+  /// The named parameter [initialVal] the default value of the buffer maintained by the internally by the [ValNotifier]
+  /// This is the only time where the value of the ValNotifier can be modified without notifying it's listeners.
+  ///
+  /// The named parameter [attachNotifiers] attaches the given notifier(s) to the current [ValNotifier].
+  ///
+  /// The named parameter [listenToNotifiers] makes the current [ValNotifier] listen to the call events of the given
+  /// notifier(s).
+  ///
+  /// The named parameter [mergeNotifiers] statically merges the listeners of the passed un-disposed notifier(s) to
+  /// the current [ValNotifier].
+  ///
+  /// The named parameter [initialListeners] can be used to specify the initial listeners of the [ValNotifier].
+  ///
+  /// The named parameter [removeListenerOnError] can be used to specify a function that can be called when an error is
+  /// thrown while notifying the listeners. If the function returns true, the method shall be removed, false the error
+  /// would be ignored and null then the error would be re-thrown.
   ValNotifier({
     T initialVal,
     Iterable<Notifier> attachNotifiers,
@@ -1123,6 +1166,7 @@ class ValNotifier<T> extends Notifier
 
   ValNotifier._();
 
+  /// A simple getter that gets the value that's currently stored in the [VaLNotifier]<[T]>'s getter.
   T get val => _val;
 
   /// A method that can be used to load an async resource of type T and then pass it to the [ValNotifier]'s
@@ -1143,6 +1187,7 @@ class ValNotifier<T> extends Notifier
   static ValNotifier<T> merge<T>([Iterable<ValNotifier<T>> notifiers]) =>
       notifiers == null ? ValNotifier._() : notifiers.merge();
 
+  /// This is a simple method that checks whether the given [ValNotifier]<[T]> can perform this tween or not.
   bool canPerformThisTween(Tween<T> tween) {
     if(_isNotDisposed){
       if(tween==null||tween.end==null||tween.begin==null) return false;
@@ -1186,7 +1231,12 @@ class ValNotifier<T> extends Notifier
     return null;
   }
 
-
+  /// The method [animate] is just a simple method that interfaces the method [performTween] to animate across two
+  /// values ([begin] and [end]) whose type [T] is already known by the [ValNotifier] class (for tween-ing) for the
+  /// given [duration]. (If the type isn't known, the method would throw an [UnsupportedError].
+  ///
+  /// For more info on how this method animates across the two values or uses the named parameters, please check the
+  /// docs of the [performTween] method.
   Future<ValNotifier<T>> animate(T begin, T end, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) {
     if(T==dynamic) debugPrint("Calling animate on a ValNotifier<dynamic> might be an bad idea.\n"
         "Please try being more specific by using the method performTween with the appropriate type.");
@@ -1196,6 +1246,12 @@ class ValNotifier<T> extends Notifier
   }
 
 
+  /// The method [circularAnimate] is just a simple method that interfaces the method [performCircularTween] to perform
+  /// a circular animation with the help of the given values ([begin] and [end]) over the given duration. The type [T] is
+  /// already assumed to be known by the [ValNotifier]<[T]> for tween-ing.
+  ///
+  /// For more info on how a [ValNotifier] performs a tween in circular manner, please check out the docs of the
+  /// [performCircularTween] method.
   Future<ValNotifier<T>> circularAnimate(T begin, T end, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) {
     if(_isNotDisposed){
       if(T==dynamic) debugPrint("Calling circularAnimate on a ValNotifier<dynamic> might be an bad idea.\n"
@@ -1210,7 +1266,7 @@ class ValNotifier<T> extends Notifier
   /// The [performTween] method performs a Tween<[T]> given to given to it via the [tween] parameter
   /// over the given [duration] of time. Performing a tween, just means to pass a range of values to
   /// the listeners of this [ValNotifier]<[T]>, where each value is directly generated at run-time
-  /// with the help of the [tween.transform] method that accepts a [double] between 0..1 and
+  /// with the help of the [tween.transform] method that accepts a [double] between [begin]..[end] and
   /// returns the expected value at that point of time. This class does have an internal function
   /// that transforms the [tween] to a method to the expected type based on the value of [T], but it
   /// surely has it's own limitation and cannot detect a custom class/type that was implemented by you.
@@ -1700,8 +1756,8 @@ class ValNotifier<T> extends Notifier
   ///
   /// * The named parameter [curve] can be used to modify the way each tween in [tweens] is played.
   ///
-  /// This method was made with the intention of performing multiple tweens with the same setting.
-  /// If your requirements wish you to perform multiple tweens with different settings, then please
+  /// This method was made with the intention of performing multiple [tweens] with the same setting.
+  /// If your requirements wish you to perform multiple [tweens] with different settings, then please
   /// consider using [performTween] while awaiting each of them in an async to keep them in sync.
   Future<ValNotifier<T>> performTweens(Iterable<Tween<T>> tweens, Duration duration, {int loop=1,bool reverse=false, Curve curve = Curves.linear}) async {
     if(_isNotDisposed){
@@ -1892,6 +1948,11 @@ class ValNotifier<T> extends Notifier
 
 enum HttpRequestType { GET, HEAD, DELETE, READ, READBYTES, POST, PUT, PATCH }
 
+/// [HttpNotifier] is a special kind of [ValNotifier] that was designed to perform http requests and notify its
+/// listeners accordingly. The type of request and other parameters are stored as an buffer by this class. So if
+/// someone doesn't explicitly specify a parameter or request type (or passes null), it automatically assumes the
+/// previous values/type. This could reduce the boilerplate code while performing requests to the same url or with
+/// similar or same parameter at different places in the app.
 class HttpNotifier extends ValNotifier {
 
   /// A single client for all http requests

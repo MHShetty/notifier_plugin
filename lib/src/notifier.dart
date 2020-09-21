@@ -2597,6 +2597,9 @@ class HttpNotifier extends ValNotifier {
           mergeNotifiers: mergeNotifiers,
           initialListeners: initialListeners);
 
+  /// Re-init an [HttpNotifier] that has already been disposed.
+  ///
+  /// If it has not been disposed it returns false, else re-init s the disposed notifier and returns true.
   bool init({
     @required String url,
     HttpRequestType requestType,

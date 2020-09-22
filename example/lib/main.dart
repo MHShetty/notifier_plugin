@@ -1,11 +1,6 @@
-import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:notifier_plugin/notifier_plugin.dart';
-
-/* The examples for this plugin haven't been properly designed yet.
-* Sorry for the inconvenience and delay and thank you for your patience.
-*/
 
 void main() {
   runApp(TestApp());
@@ -13,24 +8,27 @@ void main() {
 
 class TestApp extends StatelessWidget {
 
-  SWNotifier sw = SWNotifier(startOnInit: true);
-
-  Timer t;
+  TimedNotifier timedNotifier = TimedNotifier(interval: Duration(seconds: 5));
+  int i = 0;
 
   Widget build(BuildContext context) {
 
-    sw(Duration.zero,false);
+    timedNotifier.start();
+
+    print(timedNotifier.isActive);
 
     return MaterialApp(
       home: Scaffold(
         body: Center(
-          child: Column(
+          child: timedNotifier - (v) => Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              sw - (v)=> Text(v.toString()),
+              Text(timedNotifier.ticks.toString()),
+              Text(timedNotifier.ticks.toString()),
+              Text(timedNotifier.ticks.toString()),
               RaisedButton(
-                onPressed: ()=>null,
-                child: Text("+2"),
+                onPressed: ()=>timedNotifier.isPaused?timedNotifier.play():timedNotifier.pause(),
+                child: Text(""),
               )
             ],
           ),
@@ -47,12 +45,12 @@ class TestScaffold1 extends StatefulWidget {
 }
 
 class _TestScaffold1State extends State<TestScaffold1> {
+
   HttpNotifier httpNotifier;
 
   void initState() {
     super.initState();
-    httpNotifier =
-        HttpNotifier.read(url: "https://www.google.com", initialVal: "", parseResponse: (r){   });
+    httpNotifier = HttpNotifier.read(url: "https://www.google.com", initialVal: "", parseResponse: (r){});
     httpNotifier.addListener(print);
   }
 
@@ -77,7 +75,7 @@ class _TestScaffold1State extends State<TestScaffold1> {
             }),
             httpNotifier -
                 (v) => Expanded(
-                    child: httpNotifier.isLoading
+                    child: httpNotifier.isSyncing
                         ? SizedBox(height: 16.0, width: 16.0)
                         : Center(child: SingleChildScrollView(child: Text(v.toString())))),
             RaisedButton.icon(
@@ -142,11 +140,7 @@ class _TestScaffoldState0 extends State<TestScaffold0> with TickerProviderStateM
                     child: Text("Animate"),
                     onPressed: () {
                       print("Animation started!");
-                      valTest
-                          .performTween(
-                              ColorTween(begin: Colors.red, end: Colors.green),
-                              Duration(seconds: 1))
-                          .then((value) => print("Animation completed!"));
+                      valTest.performTween(ColorTween(begin: Colors.red, end: Colors.green), Duration(seconds: 1)).then((value) => print("Animation completed!"));
                     },
                   )
                 ],

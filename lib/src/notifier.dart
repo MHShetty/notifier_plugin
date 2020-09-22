@@ -56,6 +56,26 @@ class Notifier extends Iterable<Notifier> {
 
   Notifier._();
 
+  /// Returns the error handler that is called whenever an error is thrown by any of the listeners.
+  ///
+  /// If this function returns true, if removes the listener that threw that error.
+  ///
+  /// Else if this function returns null, the same error is re-thrown.
+  ///
+  /// Else the thrown error is ignored.
+  Function(Function, dynamic) get removeListenerOnError => _handleError;
+
+  /// Sets the error handler that is called whenever an error is thrown by any of the listeners.
+  ///
+  /// If this function returns true, if removes the listener that threw that error.
+  ///
+  /// Else if this function returns null, the same error is re-thrown.
+  ///
+  /// Else the thrown error is ignored.
+  set removeListenerOnError(Function(Function, dynamic) removeListenerOnError) {
+    _handleError = removeListenerOnError;
+  }
+
   /// This method polls a Notifier with notifications over a fixed [duration] of time and returns
   /// the current instance of [Notifier] as a [Future]. A TickerProvider can be provided to this
   /// method via the [vsync] parameter.
@@ -87,9 +107,7 @@ class Notifier extends Iterable<Notifier> {
       Function onTick = (d) {
         if (times-- == 0) {
           end = d;
-          t
-            ..stop()
-            ..dispose();
+          t..stop()..dispose();
         }
         this();
       };
@@ -364,12 +382,14 @@ class Notifier extends Iterable<Notifier> {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
   }) {
     if (isDisposed && _init()) {
       if (mergeNotifiers != null) _addListeners(mergeNotifiers._listeners);
       if (attachNotifiers != null) _attach(attachNotifiers);
       if (listenToNotifiers != null) _startListeningTo(listenToNotifiers);
+      if(lockListenersOnInit==true) _listeners = List.from(_listeners, growable: false);
       this.._handleError = removeListenerOnError;
       return true;
     }
@@ -415,14 +435,14 @@ class Notifier extends Iterable<Notifier> {
   int _addListener(Function listener) {
     if (listener == null) return null;
     assert(listener is Function() || listener is Function(dynamic),
-        "Notifier#$hashCode: A Notifier can only notify a listener that does not accept a parameter or accepts a 'single' parameter.");
+        "$runtimeType#$hashCode: A Notifier can only notify a listener that does not accept a parameter or accepts a 'single' parameter.");
     // ignore: unrelated_type_equality_checks
     if (this == listener)
-      throw ArgumentError("Notifier#$hashCode: A notifier cannot listen to itself.");
+      throw ArgumentError("$runtimeType#$hashCode: A notifier cannot listen to itself.");
     try {
       _listeners.add(listener);
     }catch(e){
-      if(e is UnsupportedError) throw StateError("Notifier#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly add a listener next time.");
+      if(e is UnsupportedError) throw StateError("$runtimeType#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly add a listener next time.");
       rethrow; // for any other unexpected error
     }
     return listener.hashCode;
@@ -507,7 +527,7 @@ class Notifier extends Iterable<Notifier> {
               _listeners.removeAt(i--);
             } catch(e) {
               i++;
-              if(e is UnsupportedError) throw StateError("ValNotifier#$hashCode: Could not remove ${_listeners[i]} as my listeners have been locked!\nPlease call unlockListeners() on me.");
+              if(e is UnsupportedError) throw StateError("$runtimeType#$hashCode: Could not remove ${_listeners[i]} as my listeners have been locked!\nPlease call unlockListeners() on me.");
               rethrow; // For any other unexpected error
             }
           }
@@ -550,7 +570,7 @@ class Notifier extends Iterable<Notifier> {
       _listeners.remove(listener);
       return true;
     } catch(e){
-      if(e is UnsupportedError) throw StateError("Notifier#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly remove a listener next time.");
+      if(e is UnsupportedError) throw StateError("$runtimeType#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly remove a listener next time.");
       rethrow; // For any unexpected error
     }
   }
@@ -565,7 +585,7 @@ class Notifier extends Iterable<Notifier> {
       return _listeners.remove(
           _listeners.firstWhere((listener) => listener.hashCode == hashCode));
     } catch (e) {
-      if(e is UnsupportedError) throw StateError("Notifier#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly remove a listener next time.");
+      if(e is UnsupportedError) throw StateError("$runtimeType#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly remove a listener next time.");
       return false;
     }
   }
@@ -659,10 +679,10 @@ class Notifier extends Iterable<Notifier> {
     if (_ == null) return null;
     if (_ is Iterable<Notifier>) return merge(_);
     if (_ is Widget) return NotifiableChild(notifier: this, child: _);
-    if (_ is Function(dynamic)) return SimpleNotificationBuilder(notifier: this, builder: _(null));
+    if (_ is Function(dynamic)) return SimpleNotificationBuilder(notifier: this, builder: (c)=>_(null));
     if (_ is Function()) return SimpleNotificationBuilder(notifier: this, builder: (c) => _());
     if (_ is Function(BuildContext,dynamic)) return SimpleNotificationBuilder(notifier: this, builder: (c) => _(c,null));
-    throw UnsupportedError("Notifier#$hashCode: Notifier's operator - does not support ${_.runtimeType}.");
+    throw UnsupportedError("$runtimeType#$hashCode: Notifier's operator - does not support ${_.runtimeType}.");
   }
 
 //  /// Creates a new instance of [Notifier] that holds the listeners of the current [Notifier] and the passed [notifier].
@@ -723,8 +743,7 @@ class Notifier extends Iterable<Notifier> {
     try{
       _ is Function() ? _() : _(null);
     } catch(e){
-      debugPrint(
-          "$runtimeType#${this.hashCode}: An error was thrown while specifically notifying the listener#$hashCode (String rep.:$_)");
+      debugPrint("$runtimeType#${this.hashCode}: An error was thrown while specifically notifying the listener#$hashCode (String rep.:$_)");
       rethrow;
     }
     return true;
@@ -756,8 +775,8 @@ class Notifier extends Iterable<Notifier> {
   static Notifier from(Notifier notifier) {
     if (notifier.isDisposed)
       throw ArgumentError(
-          """A disposed Notifier cannot be cloned!\nPlease make sure you clone it before disposing
-           it, as a disposed Notifier loses track of it's listeners, once it's disposed.""");
+          """A disposed ${notifier.runtimeType} cannot be cloned!\nPlease make sure you clone it before disposing
+           it, as a disposed ${notifier.runtimeType} loses track of it's listeners, once it's disposed.""");
     return Notifier(removeListenerOnError: notifier._handleError).._listeners = List.from(notifier._listeners);
   }
 
@@ -835,7 +854,10 @@ class Notifier extends Iterable<Notifier> {
   Iterable<Function> get listeners => List.from(_listeners);
 }
 
-extension IterableExtension on Iterable<bool> {
+/// An extension method declared on [Iterable]<[bool]>
+extension Iterable_Bool_Ease on Iterable<bool> {
+
+  /// Reduces all the bool values present in this [Iterable] into a single value (by and-ing them)
   bool andAll([int start = 0, int end]) {
     // Default values just in case the parameter contains null
     start ??= 0;
@@ -843,44 +865,37 @@ extension IterableExtension on Iterable<bool> {
     assert(start >= 0 && end <= length);
     if (start < 0) start = 0;
     if (end > length) end = length;
-    while (start != end) if (!this.elementAt(start++)) return false;
+    while (start != end) if (!(this.elementAt(start++) ?? false)) return false;
     return true;
   }
 
+  /// Reduces all the bool values present in this [Iterable] into a single value (by or-ing them)
   bool orAll([int start, int end]) {
     assert((start ??= 0) >= 0 && (end ??= length - 1) < length);
     while (start != end) if (this.elementAt(start++)) return true;
     return false;
   }
 
-  Iterable<bool> notAll([int start, int end]) => map((e) => !(e??true)).toList();
+  /// Performs not operation on all the bool values present in this [Iterable]<[bool]> and returns the resultant
+  /// [Iterable].
+  Iterable<bool> notAll([int start, int end]) => toList().sublist(start,end).map((e)=>e==null?null:!e).toList();
 
+  /// Returns true if the current [Iterable]<[bool]> has at least one null value.
   bool hasNullValue([int start, int end]) {
     assert((start ??= 0) >= 0 && (end ??= length - 1) < length);
     while (start != end) if (this.elementAt(start) == null) return true;
     return false;
   }
 
+  /// Fills the null values in this [Iterable]<[bool]> with the passed [value].
   Iterable<bool> fillNullValuesWith([bool value = true, int start, int end]) {
     assert((start ??= 0) >= 0 && (end ??= length - 1) < length);
     return toList().sublist(start,end).map((e) => e ?? value);
   }
 }
 
-//        StateError('A $runtimeType was used after being disposed.\n\n'
-//        'Once you have called dispose() on a $runtimeType, you can use it by calling init() on it.\n\n'
-//        'However, it is recommended that you only dispose() the $runtimeType once you are done with it.\n')
-//    assert(!(this.hasAnyListener(attachments._notify).orAll()),
-//    """
-//        \nPlease make sure that you don't attach any Notifier to itself, as it would lead to a Stack Overflow error
-//    whenever the Notifier gets notified.""");
-//    assert(!(attachments.hasAnyListener(_notify).orAll()),
-//    """
-//        Cross-attaching multiple Notifier is highly not recommended as it would lead to endless cycle of notifications
-//    between the two Notifiers until a Stack Overflow error is finally yield.\n
-//    You could either merge the two Notifiers to create a new Notifier that holds the listeners of both the notifiers
-//    or
-//    Create a list of Notifiers that holds both the Notifier and then notify that list as per your requirements.""");
+/// A special extension applied on [Iterable]<[Notifier]> to make performing compound operations on multiple notifiers
+/// easy.
 extension Iterable_Notifier on Iterable<Notifier> {
 
   /// Re-init s all the notifiers present in this [Iterable]. Interfaces the [Notifier.init] for multiple notifiers.
@@ -1247,9 +1262,9 @@ extension Iterable_Notifier on Iterable<Notifier> {
 
   bool _atomicTest(String _) {
     if (contains(null))
-      throw "Could not atomically perform $_() as this Iterable<Notifier>#$hashCode contained atleast one null value.";
+      throw AtomicError("Could not atomically perform $_() as this $runtimeType#$hashCode contains at least one null value.");
     if (isAnyDisposed)
-      throw "Could not atomically perform $_() as this Iterable<Notifier>#$hashCode contains atleast one Notifier that was disposed.";
+      throw AtomicError("Could not atomically perform $_() as this $runtimeType#$hashCode contains at least one Notifier that was disposed.");
     return true;
   }
 
@@ -1336,14 +1351,16 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// Gets the listeners present in each notifier of this [Iterable] as an [Iterable] of those iterables.
   Iterable<Iterable<Function>> get listeners => map((n)=>n?.listeners).toList();
 
+  /// Collects all the listeners of every notifier present in this [Iterable]<[Function]>.
   Iterable<Function> get allListeners {
-    final List<Function> result = [];
-    forEach((notifier) => result.addAll(notifier.listeners));
+    final Set<Function> result = {};
+    forEach((notifier) => result?.addAll(notifier.listeners));
     return result;
   }
 
   /// Can be used to call all the notifiers present in this listener.
-  Iterable<Notifier> call([dynamic _, bool atomic = false]) => atomic && !_atomicTest("call") ? null : Notifier.notifyAll(this);
+  Iterable<Notifier> call([dynamic _, bool atomic = false]) =>
+      atomic && !_atomicTest("call") ? null : Notifier.notifyAll(this);
 
   SimpleNotificationBuilder operator -(Widget Function() builder) =>
       SimpleNotificationBuilder(notifier: this, builder: (c) => builder());
@@ -1381,7 +1398,7 @@ class ValNotifier<T> extends Notifier
 {
   T _val;
 
-  /// This constructor is called after instantiating the [ValNotifier]<[T]>.
+  /// This constructor is called after instantiating the [ValNotifier]<[T]>
   ///
   /// The named parameter [initialVal] the default value of the buffer maintained by the internally by the [ValNotifier]
   /// This is the only time where the value of the ValNotifier can be modified without notifying it's listeners.
@@ -1405,11 +1422,13 @@ class ValNotifier<T> extends Notifier
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
   }) : _val=initialVal, super(attachNotifiers: attachNotifiers,
             listenToNotifiers: listenToNotifiers,
             mergeNotifiers: mergeNotifiers,
             initialListeners: initialListeners,
+            lockListenersOnInit: lockListenersOnInit,
             removeListenerOnError: removeListenerOnError);
 
   ValNotifier._();
@@ -2095,7 +2114,7 @@ class ValNotifier<T> extends Notifier
               _listeners.removeAt(i--);
             } catch(e) {
               i++;
-              if(e is UnsupportedError) throw StateError("ValNotifier#$hashCode: Could not remove ${_listeners[i]} as my listeners had been locked!\nPlease call unlockListeners() on me.");
+              if(e is UnsupportedError) throw StateError("$runtimeType#$hashCode: Could not remove ${_listeners[i]} as my listeners had been locked!\nPlease call unlockListeners() on me.");
               rethrow; // For any other unexpected error
             }
           }
@@ -2178,11 +2197,12 @@ class ValNotifier<T> extends Notifier
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
   }){
     if(isDisposed){
       _val = initialVal;
-      super.init(attachNotifiers: attachNotifiers, listenToNotifiers: listenToNotifiers, mergeNotifiers: mergeNotifiers, initialListeners: initialListeners, removeListenerOnError: removeListenerOnError);
+      super.init(attachNotifiers: attachNotifiers, listenToNotifiers: listenToNotifiers, mergeNotifiers: mergeNotifiers, initialListeners: initialListeners, removeListenerOnError: removeListenerOnError, lockListenersOnInit: lockListenersOnInit);
       return true;
     }
     return false;
@@ -2257,7 +2277,7 @@ class HttpNotifier extends ValNotifier {
   /// A getter that can be used to get the default body for this [HttpNotifier].
   get body {
     if(_isNotDisposed){
-      if(HttpRequestType.values.indexOf(requestType) <= 4) throw "$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body.\n\nPlease try setting the requestType of the $runtimeType to something that actually supports sending a body as the request.\n";
+      if(HttpRequestType.values.indexOf(requestType) <= 4) throw ArgumentError("$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body.\n\nPlease try setting the requestType of the $runtimeType to something that actually supports sending a body as the request.\n");
       return _body;
     }
   }
@@ -2266,8 +2286,8 @@ class HttpNotifier extends ValNotifier {
   set body(dynamic body) {
     if (_isNotDisposed) {
       assert(body!=null,"The setter body expected the passed body to be a non-null value.");
-      if(HttpRequestType.values.indexOf(requestType) <= 4) throw "$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body.\n\nPlease either set the requestType of the $runtimeType to something that actually supports sending a body as the request.";
-      if (body is String || body is Map<String, dynamic>) throw Exception("$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
+      if(HttpRequestType.values.indexOf(requestType) <= 4) throw ArgumentError("$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body.\n\nPlease either set the requestType of the $runtimeType to something that actually supports sending a body as the request.");
+      if (body is String || body is Map<String, dynamic>)  throw ArgumentError("$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
       if (body is Map<String, dynamic>) body = json.encode(body);
       _body = body;
     }
@@ -2279,7 +2299,7 @@ class HttpNotifier extends ValNotifier {
   /// A getter that can be used to get the default body encoding for this [HttpNotifier].
   get encoding {
     if(_isNotDisposed){
-      if(HttpRequestType.values.indexOf(requestType) <= 4) throw "$runtimeType#$hashCode has not been set to a type that requires a body. Therefore the body couldn't be retrieved.\n";
+      if(HttpRequestType.values.indexOf(requestType) <= 4) throw ArgumentError("$runtimeType#$hashCode has not been set to a type that requires a body. Therefore the encoding couldn't be retrieved.\n");
       return _encoding;
     }
   }
@@ -2287,7 +2307,7 @@ class HttpNotifier extends ValNotifier {
   /// A setter that can be used to set the default body encoding for this [HttpNotifier].
   set encoding(Encoding encoding) {
     if(_isNotDisposed){
-      if(HttpRequestType.values.indexOf(requestType) <= 4) throw "$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body that could be 'encoded' in a specific way.\n\nPlease either set the requestType of the $runtimeType to something that could actually support it.";
+      if(HttpRequestType.values.indexOf(requestType) <= 4) throw ArgumentError("$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body that could be 'encoded' in a specific way.\n\nPlease either set the requestType of the $runtimeType to something that could actually support it.");
       _encoding = encoding;
     }
   }
@@ -2368,6 +2388,7 @@ class HttpNotifier extends ValNotifier {
     dynamic initialVal,
     Function(dynamic) parseResponse,
     Iterable<Notifier> attachNotifiers,
+    bool lockListenersOnInit = false,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
@@ -2383,7 +2404,7 @@ class HttpNotifier extends ValNotifier {
         _encoding=encoding,
         _parseResponse=parseResponse,
         _client = http.Client(),
-        super(attachNotifiers: attachNotifiers, initialVal: initialVal, listenToNotifiers: listenToNotifiers, mergeNotifiers: mergeNotifiers, initialListeners: initialListeners, removeListenerOnError: removeListenerOnError)
+        super(attachNotifiers: attachNotifiers, initialVal: initialVal, listenToNotifiers: listenToNotifiers, mergeNotifiers: mergeNotifiers, initialListeners: initialListeners, removeListenerOnError: removeListenerOnError, lockListenersOnInit: lockListenersOnInit)
   {
       if (_requestType == null) {
         debugPrint("Could not find detect a requestType for $runtimeType#$hashCode");
@@ -2401,13 +2422,13 @@ class HttpNotifier extends ValNotifier {
     Map<String, String> headers,
     dynamic initialVal,
     Function(dynamic) parseResponse,
+    bool lockListenersOnInit = false,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
-  }) =>
-      HttpNotifier(url: url,
+    bool Function(Function,dynamic) removeListenerOnError,
+  }) => HttpNotifier(url: url,
           initialVal: initialVal,
           requestType: HttpRequestType.GET,
           parseResponse: parseResponse,
@@ -2415,7 +2436,9 @@ class HttpNotifier extends ValNotifier {
           attachNotifiers: attachNotifiers,
           listenToNotifiers: listenToNotifiers,
           mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners);
+          initialListeners: initialListeners,
+          lockListenersOnInit: lockListenersOnInit,
+  );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.HEAD].
   ///
@@ -2429,9 +2452,9 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
-  }) =>
-      HttpNotifier(
+    bool lockListenersOnInit = false,
+    bool Function(Function,dynamic) removeListenerOnError,
+  }) => HttpNotifier(
           url: url,
           initialVal: initialVal,
           requestType: HttpRequestType.HEAD,
@@ -2440,7 +2463,9 @@ class HttpNotifier extends ValNotifier {
           attachNotifiers: attachNotifiers,
           listenToNotifiers: listenToNotifiers,
           mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners);
+          initialListeners: initialListeners,
+          lockListenersOnInit: lockListenersOnInit,
+  );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.DELETE].
   ///
@@ -2450,11 +2475,12 @@ class HttpNotifier extends ValNotifier {
     Map<String, String> headers,
     dynamic initialVal,
     Function(dynamic) parseResponse,
+    bool lockListenersOnInit = false,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
           url: url,
@@ -2465,7 +2491,9 @@ class HttpNotifier extends ValNotifier {
           attachNotifiers: attachNotifiers,
           listenToNotifiers: listenToNotifiers,
           mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners);
+          initialListeners: initialListeners,
+          lockListenersOnInit: lockListenersOnInit,
+      );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.READ].
   ///
@@ -2479,7 +2507,8 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool lockListenersOnInit = false,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
           url: url,
@@ -2490,7 +2519,9 @@ class HttpNotifier extends ValNotifier {
           attachNotifiers: attachNotifiers,
           listenToNotifiers: listenToNotifiers,
           mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners);
+          initialListeners: initialListeners,
+          lockListenersOnInit: lockListenersOnInit,
+      );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.READBYTES].
   ///
@@ -2504,7 +2535,8 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool lockListenersOnInit = false,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
           url: url,
@@ -2515,7 +2547,9 @@ class HttpNotifier extends ValNotifier {
           attachNotifiers: attachNotifiers,
           listenToNotifiers: listenToNotifiers,
           mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners);
+          initialListeners: initialListeners,
+          lockListenersOnInit: lockListenersOnInit,
+      );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.POST] (syntactic sugar)
   factory HttpNotifier.post({
@@ -2529,7 +2563,8 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool lockListenersOnInit = false,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
           url: url,
@@ -2542,7 +2577,9 @@ class HttpNotifier extends ValNotifier {
           attachNotifiers: attachNotifiers,
           listenToNotifiers: listenToNotifiers,
           mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners);
+          initialListeners: initialListeners,
+          lockListenersOnInit: lockListenersOnInit,
+      );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.PUT]. (syntactic sugar)
   factory HttpNotifier.put({
@@ -2556,7 +2593,8 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool lockListenersOnInit = false,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
           url: url,
@@ -2569,7 +2607,9 @@ class HttpNotifier extends ValNotifier {
           attachNotifiers: attachNotifiers,
           listenToNotifiers: listenToNotifiers,
           mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners);
+          initialListeners: initialListeners,
+          lockListenersOnInit: lockListenersOnInit,
+      );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.PATCH]. (syntactic sugar)
   factory HttpNotifier.patch({
@@ -2583,7 +2623,8 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Error) removeListenerOnError,
+    bool lockListenersOnInit = false,
+    bool Function(Function,dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
           url: url,
@@ -2595,7 +2636,9 @@ class HttpNotifier extends ValNotifier {
           attachNotifiers: attachNotifiers,
           listenToNotifiers: listenToNotifiers,
           mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners);
+          initialListeners: initialListeners,
+          lockListenersOnInit: lockListenersOnInit,
+      );
 
   /// Re-init an [HttpNotifier] that has already been disposed.
   ///
@@ -2612,6 +2655,7 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
   }) {
     if(isDisposed) {
@@ -2626,8 +2670,9 @@ class HttpNotifier extends ValNotifier {
         listenToNotifiers: listenToNotifiers,
         mergeNotifiers: mergeNotifiers,
         initialListeners: initialListeners,
-        removeListenerOnError: removeListenerOnError))
-      {
+        removeListenerOnError: removeListenerOnError,
+        lockListenersOnInit: lockListenersOnInit,
+      )) {
         _url = url;
         _headers = headers;
         _body = body;
@@ -2919,13 +2964,29 @@ class HttpNotifier extends ValNotifier {
     return r;
   }
 
-
   bool get hasData => _val != null && !(_val is Error);
   bool get hasError => _val != null && _val is Error;
   get data => hasData ? _val : null;
   get error => hasError ? _val : null;
 }
 
+/// A [TickerNotifier] is a simple [Notifier] class that has an variable that can maintain a ticker that by default
+/// just either notifies every listener at every tick (play) or simply doesn't (pause).
+///
+/// The [start] method can be called to start the ticker that is being internally maintained.
+///
+/// The [stop] method can be called to stop the ticker that is being internally maintained.
+///
+/// The [pause] method can be used to pause/mute the ticker that is being internally maintained. There are certain
+/// variables that are used internally keep track of how long the ticker was paused for so that it becomes easier to
+/// roll-back to that time by simply subtracting that duration.
+///
+/// The [play] method can be used to resume/un-mute the ticker that is being internally maintained.
+///
+/// And the ([start]/[stop]/[pause]/[play])After method just performs the expected operation after the passed duration
+/// of time.
+///
+/// Note: Starting ta [TickerNotifier] resets the values that it otherwise maintains. (By default, apart from the Ticker)
 class TickerNotifier extends Notifier
 {
   Ticker _t;
@@ -2965,7 +3026,7 @@ class TickerNotifier extends Notifier
   /// returns false.
   bool play(){
     if(_isNotDisposed){
-      if(_t.isActive) debugPrint("Please call the start method() before calling the play() method.");
+      if(!_t.isActive) debugPrint("Please call the start method() before calling the play() method.");
       if(_t.muted) {
         _pD += DateTime.now().difference(_pT);
         _t.muted = false;
@@ -3048,7 +3109,7 @@ class TickerNotifier extends Notifier
   /// not [true]. This getter shall throw an error if the [TickerNotifier] is already disposed.
   ///
   /// Returns [true] when the ticker is paused or has been stopped or has not started yet, else false.
-  bool get isNotPlaying => _isNotDisposed ? !_t.isTicking : null;
+  bool get isPaused => _isNotDisposed ? !_t.isTicking : null;
 
   /// The return value states whether a poll/tick operation is currently active [true] or
   /// not [false]. This getter shall throw an error if the [TickerNotifier] is already disposed.
@@ -3081,7 +3142,7 @@ class TickerNotifier extends Notifier
   Future<TickerNotifier> pollFor(Duration duration, {TickerProvider vsync, bool stopPrevious=false}) {
     if (_isNotDisposed) {
       if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("A TickerNotifier can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
+      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
       if (duration == Duration.zero) return Future.value(this);
       duration=duration.abs();
       _pD = Duration.zero;
@@ -3115,7 +3176,7 @@ class TickerNotifier extends Notifier
     if (_isNotDisposed) {
       Duration end;
       if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("A TickerNotifier can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
+      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
       if (times == 0) return Future.value(Duration.zero);
       times = times.abs();
       Function onTick = (d) {
@@ -3138,11 +3199,12 @@ class TickerNotifier extends Notifier
   bool init({
     bool startOnInit = false,
     bool pauseOnInit = false,
-    String debugLabel,
+    TickerProvider vsync,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
   })
   {
@@ -3152,23 +3214,24 @@ class TickerNotifier extends Notifier
         mergeNotifiers: mergeNotifiers,
         initialListeners: initialListeners,
         removeListenerOnError: removeListenerOnError,
+        lockListenersOnInit: lockListenersOnInit,
     )) {
-      _t = Ticker(this, debugLabel: debugLabel);
+      _t = vsync==null?Ticker((_)=>call()):vsync.createTicker((_)=>call());
       if(startOnInit??false) start(play: pauseOnInit!=true);
       _t.muted = pauseOnInit==true;
     }
     return false;
   }
 
-
   TickerNotifier({
     bool startOnInit = false,
     bool pauseOnInit = false,
-    String debugLabel,
     Iterable<Notifier> attachNotifiers,
+    TickerProvider vsync,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
   }) : super(
     attachNotifiers: attachNotifiers,
@@ -3176,8 +3239,9 @@ class TickerNotifier extends Notifier
     mergeNotifiers: mergeNotifiers,
     initialListeners: initialListeners,
     removeListenerOnError: removeListenerOnError,
+    lockListenersOnInit: lockListenersOnInit,
   ) {
-    _t = Ticker(this, debugLabel: debugLabel);
+    _t = vsync==null?Ticker((_)=>call()):vsync.createTicker((_)=>call());
     if(startOnInit??false) start(play: pauseOnInit!=true);
     _t.muted = pauseOnInit==true;
   }
@@ -3345,7 +3409,7 @@ class TickerValNotifier<T> extends ValNotifier<T>
   Future<TickerValNotifier<T>> pollFor(Duration duration, {TickerProvider vsync, bool stopPrevious=false}) {
     if (_isNotDisposed) {
       if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("TickerValNotifier<$T> can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
+      if(_t.isActive) throw StateError("$runtimeType<$T> can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
       if (duration == Duration.zero) return Future.value(this);
       duration=duration.abs();
       _pD = Duration.zero;
@@ -3379,7 +3443,7 @@ class TickerValNotifier<T> extends ValNotifier<T>
     if (_isNotDisposed) {
       Duration end;
       if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("TickerValNotifier<$T> can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
+      if(_t.isActive) throw StateError("$runtimeType<$T> can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
       if (times == 0) return Future.value(Duration.zero);
       times = times.abs();
       Function onTick = (d) {
@@ -3395,19 +3459,20 @@ class TickerValNotifier<T> extends ValNotifier<T>
     return null;
   }
 
-  /// The [init] method can be used to re-init a disposed [TickerNotifier].
+  /// The [init] method can be used to re-init a disposed [TickerValNotifier].
   ///
-  /// If the [TickerNotifier] was previously disposed, it re-init s it with the specified values and
+  /// If the [TickerValNotifier] was previously disposed, it re-init s it with the specified values and
   /// returns true, else it just returns false.
   bool init({
     T initialVal,
     bool startOnInit = false,
     bool pauseOnInit = false,
-    String debugLabel,
+    TickerProvider vsync,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
   })
   {
@@ -3418,9 +3483,10 @@ class TickerValNotifier<T> extends ValNotifier<T>
       mergeNotifiers: mergeNotifiers,
       initialListeners: initialListeners,
       removeListenerOnError: removeListenerOnError,
+      lockListenersOnInit: lockListenersOnInit,
     )){
-      _t = Ticker((d)=>call(), debugLabel: debugLabel);
-      if(startOnInit??false) start(play: pauseOnInit!=true);
+      _t = vsync==null?Ticker((_)=>call()):vsync.createTicker((_)=>call());
+      if(startOnInit==true) start(play: pauseOnInit!=true);
       _t.muted = pauseOnInit==true;
     }
     return false;
@@ -3430,11 +3496,12 @@ class TickerValNotifier<T> extends ValNotifier<T>
     T initialVal,
     bool startOnInit = false,
     bool pauseOnInit = false,
-    String debugLabel,
+    TickerProvider vsync,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
   }) : super(
     initialVal: initialVal,
@@ -3442,11 +3509,10 @@ class TickerValNotifier<T> extends ValNotifier<T>
     listenToNotifiers: listenToNotifiers,
     mergeNotifiers: mergeNotifiers,
     initialListeners: initialListeners,
-    removeListenerOnError: removeListenerOnError
-  ) {
-    _t = Ticker((_)=>this(), debugLabel: debugLabel);
-    if(startOnInit) start(play: pauseOnInit!=true);
-    else _t.muted = pauseOnInit==true;
+    removeListenerOnError: removeListenerOnError,
+    lockListenersOnInit: lockListenersOnInit) {
+    _t = vsync==null?Ticker((_)=>call()):vsync.createTicker((_)=>call());
+    if(startOnInit==true) start(play: pauseOnInit!=true);
   }
 }
 
@@ -3464,6 +3530,7 @@ class TweenNotifier<T> extends ValNotifier<T>
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
   }) : super(
           initialVal: initialVal,
@@ -3471,7 +3538,9 @@ class TweenNotifier<T> extends ValNotifier<T>
       listenToNotifiers: listenToNotifiers,
       mergeNotifiers: mergeNotifiers,
       initialListeners: initialListeners,
-      removeListenerOnError: removeListenerOnError);
+      removeListenerOnError: removeListenerOnError,
+      lockListenersOnInit: lockListenersOnInit,
+  );
 
   bool play(){
     if(_isNotDisposed||_t==null){
@@ -3516,7 +3585,7 @@ class TweenNotifier<T> extends ValNotifier<T>
 
   Future<TweenNotifier<T>> performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) async {
     if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation. Please wait for the current animation to get over.");
+      if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation. Please wait for the current animation to get over.");
       return super.performTween(tween, duration, loop: loop, reverse: reverse, curve: curve).then((value) => this);
     }
     return null;
@@ -3524,7 +3593,7 @@ class TweenNotifier<T> extends ValNotifier<T>
 
   Future<TweenNotifier<T>> performTweens(Iterable<Tween<T>> tweens, Duration duration, {int loop=1,bool reverse=false, Curve curve = Curves.linear}) async {
     if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation. Please wait for the current animation to get over.");
+      if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation. Please wait for the current animation to get over.");
       return super.performTweens(tweens, duration, loop: loop, reverse: reverse, curve: curve).then((value) => this);
     }
     return null;
@@ -3532,7 +3601,7 @@ class TweenNotifier<T> extends ValNotifier<T>
 
   Future<TweenNotifier<T>> performCircularTween(Tween<T> tween, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) async {
     if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
+      if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
       return super.performCircularTween(tween, duration, circles: circles, reverse: reverse, firstCurve: firstCurve, secondCurve: secondCurve).then((value) => this);
     }
     return null;
@@ -3540,7 +3609,7 @@ class TweenNotifier<T> extends ValNotifier<T>
 
   Future<TweenNotifier<T>> interpolate(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
     if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
+      if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
       return super.interpolate(tween, values, totalDuration, loop: loop, reverse: reverse, curve: curve, curves: curves).then((value) => this);
     }
     return null;
@@ -3549,7 +3618,7 @@ class TweenNotifier<T> extends ValNotifier<T>
   Future<TweenNotifier<T>> circularInterpolation(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int circles=1, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
   {
     if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
+      if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
       return super.circularInterpolation(Tween<T>(), values, totalDuration, circles: circles, firstCurve: firstCurve, secondCurve: secondCurve, firstCurves: firstCurves, secondCurves: secondCurves).then((value) => this);
     }
     return null;
@@ -3653,209 +3722,265 @@ extension Iterable_ValNotifier<T> on Iterable<ValNotifier<T>> {
   ValNotifier<T> merge([Iterable<ValNotifier<T>> notifiers]) => ValNotifier<T>._().._addListeners(_listeners).._addListeners(notifiers._listeners);
 }
 
-/// [TimedNotifier] is just a simple Notifier class that interfaces a [Timer] to make polling 'at a
-/// specific interval' instead of just polling it over a (un)fixed duration of time.
+/// [TimedNotifier] is just a simple TickerNotifier class that re-uses the [Ticker] variable provided by it's parent
+/// class to internally create an abstract controllable timer with the help of other data members defined within this
+/// class.
 ///
-/// * The [start] method can be used to start the polling, either at a specific interval or as soon
-/// as it can (default).
+/// The getter [ticks] can be used to get the number ticks performed by the [TimedNotifier] in one stretch (start->stop)
 ///
-/// * The [stop] method can be used to stop the [Timer] that was started either by the [start] or the
-/// [notifyAtInterval] method.
+/// The getter [interval] returns the current interval that is being followed by the internal ticker.
 ///
-/// * The [pause] method can be used to pause the internal [Timer] of the [TimedNotifier]
-///
-/// * The [play] method can be used to resume the internal [Timer] of the [TimedNotifier]
-///
-/// * The [interval] getter and setter can be used to either get the current interval or dynamically
-/// change it to another Duration, even when it's active or is ticking.
-///
-/// Note: The [TimedNotifier] can also directly be started while instantiating it by giving its
-/// interval parameter a non-null [Duration] and also optionally paused.
-///
-/// Also, this is not the right class if you are looking for a [Notifier] to create a timer that
-/// actually display the current time or perhaps a stopwatch.
-class TimedNotifier extends Notifier
+/// The setter [interval] can be used to change th interval that is being followed by the internal ticker to give
+/// functionality to the abstract timer. However, the change in [interval] will only be followed by the ticker from
+/// the next tick.
+class TimedNotifier extends TickerNotifier
 {
-
-  Timer _t;
+  int _ticks = 0;
+  int _cTicks = 0;
   Duration _interval;
-  DateTime _lastTick;
-  Duration _pending;
 
-  DateTime get _nextTick => _lastTick.add(_interval);
+  Duration get _nextTick => _interval*_cTicks;
 
-  Duration get timeForNextTick => _pending??_nextTick.difference(DateTime.now());
-  Duration get timeSinceLastTick => DateTime.now().difference(_lastTick);
-  DateTime get lastTick => _isNotDisposed ? _lastTick : null;
-  Duration get interval => _isNotDisposed ? _interval : null;
-
-  set interval(Duration interval) {
-    assert(interval!=null,"Could not set the timer to a null duration.");
-    if(interval==_interval) return;
-    _t?.cancel();
-    if(isPlaying) call();
-    _interval = interval.abs();
-    _genTimer();
-  }
-
-  /// A getter whose return value determines whether the [Timer] that is internally maintained
-  /// [isActive] or not. If it returns true, that means its active else is inactive.
-  bool get isActive => _isNotDisposed ? _t?.isActive==true : null;
-
-  /// A getter whose return value determines whether the [Timer] that is internally maintained
-  /// [isInActive] or not. If it returns true, that means its inactive else its active.
-  bool get isInActive => _isNotDisposed ? _t?.isActive!=true : null;
-
-  /// The [start] method starts the internal timer of the [TickerNotifier] to notify the listeners
-  /// at a specific [interval] (default: [Duration.zero]). The [play] parameter specifies whether
-  /// or not the internal [Timer] start in play state as soon as it starts or in paused state.
-  ///
-  /// If the [play] parameter, receives false the [TickerNotifier] will start the internal [Timer]
-  /// in the paused state else for true/null(/default) it shall start in play state.
-  ///
-  /// This method starts the internal timer with the specified [duration] and returns true if it was
-  /// previously inactive else it will return false.
-  ///
-  /// In order to force start the internal [Timer] one can use the [reset] method, that stops the
-  /// previous timer (if any) and starts a new one with a new duration internally.
-  bool start([Duration interval=Duration.zero, bool play=true])
-  {
-    if(_isNotDisposed) {
-      if(_t?.isActive ?? false) return false;
+  Duration get interval => _isNotDisposed?_interval:null;
+  set interval(Duration interval){
+    if(_isNotDisposed){
+      if(interval==_interval) return;
+      _ticks += _cTicks;
+      _pD += _nextTick;
+      _cTicks = 0;
       _interval = interval;
-      _pending = play!=true ? Duration.zero : null;
-      _genTimer();
-      return true;
     }
-    return null;
   }
 
-  void _genTimer() => _t = Timer.periodic(_interval, (d){
-    _lastTick = DateTime.now();
-    if(isPlaying) call();
-  });
+  int get ticks => _isNotDisposed ? _ticks + _cTicks : null;
 
-  /// The return value of this getter determines whether the [Timer] that is internally maintained by
-  /// this [TickerNotifier] is notifying it's listeners on each interval or not.
+  /// A constructor that is invoked after a [TimedNotifier] has been instantiated.
   ///
-  /// If it returns true, that means it is notifying it's listeners else false.
-  bool get isPlaying => _isNotDisposed ? _pending==null : null;
-
-  /// The return value of this getter determines whether the [Timer] that is internally maintained by
-  /// this [TickerNotifier] is notifying it's listeners on each interval or not.
+  /// The [interval] parameter accepts a [Duration] that is considered as the initial interval of this [TimedNotifier].
+  /// It can be retrieved or modified at a later stage with the help of it's corresponding getter and setter. Setting
+  /// this parameter with a non-null value automatically sets [startOnInit] to true, which is otherwise assumed to be
+  /// false. However, one can just save the [interval] parameter (without starting the internal ticker) by explicitly
+  /// setting the [startOnInit] to false.
   ///
-  /// If it returns true, that means it is not notifying it's listeners else it is (false).
-  bool get isPaused  => _isNotDisposed ? _pending!=null : null;
-
-  /// The [play] method can be used to resume notifications of the timer that is being internally
-  /// maintained.
-  bool play() {
-    if(_isNotDisposed){
-      if(isPlaying) return false;
-      _t.cancel();
-
-      Future.delayed(_pending,(){
-        _pending=null;
-        _genTimer();
-      });
-      return true;
-    }
-    return null;
-  }
-
-  bool pause() {
-    if(_isNotDisposed){
-      if(isPlaying){
-        _pending = timeForNextTick;
-        return true;
-      }
-      return false;
-    }
-    return null;
-  }
-
-  bool stop()
-  {
-    if(_isNotDisposed) {
-      if(_t.isActive) {
-        _t.cancel();
-        return true;
-      }
-      return false;
-    }
-    return null;
-  }
-
-  Timer notifyAtInterval(Duration interval){
-    if(_isNotDisposed){
-      stop();
-      _genTimer();
-      return _t;
-    }
-    return null;
-  }
-
-  void reset([Duration duration=Duration.zero, bool play=true]){
-    if(_isNotDisposed){
-      stop();
-      _interval = interval;
-      _pending = play!=true?Duration.zero:null;
-      _genTimer();
-    }
-  }
-
-  bool init({
+  /// The [startOnInit] parameter accepts a [bool] that determines whether the internal ticker should start on init or
+  /// not. By default, this parameter is null (assumed to be false). If the [interval] parameter has received a non-null
+  /// value, and if the [startOnInit] has parameter has not received a value (null), the constructor automatically
+  /// assumes it to be true. However, if anything has been explicitly specified (eg. startOnInit: false; when duration
+  /// has received a non-null value), it must be followed as it is.
+  ///
+  /// The [pauseOnInit] parameter accepts a [bool] that determines whether or not the internal ticker should start in
+  /// paused state or not. If it is set to true, it shall start the internal ticker in paused state else if it is false
+  /// or null, in play state (default). However, there is no point specifying this parameter when the [startOnInit]
+  /// parameter is not equal to true.
+  ///
+  /// The named parameter [attachNotifiers] attaches the given notifier(s) to the current [HttpNotifier].
+  ///
+  /// The named parameter [listenToNotifiers] makes the current [HttpNotifier] listen to the call events of the given
+  /// notifier(s).
+  ///
+  /// The named parameter [mergeNotifiers] statically merges the listeners of the passed un-disposed notifier(s) to
+  /// the current [HttpNotifier].
+  ///
+  /// The named parameter [initialListeners] can be used to specify the initial listeners of the [HttpNotifier].
+  ///
+  /// The named parameter [removeListenerOnError] can be used to specify a function that can be called when an error is
+  /// thrown while notifying the listeners. If the function returns true, the method shall be removed, false the error
+  /// would be ignored and null then the error would be re-thrown.
+  TimedNotifier({
     Duration interval,
+    bool startOnInit,
     bool pauseOnInit = false,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
-  }){
-    if(super.init(
+  }) : super(
+    attachNotifiers: attachNotifiers,
+    listenToNotifiers: listenToNotifiers,
+    mergeNotifiers: mergeNotifiers,
+    initialListeners: initialListeners,
+    lockListenersOnInit: lockListenersOnInit,
+    removeListenerOnError: removeListenerOnError)
+  {
+    _interval = interval;
+    _t = Ticker((d){
+      d-=_pD;
+      if(d>=_nextTick) {
+        ++_cTicks;
+        if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+        call();
+      }
+    });
+    startOnInit ??= interval!=null;
+    if(startOnInit==true) start(play: pauseOnInit!=true);
+  }
+
+  /// The [start] method can be called in order to start the internal ticker of this [TimedNotifier]
+  bool start({Duration interval,bool play=true}){
+    if(_isNotDisposed){
+      if(_t.isActive) return false;
+      if(interval!=null) _interval = interval;
+      assert(_interval!=null,"You need to specify the interval for at least once for the $runtimeType to work as expected!");
+      _ticks = 0;
+      _cTicks = 0;
+      _t.start();
+      _t.muted = play!=true;
+      return true;
+    }
+    return null;
+  }
+
+  /// This method polls a [TimedNotifier] with notifications over a fixed [duration] of time and
+  /// returns the current instance of [TimedNotifier] as a [Future]. A TickerProvider can be provided to
+  /// this method via the [vsync] parameter.
+  ///
+  /// This polling can be:
+  ///
+  /// * Paused by the instance method [pause],
+  /// * Continued by the instance method [play],
+  /// * Completely stopped by the instance method [stop].
+  /// * Restarted by calling this method again. (the [start] method is for the default ticker)
+  ///
+  /// By default, a [TimedNotifier] can only handle either the polling or the abstract timer that is being internally
+  /// maintained. Trying to call this method when it's default operation or polling is already active would lead to a
+  /// [StateError]. To avoid this, once can pass true to the [stopPrevious] parameter. This will entirely stop the
+  /// previous polling/default operation and start a new one altogether. (Don't do it manually! (before stopping))
+  Future<TimedNotifier> pollFor(Duration duration, {TickerProvider vsync, bool stopPrevious=false}) {
+    if (_isNotDisposed) {
+      if(stopPrevious??false) _t.dispose();
+      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
+      if (duration == Duration.zero) return Future.value(this);
+      duration=duration.abs();
+      _pD = Duration.zero;
+      Function onTick = (d) {
+        d-=_pD;
+        if (d>duration) return _t..stop()..dispose();
+        call();
+      };
+      _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
+      return _t.start().then((value){
+        _t = Ticker((d){
+          d-=_pD;
+          if(d>=_nextTick) {
+            ++_cTicks;
+            if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+            call();
+          }
+        });
+        return this;
+      });
+    }
+    return null;
+  }
+
+  /// This method polls the [TickerNotifier] with notifications for a fixed number of [times] and
+  /// returns the duration taken to poll the Notifier as a future. A TickerProvider can be passed
+  /// via the [vsync] parameter.
+  ///
+  /// This polling can be:
+  ///
+  /// * Paused by the instance method [pause],
+  /// * Continued by the instance method [play],
+  /// * Completely stopped by the instance method [stop].
+  /// * Restarted by calling this method again. (the [start] method is for the default ticker)
+  ///
+  /// By default, a [TickerNotifier] can only handle one polling or ticking at a time. Trying to
+  /// call this method when a polling or ticking is already active would lead to a [StateError].
+  /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
+  /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
+  Future<Duration> poll(int times, {TickerProvider vsync, bool stopPrevious=false}) {
+    if (_isNotDisposed) {
+      Duration end;
+      if(stopPrevious??false) _t.dispose();
+      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
+      if (times == 0) return Future.value(Duration.zero);
+      times = times.abs();
+      Function onTick = (d) {
+        if (times--==0) {
+          end = d;
+          return _t..stop()..dispose();
+        }
+        call();
+      };
+      _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
+      return _t.start().then((value){
+        _t = Ticker((d){
+          d-=_pD;
+          if(d>=_nextTick) {
+            ++_cTicks;
+            if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+            call();
+          }
+        });
+        return end;
+      });
+    }
+    return null;
+  }
+}
+
+class TimedValNotifier<T> extends TickerValNotifier<T>
+{
+  int _ticks = 0;
+  Duration _interval;
+
+  Duration get _nextTick => _interval*_ticks;
+
+  Duration get interval => _isNotDisposed?_interval:null;
+  set interval(Duration interval) => _isNotDisposed ? _interval = interval : null;
+
+  int get ticks => _isNotDisposed ? _ticks : null;
+  bool get isPaused => isNotPlaying;
+
+  TimedValNotifier({
+    Duration interval,
+    bool startOnInit,
+    bool pauseOnInit = false,
+    T initialVal,
+    Iterable<Notifier> attachNotifiers,
+    Iterable<Notifier> listenToNotifiers,
+    Iterable<Notifier> mergeNotifiers,
+    Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
+    bool Function(Function,dynamic) removeListenerOnError,
+  }) : super(
+      initialVal: initialVal,
       attachNotifiers: attachNotifiers,
       listenToNotifiers: listenToNotifiers,
       mergeNotifiers: mergeNotifiers,
       initialListeners: initialListeners,
-      removeListenerOnError: removeListenerOnError,
-    )) {
-      if(interval!=null) start(interval.abs(), pauseOnInit!=true);
-      else _pending = pauseOnInit==true?Duration.zero:null;
-      return true;
-    }
-    return false;
+      lockListenersOnInit: lockListenersOnInit,
+      removeListenerOnError: removeListenerOnError)
+  {
+    _interval = interval;
+    _t = Ticker((d){
+      d-=_pD;
+      if(d>=_nextTick) {
+        ++_ticks;
+        call(_val,false);
+      }
+    });
+    startOnInit ??= interval!=null;
+    if(startOnInit==true) start(play: pauseOnInit!=true);
   }
 
-  bool dispose() {
-    if(super.dispose()){
-      _t.cancel();
-      _t = null;
-      _pending = null;
-      _interval = null;
+  bool start({Duration interval,bool play=true}){
+    if(_isNotDisposed){
+      if(_t.isActive) return false;
+      if(interval!=null) _interval = interval;
+      assert(_interval!=null,"You need to specify the interval for at least once for the TimedNotifier to work as expected!");
+      _t.start();
+      _t.muted = play!=true;
       return true;
     }
-    return false;
-  }
-
-  TimedNotifier({
-    Duration interval,
-    bool pauseOnInit = false,
-    Iterable<Notifier> attachNotifiers,
-    Iterable<Notifier> listenToNotifiers,
-    Iterable<Notifier> mergeNotifiers,
-    Iterable<Function> initialListeners,
-    bool Function(Function,dynamic) removeListenerOnError
-  }) : super(
-      attachNotifiers: attachNotifiers,
-      listenToNotifiers: listenToNotifiers,
-      mergeNotifiers: mergeNotifiers,
-      initialListeners: initialListeners) {
-    if(interval!=null) start(interval.abs(), pauseOnInit!=true);
-    else _pending = pauseOnInit==true?Duration.zero:null;
+    return null;
   }
 }
 
+/// A simple extension method that makes adding some to Duration to a date and finding the difference between two
+/// [DateTime]s in [Duration] a bit easier.
 extension DateTime_Ease on DateTime
 {
   DateTime operator +(Duration duration) => add(duration??Duration.zero);
@@ -3883,8 +4008,8 @@ class SWNotifier extends TickerValNotifier<Duration>
   /// abstract stopwatch isn't active it throws an [StateError]. Also, the [elapsed] duration passed
   /// to this setter method is expected to not be null.
   set elapsed(Duration elapsed) {
-    assert(elapsed!=null,"SWNotifier#$hashCode: The elapsed duration of cannot be set to null!");
-    if(isNotActive) throw StateError("SWNotifier#$hashCode: Couldn't modify the elapsed duration since I have not been started yet. Please use the start() method on me before trying to modify/play with this value.");
+    assert(elapsed!=null,"$runtimeType#$hashCode: The elapsed duration of cannot be set to null!");
+    if(isNotActive) throw StateError("$runtimeType#$hashCode: Couldn't modify the elapsed duration since I have not been started yet. Please use the start() method on me before trying to modify/play with this value.");
     _start=DateTime.now()+(-elapsed);
   }
 
@@ -4055,25 +4180,26 @@ class SWNotifier extends TickerValNotifier<Duration>
     Duration initialVal,
     bool startOnInit = false,
     bool pauseOnInit = false,
-    String debugLabel,
+    TickerProvider vsync,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
+    bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
   })
   {
     if(super.init(
       initialVal: initialVal ?? Duration.zero,
-      debugLabel: debugLabel,
       attachNotifiers: attachNotifiers,
       listenToNotifiers: listenToNotifiers,
       mergeNotifiers: mergeNotifiers,
       initialListeners: initialListeners,
       removeListenerOnError: removeListenerOnError,
+      lockListenersOnInit: lockListenersOnInit,
+      vsync: vsync,
     )){
       if(startOnInit==true) start(play: pauseOnInit!=true);
-      else _t.muted = pauseOnInit==true;
     }
     return false;
   }
@@ -4087,11 +4213,40 @@ class SWNotifier extends TickerValNotifier<Duration>
     }
     return false;
   }
-  
+
+  /// This constructor is invoked once an [SWNotifier] has been instantiated.
+  ///
+  /// The named parameter [initialVal] accepts the initial value of this [SWNotifier] (to be stored in the buffer)
+  ///
+  /// Note: The [initialVal] does not determine the value from which the internal abstract stopwatch is expected to
+  /// start.
+  ///
+  /// The named parameter [startOnInit] determines whether the internal abstract stopwatch should start once the object
+  /// has been instantiated. If this parameter has been set to true, it starts the internal abstract stopwatch of this
+  /// [SWNotifier], else it simply doesn't (by default).
+  ///
+  /// The named parameter [pauseOnInit] determines whether the internal abstract stopwatch should be set to pause on
+  /// init or not. If it is set to true, it's pauses the stopwatch that has been start else it (by default) let's it
+  /// play. Setting this parameter, when [startOnInit] is not set to true wouldn't really make any difference.
+  ///
+  /// The named parameter [attachNotifiers] attaches the given notifier(s) to the current [HttpNotifier].
+  ///
+  /// The named parameter [listenToNotifiers] makes the current [HttpNotifier] listen to the call events of the given
+  /// notifier(s).
+  ///
+  /// The named parameter [mergeNotifiers] statically merges the listeners of the passed un-disposed notifier(s) to
+  /// the current [HttpNotifier].
+  ///
+  /// The named parameter [initialListeners] can be used to specify the initial listeners of the [HttpNotifier].
+  ///
+  /// The named parameter [removeListenerOnError] can be used to specify a function that can be called when an error is
+  /// thrown while notifying the listeners. If the function returns true, the method shall be removed, false the error
+  /// would be ignored and null then the error would be re-thrown.
   SWNotifier({
     Duration initialVal,
     bool startOnInit = false,
     bool pauseOnInit = false,
+    TickerProvider vsync,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
@@ -4102,9 +4257,10 @@ class SWNotifier extends TickerValNotifier<Duration>
       attachNotifiers: attachNotifiers,
       listenToNotifiers: listenToNotifiers,
       mergeNotifiers: mergeNotifiers,
-      initialListeners: initialListeners) {
+      initialListeners: initialListeners,
+      vsync: vsync,
+  ) {
     if(startOnInit==true) start(play: pauseOnInit!=true);
-    else _t.muted = pauseOnInit==true;
   }
 }
 
@@ -4153,3 +4309,9 @@ extension Iterable_<T> on Iterable<T> {
     return false;
   }
 }
+
+/// A type of [AssertionError] that is thrown when an [Iterable]<[Notifier]> fails to perform an operation atomically.
+///
+/// This error is generally thrown when an compound operation is tried to been performed on an [Iterable]<[Notifier]>,
+/// containing one or more disposed notifiers or null values.
+class AtomicError extends AssertionError{ AtomicError([String message]) : super(message);}

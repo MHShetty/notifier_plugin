@@ -1,44 +1,63 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:notifier_plugin/notifier_plugin.dart';
+import 'menu.dart';
+import 'examples/notifier.dart';
+import 'examples/valNotifier.dart';
+import 'examples/httpNotifier.dart';
+import 'examples/swNotifier.dart';
+import 'examples/timedNotifier.dart';
 
 void main() {
-  runApp(TestApp());
+  runApp(ExampleApp());
 }
 
-class TestApp extends StatelessWidget {
-
-  TimedNotifier timedNotifier = TimedNotifier(interval: Duration(seconds: 5));
-  int i = 0;
+class ExampleApp extends StatelessWidget {
 
   Widget build(BuildContext context) {
-
-    timedNotifier.start();
-
-    print(timedNotifier.isActive);
-
     return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: timedNotifier - (v) => Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(timedNotifier.ticks.toString()),
-              Text(timedNotifier.ticks.toString()),
-              Text(timedNotifier.ticks.toString()),
-              RaisedButton(
-                onPressed: ()=>timedNotifier.isPaused?timedNotifier.play():timedNotifier.pause(),
-                child: Text(""),
-              )
-            ],
-          ),
-        ),
-      ),
+      initialRoute: "main",
+      navigatorObservers: [NavigatorObserver()],
+      routes: {
+        "main":     (c) => MenuScreen(),
+        "notifier": (c)=> NotifierExample(),
+        "valNotifier": (c)=> ValNotifierExample(),
+        "httpNotifier": (c)=> HttpNotifierExample(),
+        "timedNotifier": (c)=> TimedNotifierExample(),
+        "swNotifier": (c)=> SWNotifierExample(),
+      },
     );
-
   }
 }
 
+
+
+
+
+//  Widget build(BuildContext context) {
+//
+//    print(timedNotifier.isActive);
+//
+//    return MaterialApp(
+//      home: Scaffold(
+//        body: Center(
+//          child: timedNotifier - (v) => Column(
+//            mainAxisAlignment: MainAxisAlignment.center,
+//            children: [
+//              Text(timedNotifier.ticks.toString()),
+//              Text(timedNotifier.ticks.toString()),
+//              Text(timedNotifier.ticks.toString()),
+//              RaisedButton(
+//                onPressed: ()=>timedNotifier.isPaused?timedNotifier.play():timedNotifier.pause(),
+//                child: Text(""),
+//              )
+//            ],
+//          ),
+//        ),
+//      ),
+//    );
+//
+//  }
+//}
+/*
 class TestScaffold1 extends StatefulWidget {
   @override
   _TestScaffold1State createState() => _TestScaffold1State();
@@ -61,7 +80,7 @@ class _TestScaffold1State extends State<TestScaffold1> {
       child: Scaffold(
         body: Column(
           children: [
-            CupertinoTextField(
+            TextField(
                 onSubmitted: (url) async {
               try {
                 url = url.replaceAll(' ', '');
@@ -149,3 +168,4 @@ class _TestScaffoldState0 extends State<TestScaffold0> with TickerProviderStateM
   }
 }
 
+*/

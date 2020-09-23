@@ -1512,6 +1512,22 @@ class ValNotifier<T> extends Notifier
     return performTween(Tween<T>(begin: begin, end: end), duration, loop: loop, reverse: reverse , curve: curve);
   }
 
+  /// The method [animateTo] animates from the current [val]ue stored in the buffer to the value passed to the [end]
+  /// parameter of this function over the given [duration] of time. It interfaces the [performTween] method. If the
+  /// [ValNotifier] knows which type of the Tween can be used to perform the animation, then it would perform an
+  /// animation with the help of that tween or else the expected tween can even be explicitly specified via the named
+  /// parameter [helperTween]. Finally, if no appropriate class is found an [UnsupportedError] shall be thrown.
+  ///
+  /// For more info on how this method animates across two values or uses the other named parameters, please check the
+  /// docs of the [performTween] method.
+  Future<ValNotifier<T>> animateTo(T end, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Tween<T> helperTween}) {
+    if(T==dynamic) debugPrint("Calling animate on a ValNotifier<dynamic> might be an bad idea.\n"
+        "Please try being more specific by using the method performTween with the appropriate type.");
+    // Error wasn't throw for the type dynamic since there is a very tiny possibility that someone might
+    // declare an extension method on Tween<dynamic>.
+    return performTween(Tween<T>(begin: _val, end: end), duration, loop: loop, reverse: reverse , curve: curve);
+  }
+
 
   /// The method [circularAnimate] is just a simple method that interfaces the method [performCircularTween] to perform
   /// a circular animation with the help of the given values ([begin] and [end]) over the given duration. The type [T] is
@@ -2395,7 +2411,7 @@ class HttpNotifier extends ValNotifier {
     bool Function(Function,dynamic) removeListenerOnError,
   })  : assert(url != null, "A $runtimeType cannot be created without an URL. Please make sure that you provide a valid url."),
         // Regex Source: https://stackoverflow.com/a/55674757
-        assert(RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url), "Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case)."),
+        assert(RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url), "Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add http:// or https:// at the start of the url (as per your use case)."),
         assert(requestType == null || ((HttpRequestType.values.indexOf(requestType) <= 4) == (body == null && encoding == null)), "Please make sure that you only pass a body when the request type is capable of sending one!"),
         _url=url,
         _headers=headers,
@@ -3752,6 +3768,7 @@ class TimedNotifier extends TickerNotifier
     }
   }
 
+  /// Returns the number of ticks performed by this [TimedNotifier]
   int get ticks => _isNotDisposed ? _ticks + _cTicks : null;
 
   /// A constructor that is invoked after a [TimedNotifier] has been instantiated.
@@ -3773,15 +3790,15 @@ class TimedNotifier extends TickerNotifier
   /// or null, in play state (default). However, there is no point specifying this parameter when the [startOnInit]
   /// parameter is not equal to true.
   ///
-  /// The named parameter [attachNotifiers] attaches the given notifier(s) to the current [HttpNotifier].
+  /// The named parameter [attachNotifiers] attaches the given notifier(s) to the current [TimedNotifier].
   ///
-  /// The named parameter [listenToNotifiers] makes the current [HttpNotifier] listen to the call events of the given
+  /// The named parameter [listenToNotifiers] makes the current [TimedNotifier] listen to the call events of the given
   /// notifier(s).
   ///
   /// The named parameter [mergeNotifiers] statically merges the listeners of the passed un-disposed notifier(s) to
-  /// the current [HttpNotifier].
+  /// the current [TimedNotifier].
   ///
-  /// The named parameter [initialListeners] can be used to specify the initial listeners of the [HttpNotifier].
+  /// The named parameter [initialListeners] can be used to specify the initial listeners of the [TimedNotifier].
   ///
   /// The named parameter [removeListenerOnError] can be used to specify a function that can be called when an error is
   /// thrown while notifying the listeners. If the function returns true, the method shall be removed, false the error
@@ -3841,12 +3858,12 @@ class TimedNotifier extends TickerNotifier
   /// * Paused by the instance method [pause],
   /// * Continued by the instance method [play],
   /// * Completely stopped by the instance method [stop].
-  /// * Restarted by calling this method again. (the [start] method is for the default ticker)
+  /// * Restarted by calling this method again. (the [start] method is for the default abstract timer)
   ///
   /// By default, a [TimedNotifier] can only handle either the polling or the abstract timer that is being internally
   /// maintained. Trying to call this method when it's default operation or polling is already active would lead to a
   /// [StateError]. To avoid this, once can pass true to the [stopPrevious] parameter. This will entirely stop the
-  /// previous polling/default operation and start a new one altogether. (Don't do it manually! (before stopping))
+  /// previous polling/default operation and start a new one altogether. (Don't do it manually!)
   Future<TimedNotifier> pollFor(Duration duration, {TickerProvider vsync, bool stopPrevious=false}) {
     if (_isNotDisposed) {
       if(stopPrevious??false) _t.dispose();
@@ -3875,7 +3892,7 @@ class TimedNotifier extends TickerNotifier
     return null;
   }
 
-  /// This method polls the [TickerNotifier] with notifications for a fixed number of [times] and
+  /// This method polls the [TimedValNotifier] with notifications for a fixed number of [times] and
   /// returns the duration taken to poll the Notifier as a future. A TickerProvider can be passed
   /// via the [vsync] parameter.
   ///
@@ -3886,7 +3903,7 @@ class TimedNotifier extends TickerNotifier
   /// * Completely stopped by the instance method [stop].
   /// * Restarted by calling this method again. (the [start] method is for the default ticker)
   ///
-  /// By default, a [TickerNotifier] can only handle one polling or ticking at a time. Trying to
+  /// By default, a [TimedValNotifier] can only handle one polling or ticking at a time. Trying to
   /// call this method when a polling or ticking is already active would lead to a [StateError].
   /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
   /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
@@ -3921,24 +3938,80 @@ class TimedNotifier extends TickerNotifier
   }
 }
 
+/// [TimedValNotifier] is just a simple TickerNotifier class that re-uses the [Ticker] variable provided by it's parent
+/// class to internally create an abstract controllable timer with the help of other data members defined within this
+/// class.
+///
+/// The getter [ticks] can be used to get the number ticks performed by the [TimedValNotifier] in one stretch
+/// (start->stop)
+///
+/// The getter [interval] returns the current interval that is being followed by the internal ticker.
+///
+/// The setter [interval] can be used to change th interval that is being followed by the internal ticker to give
+/// functionality to the abstract timer. However, the change in [interval] will only be followed by the ticker from
+/// the next tick.
 class TimedValNotifier<T> extends TickerValNotifier<T>
 {
   int _ticks = 0;
+  int _cTicks = 0;
   Duration _interval;
 
-  Duration get _nextTick => _interval*_ticks;
+  Duration get _nextTick => _interval*_cTicks;
 
+  /// Get the [interval] of that is currently been followed by the internal ticker that simulates an abstract timer.
   Duration get interval => _isNotDisposed?_interval:null;
-  set interval(Duration interval) => _isNotDisposed ? _interval = interval : null;
 
-  int get ticks => _isNotDisposed ? _ticks : null;
-  bool get isPaused => isNotPlaying;
+  /// Set a [interval] that can be followed by the internal [ticker] that can simulate an abstract timer.
+  set interval(Duration interval){
+    if(_isNotDisposed){
+      if(interval==_interval) return;
+      assert(interval!=null,"Could not set the interval for the internal ticker to null!");
+      _ticks += _cTicks;
+      _pD += _nextTick;
+      _cTicks = 0;
+      _interval = interval;
+    }
+  }
 
+  /// Returns the number of [ticks] performed by this [TimedValNotifier]
+  int get ticks => _isNotDisposed ? _ticks + _cTicks : null;
+
+  /// A constructor that is invoked after a [TimedValNotifier] has been instantiated.
+  ///
+  /// The [interval] parameter accepts a [Duration] that is considered as the initial interval of this [TimedValNotifier].
+  /// It can be retrieved or modified at a later stage with the help of it's corresponding getter and setter. Setting
+  /// this parameter with a non-null value automatically sets [startOnInit] to true, which is otherwise assumed to be
+  /// false. However, one can just save the [interval] parameter (without starting the internal ticker) by explicitly
+  /// setting the [startOnInit] to false.
+  ///
+  /// The [startOnInit] parameter accepts a [bool] that determines whether the internal ticker should start on init or
+  /// not. By default, this parameter is null (assumed to be false). If the [interval] parameter has received a non-null
+  /// value, and if the [startOnInit] has parameter has not received a value (null), the constructor automatically
+  /// assumes it to be true. However, if anything has been explicitly specified (eg. startOnInit: false; when duration
+  /// has received a non-null value), it must be followed as it is.
+  ///
+  /// The [pauseOnInit] parameter accepts a [bool] that determines whether or not the internal ticker should start in
+  /// paused state or not. If it is set to true, it shall start the internal ticker in paused state else if it is false
+  /// or null, in play state (default). However, there is no point specifying this parameter when the [startOnInit]
+  /// parameter is not equal to true.
+  ///
+  /// The named parameter [attachNotifiers] attaches the given notifier(s) to the current [TimedValNotifier].
+  ///
+  /// The named parameter [listenToNotifiers] makes the current [TimedValNotifier] listen to the call events of the given
+  /// notifier(s).
+  ///
+  /// The named parameter [mergeNotifiers] statically merges the listeners of the passed un-disposed notifier(s) to
+  /// the current [TimedValNotifier].
+  ///
+  /// The named parameter [initialListeners] can be used to specify the initial listeners of the [TimedValNotifier].
+  ///
+  /// The named parameter [removeListenerOnError] can be used to specify a function that can be called when an error is
+  /// thrown while notifying the listeners. If the function returns true, the method shall be removed, false the error
+  /// would be ignored and null then the error would be re-thrown.
   TimedValNotifier({
     Duration interval,
     bool startOnInit,
     bool pauseOnInit = false,
-    T initialVal,
     Iterable<Notifier> attachNotifiers,
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
@@ -3946,7 +4019,6 @@ class TimedValNotifier<T> extends TickerValNotifier<T>
     bool lockListenersOnInit = false,
     bool Function(Function,dynamic) removeListenerOnError,
   }) : super(
-      initialVal: initialVal,
       attachNotifiers: attachNotifiers,
       listenToNotifiers: listenToNotifiers,
       mergeNotifiers: mergeNotifiers,
@@ -3958,22 +4030,114 @@ class TimedValNotifier<T> extends TickerValNotifier<T>
     _t = Ticker((d){
       d-=_pD;
       if(d>=_nextTick) {
-        ++_ticks;
-        call(_val,false);
+        ++_cTicks;
+        if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+        call();
       }
     });
     startOnInit ??= interval!=null;
     if(startOnInit==true) start(play: pauseOnInit!=true);
   }
 
+  /// The [start] method can be called in order to start the internal ticker of this [TimedValNotifier]
   bool start({Duration interval,bool play=true}){
     if(_isNotDisposed){
       if(_t.isActive) return false;
       if(interval!=null) _interval = interval;
-      assert(_interval!=null,"You need to specify the interval for at least once for the TimedNotifier to work as expected!");
+      assert(_interval!=null,"You need to specify the interval for at least once for the $runtimeType to work as expected!");
+      _ticks = 0;
+      _cTicks = 0;
       _t.start();
       _t.muted = play!=true;
       return true;
+    }
+    return null;
+  }
+
+  /// This method polls a [TimedValNotifier] with notifications over a fixed [duration] of time and
+  /// returns the current instance of [TimedValNotifier] as a [Future]. A TickerProvider can be provided to
+  /// this method via the [vsync] parameter.
+  ///
+  /// This polling can be:
+  ///
+  /// * Paused by the instance method [pause],
+  /// * Continued by the instance method [play],
+  /// * Completely stopped by the instance method [stop].
+  /// * Restarted by calling this method again. (the [start] method is for the default abstract timer)
+  ///
+  /// By default, a [TimedValNotifier] can only handle either the polling or the abstract timer that is being internally
+  /// maintained. Trying to call this method when it's default operation or polling is already active would lead to a
+  /// [StateError]. To avoid this, once can pass true to the [stopPrevious] parameter. This will entirely stop the
+  /// previous polling/default operation and start a new one altogether. (Don't do it manually!)
+  Future<TimedValNotifier<T>> pollFor(Duration duration, {TickerProvider vsync, bool stopPrevious=false}) {
+    if (_isNotDisposed) {
+      if(stopPrevious??false) _t.dispose();
+      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
+      if (duration == Duration.zero) return Future.value(this);
+      duration=duration.abs();
+      _pD = Duration.zero;
+      Function onTick = (d) {
+        d-=_pD;
+        if (d>duration) return _t..stop()..dispose();
+        call();
+      };
+      _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
+      return _t.start().then((value){
+        _t = Ticker((d){
+          d-=_pD;
+          if(d>=_nextTick) {
+            ++_cTicks;
+            if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+            call();
+          }
+        });
+        return this;
+      });
+    }
+    return null;
+  }
+
+  /// This method polls the [TimedValNotifier] with notifications for a fixed number of [times] and
+  /// returns the duration taken to poll the Notifier as a future. A TickerProvider can be passed
+  /// via the [vsync] parameter.
+  ///
+  /// This polling can be:
+  ///
+  /// * Paused by the instance method [pause],
+  /// * Continued by the instance method [play],
+  /// * Completely stopped by the instance method [stop].
+  /// * Restarted by calling this method again. (the [start] method is for the default ticker)
+  ///
+  /// By default, a [TimedValNotifier] can only handle one polling or ticking at a time. Trying to
+  /// call this method when a polling or ticking is already active would lead to a [StateError].
+  /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
+  /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
+  Future<Duration> poll(int times, {TickerProvider vsync, bool stopPrevious=false}) {
+    if (_isNotDisposed) {
+      Duration end;
+      if(stopPrevious??false) _t.dispose();
+      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
+      if (times == 0) return Future.value(Duration.zero);
+      times = times.abs();
+      Function onTick = (d) {
+        if (times--==0) {
+          end = d;
+          return _t..stop()..dispose();
+        }
+        call();
+      };
+      _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
+      return _t.start().then((value){
+        _t = Ticker((d){
+          d-=_pD;
+          if(d>=_nextTick) {
+            ++_cTicks;
+            if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+            call();
+          }
+        });
+        return end;
+      });
     }
     return null;
   }

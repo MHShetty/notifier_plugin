@@ -1633,6 +1633,7 @@ class ValNotifier<T> extends Notifier
       tween.begin = tween.end;
       tween.end = _;
     }
+
     return t;
   }
 
@@ -1811,7 +1812,7 @@ class ValNotifier<T> extends Notifier
 
       assert(tween!=null,"You cannot interpolate across values without a buffer Tween.");
       assert(values!=null,"The parameter values cannot be set to null.");
-      assert(totalDuration!=null && totalDuration!=Duration.zero,"The total duration of the interpolation cannot be set to null.");
+      assert(totalDuration!=null && totalDuration!=Duration.zero,"The total duration of the interpolation cannot be set to null or zero.");
       assert(values.length>1,"We need at least two values to successfully interpolate.");
       if(curves==null) _curves = List.filled(values.length-1, curve);
       else {
@@ -2270,7 +2271,7 @@ class HttpNotifier extends ValNotifier {
   }
 
   /// A getter that can be used to get the default headers of this [HttpNotifier].
-  get headers => _isNotDisposed?_headers:null;
+  Map<String,String> get headers => _isNotDisposed?_headers:null;
 
   /// A buffer that stores the request type (for sync)
   HttpRequestType _requestType;
@@ -2303,7 +2304,7 @@ class HttpNotifier extends ValNotifier {
     if (_isNotDisposed) {
       assert(body!=null,"The setter body expected the passed body to be a non-null value.");
       if(HttpRequestType.values.indexOf(requestType) <= 4) throw ArgumentError("$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body.\n\nPlease either set the requestType of the $runtimeType to something that actually supports sending a body as the request.");
-      if (body is String || body is Map<String, dynamic>)  throw ArgumentError("$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
+      if (!(body is String || body is Map<String, dynamic>))  throw ArgumentError("$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
       if (body is Map<String, dynamic>) body = json.encode(body);
       _body = body;
     }
@@ -2412,7 +2413,7 @@ class HttpNotifier extends ValNotifier {
   })  : assert(url != null, "A $runtimeType cannot be created without an URL. Please make sure that you provide a valid url."),
         // Regex Source: https://stackoverflow.com/a/55674757
         assert(RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url), "Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add http:// or https:// at the start of the url (as per your use case)."),
-        assert(requestType == null || ((HttpRequestType.values.indexOf(requestType) <= 4) == (body == null && encoding == null)), "Please make sure that you only pass a body when the request type is capable of sending one!"),
+        assert((HttpRequestType.values.indexOf(requestType) > 4) || (body == null && encoding == null), "Please make sure that you only pass a body when the request type is capable of sending one!"),
         _url=url,
         _headers=headers,
         _body=body,
@@ -2678,7 +2679,7 @@ class HttpNotifier extends ValNotifier {
       assert(url != null, "A $runtimeType cannot be init without an URL. Please make sure that you provide a valid url.");
       // Regex Source: https://stackoverflow.com/a/55674757
       assert(RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url), "Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case).");
-      if (requestType != null) assert((HttpRequestType.values.indexOf(requestType) <= 4) == (body == null && encoding == null), "Please make sure that you only pass a body when the request type is capable of sending one!");
+      if (requestType != null)  assert((HttpRequestType.values.indexOf(requestType) > 4) || (body == null && encoding == null), "Please make sure that you only pass a body when the request type is capable of sending one!");
 
       if (super.init(
         initialVal: initialVal,
@@ -2914,12 +2915,14 @@ class HttpNotifier extends ValNotifier {
     requestType ??= this._requestType;
     url ??= this._url;
     headers ??= this._headers;
-    body ??= this._body;
-    encoding ??= this._encoding;
+    if(HttpRequestType.values.indexOf(requestType) > 4){
+      body ??= this._body;
+      encoding ??= this._encoding;
+    }
     parseResponse ??= this.parseResponse;
 
     // Parameter validation
-    if (requestType != null) assert((HttpRequestType.values.indexOf(requestType) <= 4) == (body == null && encoding == null), "Please make sure that you only pass a body when the request type is capable of sending one!");
+    if (requestType != null) assert(HttpRequestType.values.indexOf(requestType) > 4 || (body == null && encoding == null), "Please make sure that you only pass a body/encoding when the request type of this HttpNotifier is capable of sending one!");
     if (body != null) assert(body is String || body is Map<String, dynamic>, "$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
     // Regex Source: https://stackoverflow.com/a/55674757
     if (url!=null&&!RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url)) throw Exception("Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case).");
@@ -3590,19 +3593,31 @@ class TweenNotifier<T> extends ValNotifier<T>
     return false;
   }
 
-  bool get isPerformingTween => _isNotDisposed?(_t!=null && _t.isTicking):null;
-  bool get isNotPerformingTween => _isNotDisposed?(_t==null || !_t.isTicking):null;
+  /// States whether the [TweenNotifier] is currently performing a Tween or not (even if its in paused state)
+  ///
+  /// Returns true if it is performing a tween (playing/paused) else false.
+  bool get isPerformingTween => _isNotDisposed?_t!=null:null;
 
-  bool get hasPerformedATween => _isNotDisposed?_t!=null:null;
-  bool get hasNotPerformedATween => _isNotDisposed?_t==null:null;
+  /// States whether the [TweenNotifier] is currently performing a Tween or not (even if its in paused state)
+  ///
+  /// Returns false if it is performing a tween (playing/paused) else true.
+  bool get isNotPerformingTween => _isNotDisposed?_t==null:null;
 
+  /// Returns true is the [TweenNotifier] is paused during an animation else false is returned if the [TweenNotifier]
+  /// is playing an animation. However if it isn't performing an animation altogether, it just returns null.
   bool get isPaused => _isNotDisposed&&_t!=null&&_t.isActive?_t.muted:null;
+
+  /// Returns true is the [TweenNotifier] is playing an animation else false is returned if the [TweenNotifier] is paused.
+  /// However if it isn't performing an animation altogether, it just returns null.
   bool get isPlaying => _isNotDisposed&&_t!=null&&_t.isActive?!_t.muted:null;
 
   Future<TweenNotifier<T>> performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) async {
     if(_isNotDisposed){
       if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation. Please wait for the current animation to get over.");
-      return super.performTween(tween, duration, loop: loop, reverse: reverse, curve: curve).then((value) => this);
+      return super.performTween(tween, duration, loop: loop, reverse: reverse, curve: curve).then((value){
+        _t=null;
+        return this;
+      });
     }
     return null;
   }
@@ -3610,7 +3625,10 @@ class TweenNotifier<T> extends ValNotifier<T>
   Future<TweenNotifier<T>> performTweens(Iterable<Tween<T>> tweens, Duration duration, {int loop=1,bool reverse=false, Curve curve = Curves.linear}) async {
     if(_isNotDisposed){
       if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation. Please wait for the current animation to get over.");
-      return super.performTweens(tweens, duration, loop: loop, reverse: reverse, curve: curve).then((value) => this);
+      return super.performTweens(tweens, duration, loop: loop, reverse: reverse, curve: curve).then((value){
+        _t=null;
+        return this;
+      });
     }
     return null;
   }
@@ -3618,7 +3636,10 @@ class TweenNotifier<T> extends ValNotifier<T>
   Future<TweenNotifier<T>> performCircularTween(Tween<T> tween, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) async {
     if(_isNotDisposed){
       if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
-      return super.performCircularTween(tween, duration, circles: circles, reverse: reverse, firstCurve: firstCurve, secondCurve: secondCurve).then((value) => this);
+      return super.performCircularTween(tween, duration, circles: circles, reverse: reverse, firstCurve: firstCurve, secondCurve: secondCurve).then((value){
+        _t=null;
+        return this;
+      });
     }
     return null;
   }
@@ -3626,7 +3647,10 @@ class TweenNotifier<T> extends ValNotifier<T>
   Future<TweenNotifier<T>> interpolate(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
     if(_isNotDisposed){
       if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
-      return super.interpolate(tween, values, totalDuration, loop: loop, reverse: reverse, curve: curve, curves: curves).then((value) => this);
+      return super.interpolate(tween, values, totalDuration, loop: loop, reverse: reverse, curve: curve, curves: curves).then((value){
+        _t=null;
+        return this;
+      });
     }
     return null;
   }
@@ -3635,7 +3659,10 @@ class TweenNotifier<T> extends ValNotifier<T>
   {
     if(_isNotDisposed){
       if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
-      return super.circularInterpolation(Tween<T>(), values, totalDuration, circles: circles, firstCurve: firstCurve, secondCurve: secondCurve, firstCurves: firstCurves, secondCurves: secondCurves).then((value) => this);
+      return super.circularInterpolation(Tween<T>(), values, totalDuration, circles: circles, firstCurve: firstCurve, secondCurve: secondCurve, firstCurves: firstCurves, secondCurves: secondCurves).then((value){
+        _t=null;
+        return this;
+      });
     }
     return null;
   }

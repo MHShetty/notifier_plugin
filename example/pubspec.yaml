@@ -11,6 +11,9 @@ dependencies:
     sdk: flutter
   notifier_plugin:
     path: ..
+  flutter_webview_plugin: ^0.3.11
+  shared_preferences: ^0.5.12
+  flutter_colorpicker: ^0.3.4
 
 dev_dependencies:
   flutter_test:

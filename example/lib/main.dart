@@ -1,32 +1,41 @@
 import 'package:flutter/material.dart';
 import 'menu.dart';
+import 'storage.dart';
 import 'examples/notifier.dart';
-import 'examples/valNotifier.dart';
-import 'examples/httpNotifier.dart';
-import 'examples/swNotifier.dart';
-import 'examples/timedNotifier.dart';
+import 'examples/valnotifier.dart';
+import 'examples/tweennotifier.dart';
+import 'examples/httpnotifier.dart';
+import 'examples/swnotifier.dart';
+import 'examples/timednotifier.dart';
 
 void main() {
   runApp(ExampleApp());
+  loadRes();
 }
 
-class ExampleApp extends StatelessWidget {
+class ExampleApp extends StatelessWidget with WidgetsBindingObserver {
 
   Widget build(BuildContext context) {
     return MaterialApp(
       initialRoute: "main",
+      builder: (_,c) => ScrollConfiguration(behavior: GlowFree(), child: c),
+      debugShowCheckedModeBanner: false,
       navigatorObservers: [NavigatorObserver()],
       routes: {
-        "main":     (c) => MenuScreen(),
-        "notifier": (c)=> NotifierExample(),
-        "valNotifier": (c)=> ValNotifierExample(),
-        "httpNotifier": (c)=> HttpNotifierExample(),
-        "timedNotifier": (c)=> TimedNotifierExample(),
-        "swNotifier": (c)=> SWNotifierExample(),
+        "main": (c) => MenuScreen(),
+        "notifier": (c) => NotifierExample(),
+        "valNotifier": (c) => ValNotifierExample(),
+        "tweenNotifier": (c) => TweenNotifierExample(),
+        "httpNotifier": (c) => HttpNotifierExample(),
+        "timedNotifier": (c) => TimedNotifierExample(),
+        "swNotifier": (c) => SWNotifierExample(),
       },
     );
   }
+
 }
+
+class GlowFree extends ScrollBehavior {buildViewportChrome(_,c,__) => c;}
 
 
 

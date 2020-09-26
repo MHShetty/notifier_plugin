@@ -8,9 +8,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 
-/// Contains declarations that can be used by notifier_plugin.dart
-part 'src/init.dart';
-
 /// Contains builder Widget(s) that interface certain Notifiers
 part 'src/notification_builder.dart';
 

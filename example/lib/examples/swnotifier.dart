@@ -1,4 +1,5 @@
 import '../storage.dart';
+import 'dart:math';
 
 class SWNotifierExample extends StatelessWidget {
 
@@ -18,8 +19,7 @@ class SWNotifierExample extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: IconButton(icon: const Icon(Icons.fast_rewind), onPressed: (){
-                    swNotifier.elapsed = swNotifier.elapsed * 1.5 - swNotifier.elapsed;
-                    if(swNotifier.elapsed<const Duration(seconds: 2)) swNotifier.elapsed = Duration.zero;
+                    swNotifier.elapsed = max(swNotifier.elapsed * 1.5 - swNotifier.elapsed,Duration.zero);
                     swNotifier();
                   }, iconSize: 40.0),
                 ),

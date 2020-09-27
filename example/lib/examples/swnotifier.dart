@@ -1,23 +1,48 @@
 import '../storage.dart';
 
-class SWNotifierExample extends StatefulWidget {
-  @override
-  _SWNotifierState createState() => _SWNotifierState();
-}
-
-class _SWNotifierState extends State<SWNotifierExample> {
-
-  initState(){
-    super.initState();
-    swNotifier.start();
-  }
+class SWNotifierExample extends StatelessWidget {
 
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Mini-Stopwatch"),
+      ),
       body: Center(
-        child: swNotifier - ()=> Text(swNotifier.elapsed.toString(), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24.0)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            swNotifier - (elapsed)=> Text(elapsed.toString(), style: const TextStyle(fontSize: 24.0)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: IconButton(icon: const Icon(Icons.fast_rewind), onPressed: (){
+                    if(swNotifier.elapsed<const Duration(seconds: 2)) swNotifier.call(Duration.zero);
+                    else swNotifier.elapsed ~/= 2;
+                  }, iconSize: 40.0),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: ~(n)=>IconButton(icon: Icon(swNotifier.isPlaying?Icons.pause:Icons.play_arrow), onPressed: (){
+                    swNotifier.isPlaying?swNotifier.pause():swNotifier.play();
+                    n();
+                  }, iconSize: 40.0),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: IconButton(icon: const Icon(Icons.fast_forward), onPressed: (){
+                    if(swNotifier.elapsed==Duration.zero) swNotifier.elapsed = const Duration(seconds: 2);
+                    else swNotifier.elapsed *= 1.5;
+                    swNotifier();
+                  }, iconSize: 40.0),
+                ),
+              ],
+            )
+          ],
+        ),
       ),
     );
   }
-}
 
+}

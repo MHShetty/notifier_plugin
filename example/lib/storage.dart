@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:notifier_plugin/notifier_plugin.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -44,9 +42,9 @@ HttpNotifier httpNotifier = HttpNotifier(url: "https://www.flutter.dev", parseRe
 });
 
 /// TimedNotifier screen
-TimedNotifier timedNotifier = TimedNotifier();
+TimedNotifier timedNotifier = TimedNotifier(interval: Duration(seconds: 1), startOnInit: false);
 
 /// SWNotifier screen
-SWNotifier swNotifier = SWNotifier();
-List<Duration> laps = [];
-void lap() => laps.add(swNotifier.lap());
+SWNotifier swNotifier = SWNotifier(startOnInit: true, pauseOnInit: true);
+ValNotifier<List<Duration>> lapsN = ValNotifier(initialVal: []);
+void lap() => lapsN.val.add(swNotifier.lap());

@@ -3024,6 +3024,7 @@ class TickerNotifier extends Notifier
   bool start({bool play=true}){
     if(_isNotDisposed){
       if(_t.isActive) return false;
+      _pD = Duration.zero;
       _t.start();
       _t.muted = play!=true;
       return true;
@@ -3337,8 +3338,10 @@ class TickerValNotifier<T> extends ValNotifier<T>
   bool pause(){
     if(_isNotDisposed){
       if(_t.muted) return false;
+      _t.muted = true;
       _pT = DateTime.now();
-      return _t.muted = true;
+      call();
+      return true;
     }
     return null;
   }
@@ -3402,7 +3405,7 @@ class TickerValNotifier<T> extends ValNotifier<T>
   ///
   /// Returns [true] when the ticker has not been stopped or is in pause/play state, else [false] in
   /// stopped state.
-  bool get isActive => _isNotDisposed ? _t.isActive : null;
+  bool get isActive => _isNotDisposed ? _t?.isActive : null;
 
   /// The return value states whether a poll/tick operation is currently being performed [true] or
   /// not [false]. This getter shall throw an error if the [TickerValNotifier] is already disposed.
@@ -3862,13 +3865,14 @@ class TimedNotifier extends TickerNotifier
   }
 
   /// The [start] method can be called in order to start the internal ticker of this [TimedNotifier]
-  bool start({Duration interval,bool play=true}){
+  bool start({Duration interval,bool play=true}) {
     if(_isNotDisposed){
       if(_t.isActive) return false;
       if(interval!=null) _interval = interval;
       assert(_interval!=null,"You need to specify the interval for at least once for the $runtimeType to work as expected!");
       _ticks = 0;
       _cTicks = 0;
+      _pD = Duration.zero;
       _t.start();
       _t.muted = play!=true;
       return true;
@@ -4075,6 +4079,7 @@ class TimedValNotifier<T> extends TickerValNotifier<T>
       _ticks = 0;
       _cTicks = 0;
       _t.start();
+      _pD = Duration.zero;
       _t.muted = play!=true;
       return true;
     }
@@ -4201,7 +4206,20 @@ class SWNotifier extends TickerValNotifier<Duration>
   set elapsed(Duration elapsed) {
     assert(elapsed!=null,"$runtimeType#$hashCode: The elapsed duration of cannot be set to null!");
     if(isNotActive) throw StateError("$runtimeType#$hashCode: Couldn't modify the elapsed duration since I have not been started yet. Please use the start() method on me before trying to modify/play with this value.");
-    _start=DateTime.now()+(-elapsed);
+    if(isPlaying){
+      print(_start= DateTime.now()+(-elapsed));
+    } else {
+      _start=(_pT=DateTime.now())+(-elapsed);
+      _pD = Duration.zero;
+    }
+    call();
+  }
+
+  void something() {
+    print(_pD);
+    print(_pT);
+    print(_start);
+    print(elapsed);
   }
 
   /// Starts the internal ticker (and hence the abstract stopwatch) of the current [SWNotifier].
@@ -4351,10 +4369,10 @@ class SWNotifier extends TickerValNotifier<Duration>
   /// a moment while the [SWNotifier] is playing then please pass false to the second parameter
   /// [save]. This wouldn't jump to that the passed duration but would just notify it for a moment.
   /// However, it must be noted that it saves it, even if the save parameter is set to false.
-  SWNotifier call([Duration elapsed,bool save=true]){
+  SWNotifier call([Duration elapsed,bool save=true]) {
     if(_isNotDisposed) {
       if(_t.isActive&&save==true){
-          if(elapsed!=null) _start=DateTime.now()+(-elapsed);
+          if(elapsed!=null) this.elapsed = elapsed;
           return super.call(_elapsed);
         }
         return super.call(elapsed);

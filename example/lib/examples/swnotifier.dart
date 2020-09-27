@@ -18,8 +18,9 @@ class SWNotifierExample extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: IconButton(icon: const Icon(Icons.fast_rewind), onPressed: (){
-                    if(swNotifier.elapsed<const Duration(seconds: 2)) swNotifier.call(Duration.zero);
-                    else swNotifier.elapsed ~/= 2;
+                    swNotifier.elapsed = swNotifier.elapsed * 1.5 - swNotifier.elapsed;
+                    if(swNotifier.elapsed<const Duration(seconds: 2)) swNotifier.elapsed = Duration.zero;
+                    swNotifier();
                   }, iconSize: 40.0),
                 ),
                 Padding(

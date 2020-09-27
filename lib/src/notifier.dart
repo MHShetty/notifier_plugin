@@ -4369,7 +4369,7 @@ class SWNotifier extends TickerValNotifier<Duration>
   /// a moment while the [SWNotifier] is playing then please pass false to the second parameter
   /// [save]. This wouldn't jump to that the passed duration but would just notify it for a moment.
   /// However, it must be noted that it saves it, even if the save parameter is set to false.
-  SWNotifier call([Duration elapsed,bool save=true]) {
+  SWNotifier call([Duration elapsed,bool save=true]){
     if(_isNotDisposed) {
       if(_t.isActive&&save==true){
           if(elapsed!=null) this.elapsed = elapsed;

@@ -145,11 +145,11 @@ For now, this plugin mainly seven types of Notifiers: `Notifier`, `ValNotifier`,
 
 [Ticker(Val)Notifier](#tickernotifer): A `(Val)Notifier` that can be polled in a very controlled manner and maintains an internal default ticker just for that (infinite-controlled polling)
 
-[TimedNotifier](#timednotifier): A `Notifier` that can call itself at a certain interval (that can be varied at a later stage) with the help of a timer that is internally maintained it.
+[Timed(Val)Notifier](#timednotifier): A `Ticker(Val)Notifier` that can call itself at a certain interval (that can be varied at a later stage) with the help of a timer that is internally maintained it.
 
 [TweenNotifier](#tweennotifier): A `ValNotifier` that can perform a tween/interpolation in a very controlled manner.
 
-[SWNotifier](#swnotifier): A `ValNotifier<Duration>` that internally maintains an abstract stopwatch that 
+[SWNotifier](#swnotifier): A `TickerValNotifier<Duration>` that internally maintains an abstract stopwatch that can be used to create a stopwatch app or used for any other operation that depends on a stopwatch/a timer (neg. duration + abs()).
 
 However, the main two classes that would cover most of your basic needs are [Notifier](#notifier) and [ValNotifier](#valnotifier).
 

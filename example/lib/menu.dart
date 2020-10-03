@@ -91,7 +91,7 @@ class MenuScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                )
+                ),
               ],
             ),
       )),

@@ -56,76 +56,44 @@ class WStream<T> {
 
 extension Future_Ease<T> on Future<T> {
   FutureBuilder<T> operator -(Widget Function(AsyncSnapshot<T>) builder) =>
-      FutureBuilder<T>(
-        future: this,
-        builder: (c, s) => builder(s),
-      );
+      FutureBuilder<T>(future: this, builder: (c, s) => builder(s));
 }
 
 extension Future_Function_Ease<T> on Future<T> Function() {
   FutureBuilder<T> operator -(Widget Function(AsyncSnapshot<T>) builder) =>
-      FutureBuilder<T>(
-        future: this(),
-        builder: (c, s) => builder(s),
-      );
+      FutureBuilder<T>(future: this(), builder: (c, s) => builder(s));
 }
 
 extension Stream_Ease<T> on Stream<T> {
   StreamBuilder<T> operator -(Widget Function(AsyncSnapshot<T>) builder) =>
-      StreamBuilder<T>(
-        stream: this,
-        builder: (c, s) => builder(s),
-      );
+      StreamBuilder<T>(stream: this, builder: (c, s) => builder(s));
 }
 
 extension StreamController_Ease<T> on StreamController<T> {
   StreamBuilder<T> operator -(Widget Function(AsyncSnapshot<T>) builder) =>
-      StreamBuilder<T>(
-        stream: stream,
-        builder: (c, s) => builder(s),
-      );
+      StreamBuilder<T>(stream: stream, builder: (c, s) => builder(s));
 }
 
 extension Stream_Function_Ease<T> on Stream<T> Function() {
   StreamBuilder<T> operator -(Widget Function(AsyncSnapshot<T>) builder) =>
-      StreamBuilder<T>(
-        stream: this(),
-        builder: (c, s) => builder(s),
-      );
+      StreamBuilder<T>(stream: this(), builder: (c, s) => builder(s));
 }
 
 extension ChangeNotifier_Ease on ChangeNotifier {
   ChangeNotifierBuilder operator -(Widget Function() builder) =>
-      ChangeNotifierBuilder(
-        changeNotifier: this,
-        builder: (c) => builder(),
-      );
+      ChangeNotifierBuilder(changeNotifier: this, builder: (c) => builder());
 }
 
 extension Iterable_ChangeNotifier_Ease on Iterable<ChangeNotifier> {
   MultiChangeNotifierBuilder operator -(Widget Function() builder) =>
-      MultiChangeNotifierBuilder(
-        changeNotifiers: this,
-        builder: (c) => builder(),
-      );
+      MultiChangeNotifierBuilder(changeNotifiers: this, builder: (c) => builder());
 }
+
 
 extension ValueNotifier_Ease<T> on ValueNotifier<T> {
-
   ChangeNotifierBuilder operator -(Widget Function(T) builder) =>
-      ChangeNotifierBuilder(
-        changeNotifier: this,
-        builder: (c) => builder(value),
-      );
+      ChangeNotifierBuilder(changeNotifier: this, builder: (c) => builder(value));
 }
-
-// extension Iterable_ValueNotifier_Ease<T> on Iterable<ValueNotifier<T>>
-// {
-//   MultiChangeNotifierBuilder operator-(Widget Function(T) builder) => MultiChangeNotifierBuilder(
-//     changeNotifiers: this,
-//     builder: (c)=>builder(),
-//   );
-// }
 
 class ChangeNotifierBuilder extends StatefulWidget {
 
@@ -169,30 +137,25 @@ class MultiChangeNotifierBuilder extends StatefulWidget {
 
   MultiChangeNotifierBuilder({this.changeNotifiers, this.builder});
 
-  _MultiChangeNotifierBuilderState createState() =>
-      _MultiChangeNotifierBuilderState();
+  _MultiChangeNotifierBuilderState createState() => _MultiChangeNotifierBuilderState();
 }
 
 class _MultiChangeNotifierBuilderState
     extends State<MultiChangeNotifierBuilder> {
   void initState() {
     super.initState();
-    widget.changeNotifiers
-        .forEach((changeNotifier) => changeNotifier.addListener(_setState));
+    widget.changeNotifiers.forEach((changeNotifier) => changeNotifier.addListener(_setState));
   }
 
   void dispose() {
-    widget.changeNotifiers
-        .forEach((changeNotifier) => changeNotifier.addListener(_setState));
+    widget.changeNotifiers.forEach((changeNotifier) => changeNotifier.addListener(_setState));
     super.dispose();
   }
 
   void didUpdateWidget(MultiChangeNotifierBuilder oldWidget) {
     if (oldWidget.changeNotifiers != widget.changeNotifiers) {
-      oldWidget.changeNotifiers.forEach(
-          (changeNotifier) => changeNotifier.removeListener(_setState));
-      widget.changeNotifiers
-          .forEach((changeNotifier) => changeNotifier.addListener(_setState));
+      oldWidget.changeNotifiers.forEach((changeNotifier) => changeNotifier.removeListener(_setState));
+      widget.changeNotifiers.forEach((changeNotifier) => changeNotifier.addListener(_setState));
     }
     super.didUpdateWidget(oldWidget);
   }
@@ -201,22 +164,6 @@ class _MultiChangeNotifierBuilderState
 
   @override
   Widget build(BuildContext context) => widget.builder(context);
-}
-
-class SmartCircularProgressIndicator extends StatelessWidget {
-  const SmartCircularProgressIndicator();
-
-  Widget build(BuildContext context) {
-    return Center(
-      child: FittedBox(
-        fit: BoxFit.contain,
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: CircularProgressIndicator(),
-        ),
-      ),
-    );
-  }
 }
 
 extension ChangeNotifier_Extension on ChangeNotifier
@@ -283,5 +230,21 @@ extension IterableValueNotifier_Extension<T> on Iterable<ValueNotifier<T>>
     // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
     forEach((cn){cn(value,save);});
     return this;
+  }
+}
+
+class SmartCircularProgressIndicator extends StatelessWidget {
+  const SmartCircularProgressIndicator();
+
+  Widget build(BuildContext context) {
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+    );
   }
 }

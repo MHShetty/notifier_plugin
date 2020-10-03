@@ -3,17 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart';
 
-// import 'package:flutter/services.dart';
+import 'package:flutter/services.dart';
 export 'package:flutter/material.dart';
 export 'package:notifier_plugin/notifier_plugin.dart';
 
 void loadRes() async {
   todos = (await sp.future).getStringList("todos") ?? [];
-  // SystemChannels.lifecycle.setMessageHandler((m) async {
-  //   print("System Channel $m");
-  //   // SharedPreferences.getInstance().then((sp) => sp.setStringList("todos", todos));
-  //   return "";
-  // });
+  SystemChannels.lifecycle.setMessageHandler((m) async {
+    (await sp.future).setStringList("todos", todos);
+    return "";
+  });
 }
 
 ValNotifier<String> mainTitle = ValNotifier(initialVal: "An example app");

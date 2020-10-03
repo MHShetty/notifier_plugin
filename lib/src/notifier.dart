@@ -4206,12 +4206,15 @@ class SWNotifier extends TickerValNotifier<Duration>
   set elapsed(Duration elapsed) {
     assert(elapsed!=null,"$runtimeType#$hashCode: The elapsed duration of cannot be set to null!");
     if(isNotActive) throw StateError("$runtimeType#$hashCode: Couldn't modify the elapsed duration since I have not been started yet. Please use the start() method on me before trying to modify/play with this value.");
+    bool _ = isPlaying;
+    if(_==true) pause();
     if(isPlaying){
-      print(_start= DateTime.now()+(-elapsed));
+      _start= DateTime.now()+(-elapsed);
     } else {
       _start=(_pT=DateTime.now())+(-elapsed);
       _pD = Duration.zero;
     }
+    if(_==true) play();
     call();
   }
 

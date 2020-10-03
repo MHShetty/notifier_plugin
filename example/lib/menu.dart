@@ -75,7 +75,7 @@ class MenuScreen extends StatelessWidget {
                         contentPadding: EdgeInsets.symmetric(horizontal: 10.0,vertical: 4.0),
                         onTap: ()=>Navigator.of(context).pushNamed("httpNotifier"),
                         title: Text("4. HttpNotifier"),
-                        subtitle: Text("A simple example that uses a HttpNotifier. A mini-custom http request-er that prints the retrieved response. (Current URL: ${httpNotifier.url})"),
+                        subtitle: Text("A simple example that uses a HttpNotifier to implement a http request-er that prints the retrieved response. (Current URL: ${httpNotifier.url})"),
                       ),
                       ListTile(
                         contentPadding: EdgeInsets.symmetric(horizontal: 10.0,vertical: 4.0),

@@ -87,7 +87,7 @@ class MenuScreen extends StatelessWidget {
                         contentPadding: EdgeInsets.symmetric(horizontal: 10.0,vertical: 4.0),
                         onTap: ()=>Navigator.of(context).pushNamed("swNotifier"),
                         title: Text("6. SWNotifier"),
-                        subtitle: swNotifier - ()=> Text("A simple example that implements a stopwatch with the help of a SWNotifier. (Last elapsed: ${swNotifier.elapsed})"),
+                        subtitle: swNotifier - ()=> Text("A simple example that implements a stopwatch with the help of a SWNotifier. (Last elapsed: ${swNotifier.elapsed}; Laps: ${lapsN.val.length})"),
                       ),
                     ],
                   ),

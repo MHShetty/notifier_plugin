@@ -47,4 +47,7 @@ TimedNotifier timedNotifier = TimedNotifier(interval: Duration(seconds: 1), star
 /// SWNotifier screen
 SWNotifier swNotifier = SWNotifier(startOnInit: true, pauseOnInit: true);
 ValNotifier<List<Duration>> lapsN = ValNotifier(initialVal: []);
-void lap() => lapsN.val.add(swNotifier.lap());
+void lap(){
+  lapsN.val.add(swNotifier.lap());
+  lapsN();
+}

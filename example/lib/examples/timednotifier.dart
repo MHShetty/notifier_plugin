@@ -26,21 +26,18 @@ class _TimedNotifierExampleState extends State<TimedNotifierExample> {
         body: Stack(
           children: [
             timedNotifier - (){
-            // The widget tree initially builds twice
-            tn.animate(0, 1, timedNotifier.interval - const Duration(milliseconds: 100)).catchError((e)=>null);
-            return tn - (d)=> Center(
-              child: Container(
-                width:  100.0 + (200.0 * d),
-                height: 100.0 + (200.0 * d),
-                decoration: BoxDecoration(
+              // The widget tree initially builds twice
+              tn.animate(0, 1, timedNotifier.interval - const Duration(milliseconds: 100)).catchError((e)=>null);
+              return tn - (d)=> Center(
+                child: Container(
+                  width:  100.0 + (200.0 * d),
+                  height: 100.0 + (200.0 * d),
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      radius: 1.0 - d,
-                      colors: [Colors.yellow, Colors.lightBlueAccent[200]],
-                    )
+                    gradient: RadialGradient(radius: 1.0 - d, colors: [Colors.yellow, Colors.lightBlueAccent[200]]),
+                  ),
                 ),
-              ),
-            );
+              );
             },
             const Center(
               child: SizedBox(

@@ -1,6 +1,6 @@
 part of notifier_plugin;
 
-/// NotifiableChild Widget (Might get removed)
+/// NotifiableChild Widget (Might get removed in the future)
 @deprecated
 class NotifiableChild extends StatefulWidget {
 
@@ -317,18 +317,25 @@ class _ValNotificationBuilderState<T> extends State<ValNotificationBuilder<T>> {
   build(BuildContext context) => widget.builder(context, widget.notifier.val);
 }
 
-/// Extensions to add syntactic sugar while using the above widgets
+// Extensions to add syntactic sugar while using the above widgets
 
+/// Enables the developer to use the operator '-' to attach a [Notifier] to a widget.
 extension Notifiable_Widget on Widget {
   @deprecated
   NotifiableChild operator -(Iterable<Notifier> notifier) =>NotifiableChild(notifier: notifier, child: this);
 }
 
+/// Enables the developer to use the operator '-' to attach a [Notifier] to a WidgetBuilder function.
 extension Notifiable__Widget on Widget Function(BuildContext) {
   SimpleNotificationBuilder operator -(Iterable<Notifier> notifier) =>
       SimpleNotificationBuilder(notifier: notifier, builder: this);
 }
 
+/// Enables the developer to use the operator '~' to implicitly instantiate and attach the passed [Widget Function(Notifier)] to
+/// a [Notifier].
+///
+/// The instance of the [Notifier] that was implicitly instantiated can be obtained by the first (and only) parameter of the
+/// passed function. The returned widget is the widget that needs to be rendered.
 extension Temp_Notifier on Widget Function(Notifier) {
   SimpleNotificationBuilder operator ~() {
     Notifier notifier = Notifier();
@@ -336,6 +343,11 @@ extension Temp_Notifier on Widget Function(Notifier) {
   }
 }
 
+/// Enables the developer to use the operator '~' to implicitly instantiate and attach the passed [Widget Function(Notifier)] to
+/// a [ValNotifier]<[T]>.
+///
+/// The instance of the [ValNotifier]<[T]> that was implicitly instantiated can be obtained by the first (and only) parameter of the
+/// passed function. The returned widget is the widget that needs to be rendered.
 extension Temp_ValNotifier<T> on Widget Function(ValNotifier<T>,T){
   SimpleNotificationBuilder operator ~(){
     ValNotifier<T> valNotifier = ValNotifier<T>();

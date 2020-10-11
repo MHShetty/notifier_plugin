@@ -1,6 +1,7 @@
 part of notifier_plugin;
 
-class WFuture<T> {
+class WFuture<T>
+{
   final Future<T> future;
   Widget Function() onLoading;
   Widget Function(dynamic) onError;
@@ -14,9 +15,10 @@ class WFuture<T> {
           if (s.hasError) if (onError == null) {
             debugPrint(s.error.toString());
             return Center(
-                child: Text(s.error.toString(),
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center));
+              child: Text(s.error.toString(),
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center),
+            );
           } else
             return onError(s.error) ??
                 Center(
@@ -140,8 +142,8 @@ class MultiChangeNotifierBuilder extends StatefulWidget {
   _MultiChangeNotifierBuilderState createState() => _MultiChangeNotifierBuilderState();
 }
 
-class _MultiChangeNotifierBuilderState
-    extends State<MultiChangeNotifierBuilder> {
+class _MultiChangeNotifierBuilderState extends State<MultiChangeNotifierBuilder> {
+
   void initState() {
     super.initState();
     widget.changeNotifiers.forEach((changeNotifier) => changeNotifier.addListener(_setState));

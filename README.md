@@ -2,11 +2,7 @@
 
 A Flutter plugin makes state management and building dynamic user interfaces easier and more efficient than it could ever be!
 
-Please don't use this plugin in production code (until this line is removed).
-
-(The complete documentation will soon be added!)
-
-## Random examples (temporary)
+## Overview
 
 Imagine if you could `setState`(rebuild) a part of your widget tree without actually designing a new class,
 ```Dart

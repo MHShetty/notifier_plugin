@@ -2,7 +2,7 @@
 
 A Flutter plugin makes state management and building dynamic user interfaces easier and more efficient than it could ever be!
 
-
+![A glimpse of the app's menu screen](gifs/intro.gif)
 
 ## Overview
 
@@ -633,17 +633,27 @@ class MyApp extends StatelessWidget {
 
 ## Notifier
 
-
+![](gifs/notifier.gif)
 
 ## ValNotifier
 
+![](gifs/valnotifier.gif)
 
+## TweenNotifier
+
+![](gifs/tweennotifier.gif)
 
 ## HttpNotifier 
 
-## TimedNotifier (Needs to be implemented)
+![](gifs/httpnotifier.gif)
 
-## TweenNotifier (Needs to be implemented)
+## Timed(Val)Notifier
+
+![](gifs/timednotifier.gif)
+
+## SWNotifier
+
+![](gifs/swnotifier.gif)
 
 ## State management with notifier_plugin
 

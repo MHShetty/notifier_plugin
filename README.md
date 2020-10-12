@@ -37,7 +37,7 @@ int i = 0;
 
 or recursively pass values with the help of a `ValNotifier`,
 
-```
+```Dart
 ~(n,v) => FlatButton(
   child: Text((v??=0).toString()), // starts with null
   onPressed: ()=>n(v+1),
@@ -48,7 +48,7 @@ without actually really writing any code (apart from the logic to be implemented
 
 But what if one wants to update the UI from any other place in the app?
 
-```
+```Dart
 // Explicitly declare the Notifier
 Notifier n = Notifier();
 // Note: n can now be called from literally any corner of the app.
@@ -69,7 +69,7 @@ Column(
 
 and maybe receive the value that is being notified (ValNotifier)
 
-```
+```Dart
 ValNotifier n = ValNotifier(initialVal: 0);
 
 // [...]
@@ -86,7 +86,7 @@ Column(
 
 A ChangeNotifier/ValueNotifier/Stream(Controller) can too be treated in a similar way...
 
-```
+```Dart
 changeNotifier - () => Text("Will surely accept no parameters"),
 valueNotifier  - (value) => Text("Will surely accept a single parameter ($value)"),
 stream - (snapshot) => Text(snapshot.hasError?"Error: ${snapshot.error}":"Data: ${snapshot.data}"),
@@ -95,14 +95,14 @@ streamController - (snapshot) => Text(snapshot.hasError?"Error: ${snapshot.error
 
 And since almost every controller is a ChangeNotifier/ValueNotifier, one could easily re-use a controller in this way.
 
-```
+```Dart
 textEditingController - (textEditingValue) => Text(textEditingValue.text), // ValueNotifier
 scrollController - () => Text(scrollController.offset.toString()), // ChangeNotifier
 ```
 
 Using futures while designing a widget tree has got a lot more approach-able. One could either simply use a Future<T> or a WFuture<T> (for common loading and error UI)
 
-```
+```Dart
 future - (snapshot) => snapshot.hasData?Text(snapshot.data.toString()):snapshot.hasError?Text(snapshot.error.toString()):SmartCircularProgressIndicator(),
 WFuture(future) - (data) => Text(data.toString()), // WFuture does explicitly accept the builder to be used when the future gets completed with an error and when the UI is still loading (Also, the WFuture is expected to be stored in a variable.
 ```

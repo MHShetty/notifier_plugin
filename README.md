@@ -1,10 +1,15 @@
 # notifier_plugin
 
-A Flutter plugin makes state management and building dynamic user interfaces easier and more efficient than it could ever be!
+A Flutter plugin that makes state management and building dynamic user interfaces easier and more efficient than it could ever be!
+
+Just design the widget tree with respect to certain variables and use the plugin to do the rest of the magic (i.e. add reactivity to the app).
+
+The plugin also provides extension methods over existing classes that adds some more magic to your development experience! (eg. attaching a controller to a Widget)
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/intro.gif">
 </p>
+
 <!-- ![A glimpse of the app's menu screen](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/intro.gif) -->
 
 ## Overview
@@ -26,10 +31,10 @@ Or even better, be able to dynamically pass a value to that part of the tree,
 
 ```Dart
   // [...]
-  ~(n,v)=>RaisedButton(
-      child: Text(v?.toString()??"0"),
-      onPressed: ()=>n((v??0)+1),
-    ) // Something similar to the counter app
+  ~(n,v) => RaisedButton(
+    child: Text(v?.toString()??"0"),
+    onPressed: ()=>n((v??0)+1),
+  ) // Something similar to the counter app
   // [...]
 ```
 

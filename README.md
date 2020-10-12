@@ -2,7 +2,7 @@
 
 A Flutter plugin makes state management and building dynamic user interfaces easier and more efficient than it could ever be!
 
-![A glimpse of the app's menu screen](gifs/intro.gif)
+![A glimpse of the app's menu screen](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/intro.gif)
 
 ## Overview
 
@@ -633,27 +633,27 @@ class MyApp extends StatelessWidget {
 
 ## Notifier
 
-![](gifs/notifier.gif)
+![Nptifier Example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/notifier.gif)
 
 ## ValNotifier
 
-![](gifs/valnotifier.gif)
+![ValNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/valnotifier.gif)
 
 ## TweenNotifier
 
-![](gifs/tweennotifier.gif)
+![TweenNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/tweennotifier.gif)
 
 ## HttpNotifier 
 
-![](gifs/httpnotifier.gif)
+![HttpNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/httpnotifier.gif)
 
 ## Timed(Val)Notifier
 
-![](gifs/timednotifier.gif)
+![Timed(Val)Notifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/timednotifier.gif)
 
 ## SWNotifier
 
-![](gifs/swnotifier.gif)
+![SWNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/swnotifier.gif)
 
 ## State management with notifier_plugin
 

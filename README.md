@@ -4,84 +4,26 @@ A Flutter plugin that makes state management and building dynamic user interface
 
 Just design the widget tree with respect to certain variables and use the plugin to do the rest of the magic (i.e. add reactivity to the app).
 
+This plugin also provides extension methods over certain existing classes that adds some more magic to your development experience! (eg. attaching a controller to a Widget, bringing animations to life just with the help of a single independent object and a lot of other features)
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/intro.gif">
 </p>
 
-This plugin also provides certain extension methods over existing classes that adds some more magic to your development experience and many other such exciting features! (eg. attaching a controller to a Widget, bringing animations to life just with the help of a single independent object and lots more.)
+## Contents
 
-<!-- ![A glimpse of the app's menu screen](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/intro.gif) -->
+* [Usage](#usage)
+* [Introduction and Overview](#introduction-and-overview)
+* [Concepts used while designing the classes in this plugin](#concepts-used-while-designing-the-classes-in-this-plugin)
+* [Types of Notifiers](#types-of-notifiers)
+* [State management with notifier_plugin](#state-management-with-notifier_plugin)
+* [The magic of extension methods and operator overloading](#the-magic-of-extension-methods-and-operator-overloading)
+* [The special case of "Notifier extends Iterable\<Notifier>"](#the-special-case-of-notifier-extends-iterablenotifier)
 
-## Overview
 
-Imagine if you could `setState`(rebuild) a part of your widget tree without actually designing a new class,
+## Usage
 
-```Dart
-  int i = 0;
-  
-  // [...]
-  ~(n)=>RaisedButton(
-      child: Text((++i).toString()),
-      onPressed: n,
-    ) // n is a callable object
-  //[...] 
-```
 
-Or even better, be able to dynamically pass a value to that part of the tree,
-
-```Dart
-  // [...]
-  ~(n,v) => RaisedButton(
-    child: Text(v?.toString()??"0"),
-    onPressed: ()=>n((v??0)+1),
-  ) // Something similar to the counter app
-  // [...]
-```
-
-Or maybe control that part of the tree from another dimension altogether?
-
-```Dart
-  Notifier n = Notifier(); // Globally declared
-  
-  // Dimension 1
-  int i = 0;
-  // [...]
-    n-()=>Text((++i).toString())
-  // [...]
-  
-  // Dimension 2
-  // [...]
-    RaisedButton(
-      child: Text("Refresh Me"),
-      onPressed: n,
-    )
-  // [...]
-```
-(Note: The Notifier could be declared within the same class to sync between two widgets of the same tree)
-
-or maybe even pass a value to another dimension.
-
-```Dart
-  ValNotifier n = ValNotifier(initialVal: 0);
-  
-  // Dimension 1
-  // [...]
-    n-(v)=> Text(v.toString())
-  // [...]
-  
-  // Dimension 2
-  // [...]
-    RaisedButton(
-      child: Text("Increment"),
-      onPressed: ()=> n(n.val+1),
-    ),
-  // [...]
-```
-(Note: `~(n,v)=>` can be attached to a Widget that can hold both the above widgets to avoid declaring a ValNotifier for the same)
-
-The `notifier_plugin` has got you covered.
-
-Want to notify multiple values? Try notifying an `Iterable` like `List` or if neccessary a custom object instead!
 
 ## Introduction and Overview
 
@@ -107,11 +49,11 @@ However, the main two classes that would cover most of your basic needs are [Not
 
 These `Notifier`(s) and the extension methods used on certain pre-defined types overload certain operator methods in a specific way to help developers quickly implement dynamic UI in Flutter in a scalable manner with minimal effort/code. (Read more about it in [this section](#the-magic-of-extension-methods-and-operator-overloading).)
 
-Not sure with how you can use this plugin for state management? [This section](#state-management-with) might be a small help you. 
+Not sure with how you can use this plugin for state management? [This section](#state-management-with-the-) might be a small help you. 
 
 Also, it might be worth reading the [special case of Notifier extends Iterable\<Notifier>](#the-special-case-of-notifier-extends-iterablenotifier) used in this plugin.
 
-## Concepts used while designing the Notifier classes
+## Concepts used while designing the classes in this plugin
 
 ### Instantiating a Notifier
 
@@ -639,7 +581,9 @@ class MyApp extends StatelessWidget {
 // Note: This code was only statically tested. (I have some issue with my system...so that's the reason for this delay (I'm using dartpad.dev for now)
 ```
 
-## Notifier
+## Types of Notifiers
+
+### Notifier
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/notifier.gif">
@@ -647,7 +591,7 @@ class MyApp extends StatelessWidget {
 
 <!-- ![Nptifier Example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/notifier.gif) -->
 
-## ValNotifier
+### ValNotifier
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/valnotifier.gif">
@@ -655,7 +599,7 @@ class MyApp extends StatelessWidget {
 
 <!-- ![ValNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/valnotifier.gif) -->
 
-## TweenNotifier
+### TweenNotifier
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/tweennotifier.gif">
@@ -663,7 +607,7 @@ class MyApp extends StatelessWidget {
 
 <!-- ![TweenNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/tweennotifier.gif) -->
 
-## HttpNotifier 
+### HttpNotifier 
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/httpnotifier.gif">
@@ -671,7 +615,7 @@ class MyApp extends StatelessWidget {
 
 <!-- ![HttpNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/httpnotifier.gif) -->
 
-## Timed(Val)Notifier
+### Timed(Val)Notifier
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/timednotifier.gif">
@@ -679,7 +623,7 @@ class MyApp extends StatelessWidget {
 
 <!-- ![Timed(Val)Notifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/timednotifier.gif) -->
 
-## SWNotifier
+### SWNotifier
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/swnotifier.gif">
@@ -935,7 +879,7 @@ class HelloWorld extends StatelessWidget {
 
 ## The magic of extension methods and operator overloading
 
-[...]
+The extension methods used in this plugin enable a developer to do a lot of things with minimal or negligible amount of code.
 
 For example you could,
 

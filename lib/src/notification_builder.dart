@@ -1,43 +1,43 @@
 part of notifier_plugin;
 
-/// NotifiableChild Widget (Might get removed in the future)
-@deprecated
-class NotifiableChild extends StatefulWidget {
-
-  final Iterable<Notifier> notifier;
-  final Widget child;
-
-  NotifiableChild({@required this.notifier, @required this.child});
-
-  @override
-  _NotifiableChildState createState() => _NotifiableChildState();
-}
-
-@deprecated
-class _NotifiableChildState extends State<NotifiableChild> {
-
-  void initState() {
-    super.initState();
-    widget.notifier.addListener(_setState);
-  }
-
-  void dispose() {
-    widget.notifier.removeListener(_setState);
-    super.dispose();
-  }
-
-  void didUpdateWidget(NotifiableChild oldWidget) {
-    if (oldWidget.notifier != widget.notifier) {
-      oldWidget.notifier.removeListener(_setState);
-     widget.notifier.addListener(_setState);
-    }
-    super.didUpdateWidget(oldWidget);
-  }
-
-  void _setState() => setState((){});
-
-  Widget build(BuildContext context) => widget.child;
-}
+// /// NotifiableChild Widget (Might get removed in the future)
+// @deprecated
+// class NotifiableChild extends StatefulWidget {
+//
+//   final Iterable<Notifier> notifier;
+//   final Widget child;
+//
+//   NotifiableChild({@required this.notifier, @required this.child});
+//
+//   @override
+//   _NotifiableChildState createState() => _NotifiableChildState();
+// }
+//
+// @deprecated
+// class _NotifiableChildState extends State<NotifiableChild> {
+//
+//   void initState() {
+//     super.initState();
+//     widget.notifier.addListener(_setState);
+//   }
+//
+//   void dispose() {
+//     widget.notifier.removeListener(_setState);
+//     super.dispose();
+//   }
+//
+//   void didUpdateWidget(NotifiableChild oldWidget) {
+//     if (oldWidget.notifier != widget.notifier) {
+//       oldWidget.notifier.removeListener(_setState);
+//      widget.notifier.addListener(_setState);
+//     }
+//     super.didUpdateWidget(oldWidget);
+//   }
+//
+//   void _setState() => setState((){});
+//
+//   Widget build(BuildContext context) => widget.child;
+// }
 
 /// A [SimpleNotificationBuilder] is a [NotificationBuilder] that is a bit simpler. It only accepts a set of [notifier]s and
 /// a [builder] function that executes to return a [Widget] to the main build method of this this widget, whenever it gets
@@ -319,12 +319,6 @@ class _ValNotificationBuilderState<T> extends State<ValNotificationBuilder<T>> {
 
 // Extensions to add syntactic sugar while using the above widgets
 
-/// Enables the developer to use the operator '-' to attach a [Notifier] to a widget.
-extension Notifiable_Widget on Widget {
-  @deprecated
-  NotifiableChild operator -(Iterable<Notifier> notifier) =>NotifiableChild(notifier: notifier, child: this);
-}
-
 /// Enables the developer to use the operator '-' to attach a [Notifier] to a WidgetBuilder function.
 extension Notifiable__Widget on Widget Function(BuildContext) {
   SimpleNotificationBuilder operator -(Iterable<Notifier> notifier) =>
@@ -354,3 +348,9 @@ extension Temp_ValNotifier<T> on Widget Function(ValNotifier<T>,T){
     return SimpleNotificationBuilder(notifier: valNotifier, builder: (c)=>this(valNotifier,valNotifier.val));
   }
 }
+
+// /// Enables the developer to use the operator '-' to attach a [Notifier] to a widget.
+// extension Notifiable_Widget on Widget {
+//   @deprecated
+//   NotifiableChild operator -(Iterable<Notifier> notifier) =>NotifiableChild(notifier: notifier, child: this);
+// }

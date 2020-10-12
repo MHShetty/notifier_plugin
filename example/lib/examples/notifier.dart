@@ -1,7 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../storage.dart';
 
-final TextEditingController tEC = TextEditingController();
+TextEditingController tEC;
 
 class NotifierExample extends StatefulWidget {
   @override
@@ -9,6 +9,19 @@ class NotifierExample extends StatefulWidget {
 }
 
 class _NotifierExampleState extends State<NotifierExample> {
+
+  @override
+  void initState(){
+    super.initState();
+    tEC = TextEditingController();
+  }
+
+  @override
+  void dispose(){
+    super.dispose();
+    tEC.dispose();
+    SharedPreferences.getInstance().then((sp) => sp.setStringList("todos", todos));
+  }
 
   Widget build(BuildContext context) {
 
@@ -18,7 +31,7 @@ class _NotifierExampleState extends State<NotifierExample> {
           title: Text("Basic Todo List"),
           centerTitle: true,
           actions: [
-            Builder(
+            tEC - (c)=>todos.isEmpty?const SizedBox():Builder(
               builder: (c){
                 return IconButton(icon: Icon(Icons.clear), onPressed: (){
                   if(todos.isEmpty){
@@ -49,8 +62,9 @@ class _NotifierExampleState extends State<NotifierExample> {
                           onPressed: (){
                             if(tEC.text=="") return;
                             todos.add(tEC.text);
-                            tEC.text = "";
+                            tEC.clear();
                             todosN();
+                            tEC.clear();
                           })
                   ),
                   onFieldSubmitted: (s){
@@ -79,12 +93,6 @@ class _NotifierExampleState extends State<NotifierExample> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    SharedPreferences.getInstance().then((sp) => sp.setStringList("todos", todos));
   }
 }
 

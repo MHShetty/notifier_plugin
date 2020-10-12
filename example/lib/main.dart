@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'menu.dart';
 import 'storage.dart';
 import 'examples/notifier.dart';
-import 'examples/valnotifier.dart';
-import 'examples/tweennotifier.dart';
-import 'examples/httpnotifier.dart';
-import 'examples/swnotifier.dart';
-import 'examples/timednotifier.dart';
+import 'examples/valNotifier.dart';
+import 'examples/tweenNotifier.dart';
+import 'examples/httpNotifier.dart';
+import 'examples/swNotifier.dart';
+import 'examples/timedNotifier.dart';
 
 void main() {
   runApp(ExampleApp());
@@ -16,6 +16,7 @@ void main() {
 class ExampleApp extends StatelessWidget with WidgetsBindingObserver {
 
   Widget build(BuildContext context) {
+
     return MaterialApp(
       initialRoute: "main",
       builder: (_,c) => ScrollConfiguration(behavior: GlowFree(), child: c),

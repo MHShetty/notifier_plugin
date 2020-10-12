@@ -1,6 +1,6 @@
 name: notifier_plugin
 description: A Flutter package that makes state management easier and more efficient than it could have ever been!
-version: 0.0.3
+version: 0.0.8
 repository: https://github.com/thehumankid/notifier_plugin
 
 environment:

@@ -10,13 +10,13 @@ part of notifier_plugin;
 /// * Make one/multiple notifier(s) listen to one/multiple notifier(s)
 /// * (Un)lock a notifier to prevent addition/deletion of listeners
 /// * Poll a notifier for a fixed number of times or over a fixed duration.
-/// * Attach a Stream/ChangeNotifier to a Notifier.
+/// * Attach a [Stream]/[ChangeNotifier] to a [Notifier].
 /// * Notify/delete a specific (set of) listener(s) by just knowing its/their hashCode(s) or references
 /// * Merge one/multiple notifier(s) into a single notifier
 /// * Re-init a disposed notifier.
 /// * Clear the listeners of a notifier.
 /// * Check the state of the notifier through different getter/setter methods.
-/// * Use the - operator to attach a WidgetBuilder(/handled function) to a Notifier (abstract)
+/// * Use the [operator -] to attach a [WidgetBuilder] (/handled function) to a [Notifier] (abstract)
 ///
 /// However, you'll have to maintain a separate buffer and design your widget tree according to that buffer to actually
 /// deal with data. To overcome that, the [ValNotifier] class was made.
@@ -79,7 +79,8 @@ class Notifier extends Iterable<Notifier> {
   /// This method polls a Notifier with notifications over a fixed [duration] of time and returns
   /// the current instance of [Notifier] as a [Future]. A TickerProvider can be provided to this
   /// method via the [vsync] parameter.
-  Future<Notifier> pollFor(Duration duration, {TickerProvider vsync}) {
+  Future<Notifier> pollFor(Duration duration, {TickerProvider vsync})
+  {
     if (_isNotDisposed) {
       Ticker t;
       Function onTick = (d) {
@@ -565,7 +566,7 @@ class Notifier extends Iterable<Notifier> {
   bool removeListener(Function listener) =>
       _isNotDisposed ? _removeListener(listener) : null;
 
-  bool _removeListener(Function listener){
+  bool _removeListener(Function listener) {
     try{
       _listeners.remove(listener);
       return true;
@@ -678,7 +679,7 @@ class Notifier extends Iterable<Notifier> {
   operator -(_) {
     if (_ == null) return null;
     if (_ is Iterable<Notifier>) return merge(_);
-    if (_ is Widget) return NotifiableChild(notifier: this, child: _);
+    // if (_ is Widget) return NotifiableChild(notifier: this, child: _);
     if (_ is Function(dynamic)) return SimpleNotificationBuilder(notifier: this, builder: (c)=>_(null));
     if (_ is Function()) return SimpleNotificationBuilder(notifier: this, builder: (c) => _());
     if (_ is Function(BuildContext,dynamic)) return SimpleNotificationBuilder(notifier: this, builder: (c) => _(c,null));
@@ -2198,7 +2199,7 @@ class ValNotifier<T> extends Notifier
     if (_ is Function()) return NotificationBuilder(notifier: this, builder: (c) => _());
     if (_ is Function(T)) return NotificationBuilder(notifier: this, builder: (c) => _(_val));
     if (_ is Function(BuildContext, T)) return NotificationBuilder(notifier: this, builder: (c) => _(c, _val));
-    if (_ is Widget) return NotifiableChild(notifier: this, child: _);
+    // if (_ is Widget) return NotifiableChild(notifier: this, child: _);
     throw UnsupportedError("$runtimeType<$T>#$hashCode: $runtimeType<$T>'s operator - does not support ${_.runtimeType}.");
   }
 

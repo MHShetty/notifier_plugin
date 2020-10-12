@@ -1,13 +1,32 @@
 part of notifier_plugin;
 
+/// [WFuture]<[T]> is a special helper class that enables a developer to define a common loader ([onLoading]), error handler
+/// [onError] and the [future] around which everything else is supposed to be wrapped.
+///
+/// The operator [-] can be used to pass a [Widget] Function([T]) that is called when the future gets/is successfully completed
+/// in order to obtain the Widget to be rendered then. The function gets the data with which the [future] was completed. If an
+/// error is thrown, the [onError] method is called instead.
 class WFuture<T>
 {
+
+  /// The [Future]<[T]> around which everything else in this class is wrapped.
   final Future<T> future;
+
+  /// The return value of this function would determine the [Widget] to be rendered, until the [future] does not get complete.
+  /// (Default: [SmartCircularProgressIndicator])
   Widget Function() onLoading;
+
+  /// This function accepts the error with which the [future] was completed and the return value determines the [Widget] to be
+  /// rendered if the [future] completes with an error. (Default: A [Text] widget that renders the string representation of the
+  /// error that was obtained, when the future was complete)
   Widget Function(dynamic) onError;
 
+  /// A constructor that instantiates a [WFuture]<[T]>.
   WFuture(this.future, {this.onLoading, this.onError});
 
+  /// The operator [-] can be used to pass a '[Widget] Function([T])' that is called when the future gets/is successfully completed
+  /// in order to obtain the Widget to be rendered then. The function gets the data with which the [future] was completed. If an
+  /// error is thrown, the [onError] method is called instead.
   FutureBuilder<T> operator -(Widget Function(T) onData) => FutureBuilder<T>(
         future: future,
         builder: (c, s) {
@@ -32,13 +51,29 @@ class WFuture<T>
       );
 }
 
+/// [WStream]<[T]> is a special helper class that enables the developer to easily design UI that depends on a Stream to be more
+/// dynamic or to be in-sync with some data/state in real-time. The return value of the [onLoading] method determines the widget
+/// to be rendered when the stream is loading and the return value of the [onError] method after passing the error obtained
+/// determines the widget to be rendered when the Stream receives an error. The widget to be rendered when a piece of data is
+/// normally received is determined by the [Widget] Function([T]) passed to the [operator -] that determines the widget to be
+/// rendered.
 class WStream<T> {
+
+  /// Stores the stream that is wrapped by this class
   final Stream<T> stream;
+
+  /// The return value of the function determines the widget to rendered when the stream is loading or does not have data.
   Widget Function() onLoading;
+
+  /// The return value of the function determines the widget to rendered when the stream receives the an error.
   Widget Function(dynamic) onError;
 
+  /// A constructor that instantiates a [WStream]<[T]>
   WStream(this.stream, {this.onLoading, this.onError});
 
+  /// The operator [-] can be used to pass a '[Widget] Function([T])' that is called when the stream receives an data of type
+  /// [T]. The received data is then passed to [onData] function in order to obtain the Widget to be rendered. If an error is
+  /// received, then the [onError] method is called instead, by passing the received error.
   StreamBuilder<T> operator -(Widget Function(T) onData) => StreamBuilder<T>(
         stream: stream,
         builder: (c, s) {
@@ -90,7 +125,6 @@ extension Iterable_ChangeNotifier_Ease on Iterable<ChangeNotifier> {
   MultiChangeNotifierBuilder operator -(Widget Function() builder) =>
       MultiChangeNotifierBuilder(changeNotifiers: this, builder: (c) => builder());
 }
-
 
 extension ValueNotifier_Ease<T> on ValueNotifier<T> {
   ChangeNotifierBuilder operator -(Widget Function(T) builder) =>
@@ -168,6 +202,7 @@ class _MultiChangeNotifierBuilderState extends State<MultiChangeNotifierBuilder>
   Widget build(BuildContext context) => widget.builder(context);
 }
 
+/// An extension method that enables the developer to directly call an [ChangeNotifier]
 extension ChangeNotifier_Extension on ChangeNotifier
 {
   ChangeNotifier call([dynamic value]){
@@ -177,6 +212,7 @@ extension ChangeNotifier_Extension on ChangeNotifier
   }
 }
 
+/// An extension method that enables the developer to directly call an [ValueNotifier]<[T]>
 extension ValueNotifier_Extension<T> on ValueNotifier<T>
 {
   ChangeNotifier call([T value,bool save=true]){
@@ -193,6 +229,7 @@ extension ValueNotifier_Extension<T> on ValueNotifier<T>
   }
 }
 
+/// An extension method that enables the developer to directly call an [Iterable]<[ChangeNotifier]>
 extension IterableChangeNotifier_Extension on Iterable<ChangeNotifier>
 {
   Iterable<ChangeNotifier> call([dynamic value]){
@@ -226,6 +263,7 @@ extension IterableChangeNotifier_Extension on Iterable<ChangeNotifier>
       });
 }
 
+/// An extension method that enables the developer to directly call an [Iterable]<[ValueNotifier]<[T]>>
 extension IterableValueNotifier_Extension<T> on Iterable<ValueNotifier<T>>
 {
   Iterable<ValueNotifier<T>> call([T value,bool save=true]){
@@ -235,7 +273,10 @@ extension IterableValueNotifier_Extension<T> on Iterable<ValueNotifier<T>>
   }
 }
 
+/// A [CircularProgressIndicator] that can decently auto-adjust itself with respect to the widget tree it is placed in, and is
+/// hence considered to be smart.
 class SmartCircularProgressIndicator extends StatelessWidget {
+
   const SmartCircularProgressIndicator();
 
   Widget build(BuildContext context) {

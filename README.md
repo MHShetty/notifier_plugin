@@ -8,7 +8,7 @@ Just design the widget tree with respect to certain variables and use the plugin
   <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/intro.gif">
 </p>
 
-This plugin also provides certain extension methods over existing classes that adds some more magic to your development experience! (eg. attaching a controller to a Widget)
+This plugin also provides certain extension methods over existing classes that adds some more magic to your development experience and many other such exciting features! (eg. attaching a controller to a Widget, bringing animations to life just with the help of a single independent object and lots more.)
 
 <!-- ![A glimpse of the app's menu screen](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/intro.gif) -->
 

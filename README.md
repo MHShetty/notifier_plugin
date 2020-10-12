@@ -2,7 +2,10 @@
 
 A Flutter plugin makes state management and building dynamic user interfaces easier and more efficient than it could ever be!
 
-![A glimpse of the app's menu screen](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/intro.gif)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/intro.gif">
+</p>
+<!-- ![A glimpse of the app's menu screen](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/intro.gif) -->
 
 ## Overview
 
@@ -633,27 +636,51 @@ class MyApp extends StatelessWidget {
 
 ## Notifier
 
-![Nptifier Example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/notifier.gif)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/notifier.gif">
+</p>
+
+<!-- ![Nptifier Example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/notifier.gif) -->
 
 ## ValNotifier
 
-![ValNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/valnotifier.gif)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/valnotifier.gif">
+</p>
+
+<!-- ![ValNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/valnotifier.gif) -->
 
 ## TweenNotifier
 
-![TweenNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/tweennotifier.gif)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/tweennotifier.gif">
+</p>
+
+<!-- ![TweenNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/tweennotifier.gif) -->
 
 ## HttpNotifier 
 
-![HttpNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/httpnotifier.gif)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/httpnotifier.gif">
+</p>
+
+<!-- ![HttpNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/httpnotifier.gif) -->
 
 ## Timed(Val)Notifier
 
-![Timed(Val)Notifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/timednotifier.gif)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/timednotifier.gif">
+</p>
+
+<!-- ![Timed(Val)Notifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/timednotifier.gif) -->
 
 ## SWNotifier
 
-![SWNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/swnotifier.gif)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/swnotifier.gif">
+</p>
+
+<!-- ![SWNotifier example gif](https://raw.githubusercontent.com/thehumankid/notifier_plugin/master/gifs/swnotifier.gif) -->
 
 ## State management with notifier_plugin
 

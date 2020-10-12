@@ -20,16 +20,102 @@ This plugin also provides extension methods over certain existing classes that a
 * [The magic of extension methods and operator overloading](#the-magic-of-extension-methods-and-operator-overloading)
 * [The special case of "Notifier extends Iterable\<Notifier>"](#the-special-case-of-notifier-extends-iterablenotifier)
 
-
 ## Usage
 
+One can easily update a part of their widget tree with the help of a Notifier,
 
+```Dart
+int i = 0;
+
+// [...]
+~(n) => FlatButton(
+  child: Text(i.toString())
+  onPressed: ()=>n(++i)
+)
+// [...]
+```
+
+or recursively pass values with the help of a `ValNotifier`,
+
+```
+~(n,v) => FlatButton(
+  child: Text((v??=0).toString()), // starts with null
+  onPressed: ()=>n(v+1),
+)
+```
+
+without actually really writing any code (apart from the logic to be implemented).
+
+But what if one wants to update the UI from any other place in the app?
+
+```
+// Explicitly declare the Notifier
+Notifier n = Notifier();
+// Note: n can now be called from literally any corner of the app.
+// Now you can attach the Notifier to one/multiple widgets to make sure that they
+// get re-built when the Notifier is called.
+
+int i = 0;
+
+// [...]
+Column(
+  children: [
+    n - ()=> Text(i.toString()),
+    FlatButton(onPressed: ()=>n(++i), child: Text("Increment")),
+  ],
+)
+// [...]
+```
+
+and maybe receive the value that is being notified (ValNotifier)
+
+```
+ValNotifier n = ValNotifier(initialVal: 0);
+
+// [...]
+Column(
+  children: [
+    n - (v)=> Text(v.toString()),
+    FlatButton(onPressed: ()=>n(n.val+1), child: Text("Increment")),
+  ],
+)
+// [...]
+```
+
+(Note: These are just basic examples, but you could actually save a lot of time while actually using this pattern)
+
+A ChangeNotifier/ValueNotifier/Stream(Controller) can too be treated in a similar way...
+
+```
+changeNotifier - () => Text("Will surely accept no parameters"),
+valueNotifier  - (value) => Text("Will surely accept a single parameter ($value)"),
+stream - (snapshot) => Text(snapshot.hasError?"Error: ${snapshot.error}":"Data: ${snapshot.data}"),
+streamController - (snapshot) => Text(snapshot.hasError?"Error: ${snapshot.error}":"Data: ${snapshot.data}"), // Same as stream(Controller.stream)
+```
+
+And since almost every controller is a ChangeNotifier/ValueNotifier, one could easily re-use a controller in this way.
+
+```
+textEditingController - (textEditingValue) => Text(textEditingValue.text), // ValueNotifier
+scrollController - () => Text(scrollController.offset.toString()), // ChangeNotifier
+```
+
+Using futures while designing a widget tree has got a lot more approach-able. One could either simply use a Future<T> or a WFuture<T> (for common loading and error UI)
+
+```
+future - (snapshot) => snapshot.hasData?Text(snapshot.data.toString()):snapshot.hasError?Text(snapshot.error.toString()):SmartCircularProgressIndicator(),
+WFuture(future) - (data) => Text(data.toString()), // WFuture does explicitly accept the builder to be used when the future gets completed with an error and when the UI is still loading (Also, the WFuture is expected to be stored in a variable.
+```
+
+A Notifier in itself is a very simple yet complex object. Simple because it declares just two data members and complex in terms of the different functionalities it provides, just by reusing those two data members (listener and an error-handler)
+
+There are literally a lot of stuff that a simple Notifier (polling for a certain number of times or over a fixed duration, attaching/detaching notifier(s), calling multiple notifiers in one go, ...) and ValNotifier (performing (forward/reverse/circular) animation, listening to a stream, ...) which is again a Notifier. If the basic classes don't support your needs then there is again an entire set of different Notifier classes you can opt from as per your needs.
 
 ## Introduction and Overview
 
 `notifier_plugin` is a plugin that provides different classes and extension methods while overloading certain operators for widgets, in order to enable developers to swiftly develop dynamic user-interfaces (in Flutter) with minimal effort. The plugin can then be combined with (custom classes that contain) simple/complex declarations to manage the state of your app in your way. The plugin was purely made with the intention of doing things in the most simple and efficient way possible, while using minimal or no (extra) resources to implement different concepts.
 
-For now, this plugin mainly seven types of Notifiers: `Notifier`, `ValNotifier`, `HttpNotifier`, `Ticker(Val)Notifier`, `TimedNotifier`, `TweenNotifier`, `SWNotifier`
+For now, this plugin mainly seven types of Notifiers: `Notifier`, `ValNotifier`, `HttpNotifier`, `Ticker(Val)Notifier`, `Timed(Val)Notifier`, `TweenNotifier`, `SWNotifier`
 
 [Notifier](#notifier): A simple object that can maintain and notify a set of listeners. It supports attaching one/multiple Notifier and listening to other Notifiers. One could even poll it for certain number of times or over a fixed duration.
 

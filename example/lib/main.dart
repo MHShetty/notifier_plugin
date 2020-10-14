@@ -8,7 +8,7 @@ import 'examples/httpNotifier.dart';
 import 'examples/swNotifier.dart';
 import 'examples/timedNotifier.dart';
 
-void main() {
+void main() async {
   runApp(ExampleApp());
   loadRes();
 }

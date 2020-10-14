@@ -1,3 +1,5 @@
+## [0.0.9] Test release
+All the below versions do not follow the default conventions of numbering a version before release. 
 ## [0.0.8]
 * TODO: Add proper docs to the plugin and test the methods of the Notifier classes.
 ## [0.0.7] 

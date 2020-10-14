@@ -13,6 +13,7 @@ class _NotifierExampleState extends State<NotifierExample> {
   @override
   void initState(){
     super.initState();
+
     tEC = TextEditingController();
   }
 

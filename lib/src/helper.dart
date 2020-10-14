@@ -38,8 +38,7 @@ class WFuture<T>
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center),
             );
-          } else
-            return onError(s.error) ??
+          } else return onError(s.error) ??
                 Center(
                     child: Text(s.error.toString(),
                         overflow: TextOverflow.ellipsis,

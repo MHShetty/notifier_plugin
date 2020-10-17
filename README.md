@@ -24,7 +24,7 @@ This plugin also provides extension methods over certain existing classes that a
 
 A **Notifier** is an object that can maintain a set of listeners (and notify them whenever it gets called). The class does provide a lot of other features, but these are just the basics. A notifier can be called by invoking the call method (eg. `notifier()`/`notifier(doesNotGetPassedToListeners)`).
 
-A **ValNotifier** is a Notifier that maintains a set of listeners to which a value can actually be passed. The value can optionally be passed while calling the object (eg. `colorN(Colors.blue)` which also buffers the passed value...to avoid buffering, pass false as the second parameter (`colorN(Colors.blue,false)`)). You can even animate across two values over the specified duration with the help of ValNotifier.
+A **ValNotifier** is a Notifier that maintains a set of listeners to which a value can actually be passed. The value can optionally be passed while calling the object (eg. `colorN(Colors.blue)` which also buffers the passed value...to avoid buffering, pass false as the second parameter `colorN(Colors.blue,false)`). You can even animate across two values over the specified duration with the help of ValNotifier.
 
 The **operator -** in this plugin is mainly defined for a listenable object (**ChangeNotifier**/ **ValueNotifier**/**Stream(Controller)**/**Notifier**/**ValueNotifier**/ any sub-type of it) to literally connect it to a widget (tree). So whenever the object gets called (with a value) or notified, the passed widget tree automatically re-builds (while passing the value it has obtained; if any)
 

@@ -20,17 +20,29 @@ This plugin also provides extension methods over certain existing classes that a
 * [The magic of extension methods and operator overloading](#the-magic-of-extension-methods-and-operator-overloading)
 * [The special case of "Notifier extends Iterable\<Notifier>"](#the-special-case-of-notifier-extends-iterablenotifier)
 
+## Common patterns
+
+The **operator -** in this plugin is mainly defined for a listenable object (ChangeNotifier/ ValueNotifier/ Stream(Controller)/ Notifier/ ValueNotifier/ any sub-type of it) to literally connect it to a widget (tree). So whenever the object gets called (with a value) or notified, the passed widget tree automatically re-builds (while passing the value it has obtained; if any)
+
+The **operator~** is just used to implicitly instantiate a Notifier/ValNotifier (in cases where the developer doesn't want to use the Notifier in a scope higher than that of the widget tree itself)
+
+This is all one needs to know to efficiently create literally any UI in Flutter (The plugin has a ton of other features too, but these are just the basics)
+
+> Quick Tip: In order to increase the maintainability of the code, make sure that you use meaningful names while declaring a Notifier/ValNotifier/... or at least add a title or description above the every widget (as a comment) for future reference.
+
+One could use the listenable object pattern with other state management plugins/techniques.
+
 ## Usage
 
 One can easily update a part of their widget tree with the help of a Notifier,
 
 ```Dart
-int i = 0;
+int clickCount = 0;
 
 // [...]
-~(n) => FlatButton(
-  child: Text(i.toString())
-  onPressed: ()=>n(++i)
+~(notifier) => FlatButton(
+  child: Text(clickCount.toString())
+  onPressed: ()=>notifier(++clickCount)
 )
 // [...]
 ```
@@ -38,9 +50,9 @@ int i = 0;
 or recursively pass values with the help of a `ValNotifier`,
 
 ```Dart
-~(n,v) => FlatButton(
-  child: Text((v??=0).toString()), // starts with null
-  onPressed: ()=>n(v+1),
+~(notifier,count) => FlatButton(
+  child: Text((count??=0).toString()), // starts with null
+  onPressed: ()=>notifier(count+1),
 )
 ```
 
@@ -50,18 +62,18 @@ But what if one wants to update the UI from any other place in the app?
 
 ```Dart
 // Explicitly declare the Notifier
-Notifier n = Notifier();
+Notifier notifier = Notifier();
 // Note: n can now be called from literally any corner of the app.
 // Now you can attach the Notifier to one/multiple widgets to make sure that they
 // get re-built when the Notifier is called.
 
-int i = 0;
+int clickCount = 0;
 
 // [...]
 Column(
   children: [
-    n - ()=> Text(i.toString()),
-    FlatButton(onPressed: ()=>n(++i), child: Text("Increment")),
+    notifier - ()=> Text(clickCount.toString()),
+    FlatButton(onPressed: ()=>notifier(++clickCount), child: Text("Click Me")),
   ],
 )
 // [...]
@@ -70,13 +82,13 @@ Column(
 and maybe receive the value that is being notified (ValNotifier)
 
 ```Dart
-ValNotifier n = ValNotifier(initialVal: 0);
+ValNotifier countN = ValNotifier(initialVal: 0);
 
 // [...]
 Column(
   children: [
-    n - (v)=> Text(v.toString()),
-    FlatButton(onPressed: ()=>n(n.val+1), child: Text("Increment")),
+    countN - (count)=> Text(count.toString()),
+    FlatButton(onPressed: ()=>countN(countN.val+1), child: Text("Click Me")),
   ],
 )
 // [...]
@@ -109,7 +121,7 @@ WFuture(future) - (data) => Text(data.toString()), // WFuture does explicitly ac
 
 A Notifier in itself is a very simple yet complex object. Simple because it declares just two data members and complex in terms of the different functionalities it provides, just by reusing those two data members (listener and an error-handler)
 
-There are literally a lot of stuff that a simple Notifier (polling for a certain number of times or over a fixed duration, attaching/detaching notifier(s), calling multiple notifiers in one go, ...) and ValNotifier (performing (forward/reverse/circular) animation, listening to a stream, ...) which is again a Notifier. If the basic classes don't support your needs then there is again an entire set of different Notifier classes you can opt from as per your needs.
+There are literally a lot of stuff that a simple Notifier (polling for a certain number of times or over a fixed duration, attaching/detaching notifier(s), calling multiple notifiers in one go, ...) and ValNotifier (performing (forward/reverse/circular) animation, listening to a stream, ...) which is again a Notifier. If the basic classes don't support your needs then there is again an entire set of different Notifier classes you can opt from as per your needs (that cover specific use cases)
 
 ## Introduction and Overview
 

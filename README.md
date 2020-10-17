@@ -20,15 +20,19 @@ This plugin also provides extension methods over certain existing classes that a
 * [The magic of extension methods and operator overloading](#the-magic-of-extension-methods-and-operator-overloading)
 * [The special case of "Notifier extends Iterable\<Notifier>"](#the-special-case-of-notifier-extends-iterablenotifier)
 
-## Common patterns
+## A short note (minimal info to get started)
 
-The **operator -** in this plugin is mainly defined for a listenable object (ChangeNotifier/ ValueNotifier/ Stream(Controller)/ Notifier/ ValueNotifier/ any sub-type of it) to literally connect it to a widget (tree). So whenever the object gets called (with a value) or notified, the passed widget tree automatically re-builds (while passing the value it has obtained; if any)
+A **Notifier** is an object that can maintain a set of listeners (and notify them whenever it gets called). The class does provide a lot of other features, but these are just the basics. A notifier can be called by invoking the call method (eg. `notifier()`/`notifier(doesNotGetPassedToListeners)`).
+
+A **ValNotifier** is a Notifier that maintains a set of listeners to which a value can actually be passed. The value can optionally be passed while calling the object (eg. `colorN(Colors.blue)` which also buffers the passed value...to avoid buffering, pass false as the second parameter (`colorN(Colors.blue,false)`)). You can even animate across two values over the specified duration with the help of ValNotifier.
+
+The **operator -** in this plugin is mainly defined for a listenable object (**ChangeNotifier**/ **ValueNotifier**/**Stream(Controller)**/**Notifier**/**ValueNotifier**/ any sub-type of it) to literally connect it to a widget (tree). So whenever the object gets called (with a value) or notified, the passed widget tree automatically re-builds (while passing the value it has obtained; if any)
 
 The **operator~** is just used to implicitly instantiate a Notifier/ValNotifier (in cases where the developer doesn't want to use the Notifier in a scope higher than that of the widget tree itself)
 
-This is all one needs to know to efficiently create literally any UI in Flutter (The plugin has a ton of other features too, but these are just the basics)
+This when combined with the basic approach of this plugin is all that one needs to know in order to efficiently create literally any UI in Flutter (The plugin has a ton of other features too, but these are just the basics)
 
-> Quick Tip: In order to increase the maintainability of the code, make sure that you use meaningful names while declaring a Notifier/ValNotifier/... or at least add a title or description above the every widget (as a comment) for future reference.
+> **Quick Tip:** In order to increase the maintainability of the code, make sure that you use meaningful names while declaring a Notifier/ValNotifier/... or at least add a title or description above the every widget (as a comment) for future reference.
 
 One could use the listenable object pattern with other state management plugins/techniques.
 
@@ -42,7 +46,7 @@ int clickCount = 0;
 // [...]
 ~(notifier) => FlatButton(
   child: Text(clickCount.toString())
-  onPressed: ()=>notifier(++clickCount)
+  onPressed: () => notifier(++clickCount)
 )
 // [...]
 ```
@@ -52,7 +56,7 @@ or recursively pass values with the help of a `ValNotifier`,
 ```Dart
 ~(notifier,count) => FlatButton(
   child: Text((count??=0).toString()), // starts with null
-  onPressed: ()=>notifier(count+1),
+  onPressed: () => notifier(count+1),
 )
 ```
 
@@ -72,14 +76,14 @@ int clickCount = 0;
 // [...]
 Column(
   children: [
-    notifier - ()=> Text(clickCount.toString()),
+    notifier - () => Text(clickCount.toString()),
     FlatButton(onPressed: ()=>notifier(++clickCount), child: Text("Click Me")),
   ],
 )
 // [...]
 ```
 
-and maybe receive the value that is being notified (ValNotifier)
+and maybe receive the value that is being notified (ValNotifier),
 
 ```Dart
 ValNotifier countN = ValNotifier(initialVal: 0);
@@ -88,7 +92,7 @@ ValNotifier countN = ValNotifier(initialVal: 0);
 Column(
   children: [
     countN - (count)=> Text(count.toString()),
-    FlatButton(onPressed: ()=>countN(countN.val+1), child: Text("Click Me")),
+    FlatButton(onPressed: () => countN(countN.val+1), child: Text("Click Me")),
   ],
 )
 // [...]

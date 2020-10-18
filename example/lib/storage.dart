@@ -35,18 +35,21 @@ bool tMode = true;
 int tSec = 1;
 
 /// HttpNotifier screen
-HttpNotifier httpNotifier = HttpNotifier(url: "https://www.flutter.dev", parseResponse: (r){
-  if(r is Response) return r.body;
-  return r;
-});
+HttpNotifier httpNotifier = HttpNotifier(
+    url: "https://www.flutter.dev",
+    parseResponse: (r) {
+      if (r is Response) return r.body;
+      return r;
+    });
 
 /// TimedNotifier screen
-TimedNotifier timedNotifier = TimedNotifier(interval: Duration(seconds: 1), startOnInit: false);
+TimedNotifier timedNotifier =
+    TimedNotifier(interval: Duration(seconds: 1), startOnInit: false);
 
 /// SWNotifier screen
 SWNotifier swNotifier = SWNotifier(startOnInit: true, pauseOnInit: true);
 ValNotifier<List<Duration>> lapsN = ValNotifier(initialVal: []);
-void lap(){
+void lap() {
   lapsN.val.add(swNotifier.lap());
   lapsN();
 }

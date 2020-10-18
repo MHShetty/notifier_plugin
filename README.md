@@ -880,9 +880,9 @@ Example: Here the `Future` only comes into existence for completion once the met
 ```Dart
 FutureBuilder(
   future: getMyNewFuture(),
-  builder: (c,s){
-    if(s.hasData) return Text(s.data.toString());
-    if(s.hasError) return Text(s.error.toString());
+  builder: (context,snapshot){
+    if(snapshot.hasData) return Text(snapshot.data.toString());
+    if(snapshot.hasError) return Text(snapshot.error.toString());
     return const SizedBox(); // CircularProgressIndicator()
   }
 )

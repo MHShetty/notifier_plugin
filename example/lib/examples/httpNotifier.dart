@@ -62,65 +62,69 @@ class HttpNotifierExample extends StatelessWidget {
                                               child: Column(
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
-                                                children: [
+                                                children:
+                                                    [
                                                   Text("Key",
                                                       style: TextStyle(
                                                           fontWeight:
                                                               FontWeight.bold))
                                                 ]
-                                                  ..addAll(httpNotifier.headers
-                                                          ?.map((key, value) =>
-                                                              MapEntry(
-                                                                  key,
-                                                                  TextFormField(
-                                                                    initialValue:
-                                                                        key,
-                                                                    decoration: InputDecoration.collapsed(
-                                                                        hintText:
-                                                                            "Key"),
-                                                                    onChanged:
-                                                                        (s) {
-                                                                      if (httpNotifier
-                                                                          .headers
-                                                                          .containsKey(
-                                                                              s)) {
-                                                                        Scaffold.of(context).showSnackBar(SnackBar(
-                                                                            content:
-                                                                                Text("The header already consists of a key with the same name!")));
-                                                                        n();
-                                                                        return;
-                                                                      }
-                                                                      httpNotifier
-                                                                          .headers
-                                                                          .remove(
-                                                                              key);
-                                                                      if (s.isNotEmpty &&
-                                                                          value
-                                                                              .isNotEmpty)
-                                                                        httpNotifier.headers[s] =
-                                                                            value;
-                                                                      n();
-                                                                    },
-                                                                  )))
-                                                          ?.values ??
-                                                      [])
-                                                  ..add(TextFormField(
-                                                    decoration: InputDecoration
-                                                        .collapsed(
-                                                            hintText:
-                                                                "New Key"),
-                                                    onChanged: (s) {
-                                                      httpNotifier.headers ??=
-                                                          {};
-                                                      if (!httpNotifier
-                                                          .headers.values
-                                                          .contains(null)) {
-                                                        httpNotifier
-                                                            .headers[s] = null;
-                                                        n();
-                                                      }
-                                                    },
-                                                  )),
+                                                      ..addAll(
+                                                          httpNotifier.headers
+                                                                  ?.map(
+                                                                    (key, value) =>
+                                                                        MapEntry(
+                                                                      key,
+                                                                      TextFormField(
+                                                                        initialValue:
+                                                                            key,
+                                                                        decoration:
+                                                                            InputDecoration.collapsed(hintText: "Key"),
+                                                                        onChanged:
+                                                                            (s) {
+                                                                          if (httpNotifier
+                                                                              .headers
+                                                                              .containsKey(s)) {
+                                                                            Scaffold.of(context).showSnackBar(SnackBar(content: Text("The header already consists of a key with the same name!")));
+                                                                            n();
+                                                                            return;
+                                                                          }
+                                                                          httpNotifier
+                                                                              .headers
+                                                                              .remove(key);
+                                                                          if (s.isNotEmpty &&
+                                                                              value.isNotEmpty)
+                                                                            httpNotifier.headers[s] =
+                                                                                value;
+                                                                          n();
+                                                                        },
+                                                                      ),
+                                                                    ),
+                                                                  )
+                                                                  ?.values ??
+                                                              [])
+                                                      ..add(
+                                                        TextFormField(
+                                                          decoration:
+                                                              InputDecoration
+                                                                  .collapsed(
+                                                                      hintText:
+                                                                          "New Key"),
+                                                          onChanged: (s) {
+                                                            httpNotifier
+                                                                .headers ??= {};
+                                                            if (!httpNotifier
+                                                                .headers.values
+                                                                .contains(
+                                                                    null)) {
+                                                              httpNotifier
+                                                                      .headers[
+                                                                  s] = null;
+                                                              n();
+                                                            }
+                                                          },
+                                                        ),
+                                                      ),
                                               ),
                                             ),
                                             Expanded(
@@ -134,25 +138,27 @@ class HttpNotifierExample extends StatelessWidget {
                                                               FontWeight.bold))
                                                 ]
                                                   ..addAll(httpNotifier.headers
-                                                          ?.map((key, value) =>
-                                                              MapEntry(
-                                                                  key,
-                                                                  TextFormField(
-                                                                    initialValue:
-                                                                        value,
-                                                                    decoration: InputDecoration.collapsed(
+                                                          ?.map(
+                                                            (key, value) =>
+                                                                MapEntry(
+                                                              key,
+                                                              TextFormField(
+                                                                initialValue:
+                                                                    value,
+                                                                decoration: InputDecoration
+                                                                    .collapsed(
                                                                         hintText:
                                                                             "Value"),
-                                                                    onChanged:
-                                                                        (s) {
-                                                                      print(
-                                                                          key);
-                                                                      httpNotifier
-                                                                              .headers[
-                                                                          key] = s;
-                                                                      n();
-                                                                    },
-                                                                  )))
+                                                                onChanged: (s) {
+                                                                  print(key);
+                                                                  httpNotifier
+                                                                          .headers[
+                                                                      key] = s;
+                                                                  n();
+                                                                },
+                                                              ),
+                                                            ),
+                                                          )
                                                           ?.values ??
                                                       [])
                                                   ..add(TextFormField(

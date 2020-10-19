@@ -104,18 +104,18 @@ class _SWNotifierExampleState extends State<SWNotifierExample> {
                         itemBuilder: (c, i) {
                           i = laps.length - (i + 1);
                           return Dismissible(
-                              key: GlobalKey(),
-                              onDismissed: (d) {
-                                laps.removeAt(i);
-                              },
-                              child: ListTile(
-                                title: Text(
-                                  laps[i].toString(),
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 20),
-                                ),
-                              ));
+                            key: GlobalKey(),
+                            onDismissed: (d) {
+                              laps.removeAt(i);
+                            },
+                            child: ListTile(
+                              title: Text(
+                                laps[i].toString(),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 20),
+                              ),
+                            ),
+                          );
                         },
                       ),
             ),

@@ -6,9 +6,7 @@ part of notifier_plugin;
 /// The operator [-] can be used to pass a [Widget] Function([T]) that is called when the future gets/is successfully completed
 /// in order to obtain the Widget to be rendered then. The function gets the data with which the [future] was completed. If an
 /// error is thrown, the [onError] method is called instead.
-class WFuture<T>
-{
-
+class WFuture<T> {
   /// The [Future]<[T]> around which everything else in this class is wrapped.
   final Future<T> future;
 
@@ -35,10 +33,10 @@ class WFuture<T>
             debugPrint(s.error.toString());
             return Center(
               child: Text(s.error.toString(),
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center),
+                  overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
             );
-          } else return onError(s.error) ??
+          } else
+            return onError(s.error) ??
                 Center(
                     child: Text(s.error.toString(),
                         overflow: TextOverflow.ellipsis,
@@ -57,7 +55,6 @@ class WFuture<T>
 /// normally received is determined by the [Widget] Function([T]) passed to the [operator -] that determines the widget to be
 /// rendered.
 class WStream<T> {
-
   /// Stores the stream that is wrapped by this class
   final Stream<T> stream;
 
@@ -122,16 +119,17 @@ extension ChangeNotifier_Ease on ChangeNotifier {
 
 extension Iterable_ChangeNotifier_Ease on Iterable<ChangeNotifier> {
   MultiChangeNotifierBuilder operator -(Widget Function() builder) =>
-      MultiChangeNotifierBuilder(changeNotifiers: this, builder: (c) => builder());
+      MultiChangeNotifierBuilder(
+          changeNotifiers: this, builder: (c) => builder());
 }
 
 extension ValueNotifier_Ease<T> on ValueNotifier<T> {
   ChangeNotifierBuilder operator -(Widget Function(T) builder) =>
-      ChangeNotifierBuilder(changeNotifier: this, builder: (c) => builder(value));
+      ChangeNotifierBuilder(
+          changeNotifier: this, builder: (c) => builder(value));
 }
 
 class ChangeNotifierBuilder extends StatefulWidget {
-
   final ChangeNotifier changeNotifier;
   final WidgetBuilder builder;
 
@@ -141,7 +139,6 @@ class ChangeNotifierBuilder extends StatefulWidget {
 }
 
 class _ChangeNotifierBuilderState extends State<ChangeNotifierBuilder> {
-
   void initState() {
     super.initState();
     widget.changeNotifier.addListener(_setState);
@@ -172,25 +169,30 @@ class MultiChangeNotifierBuilder extends StatefulWidget {
 
   MultiChangeNotifierBuilder({this.changeNotifiers, this.builder});
 
-  _MultiChangeNotifierBuilderState createState() => _MultiChangeNotifierBuilderState();
+  _MultiChangeNotifierBuilderState createState() =>
+      _MultiChangeNotifierBuilderState();
 }
 
-class _MultiChangeNotifierBuilderState extends State<MultiChangeNotifierBuilder> {
-
+class _MultiChangeNotifierBuilderState
+    extends State<MultiChangeNotifierBuilder> {
   void initState() {
     super.initState();
-    widget.changeNotifiers.forEach((changeNotifier) => changeNotifier.addListener(_setState));
+    widget.changeNotifiers
+        .forEach((changeNotifier) => changeNotifier.addListener(_setState));
   }
 
   void dispose() {
-    widget.changeNotifiers.forEach((changeNotifier) => changeNotifier.addListener(_setState));
+    widget.changeNotifiers
+        .forEach((changeNotifier) => changeNotifier.addListener(_setState));
     super.dispose();
   }
 
   void didUpdateWidget(MultiChangeNotifierBuilder oldWidget) {
     if (oldWidget.changeNotifiers != widget.changeNotifiers) {
-      oldWidget.changeNotifiers.forEach((changeNotifier) => changeNotifier.removeListener(_setState));
-      widget.changeNotifiers.forEach((changeNotifier) => changeNotifier.addListener(_setState));
+      oldWidget.changeNotifiers.forEach(
+          (changeNotifier) => changeNotifier.removeListener(_setState));
+      widget.changeNotifiers
+          .forEach((changeNotifier) => changeNotifier.addListener(_setState));
     }
     super.didUpdateWidget(oldWidget);
   }
@@ -202,9 +204,8 @@ class _MultiChangeNotifierBuilderState extends State<MultiChangeNotifierBuilder>
 }
 
 /// An extension method that enables the developer to directly call an [ChangeNotifier]
-extension ChangeNotifier_Extension on ChangeNotifier
-{
-  ChangeNotifier call([dynamic value]){
+extension ChangeNotifier_Extension on ChangeNotifier {
+  ChangeNotifier call([dynamic value]) {
     // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
     notifyListeners();
     return this;
@@ -212,28 +213,27 @@ extension ChangeNotifier_Extension on ChangeNotifier
 }
 
 /// An extension method that enables the developer to directly call an [ValueNotifier]<[T]>
-extension ValueNotifier_Extension<T> on ValueNotifier<T>
-{
-  ChangeNotifier call([T value,bool save=true]){
+extension ValueNotifier_Extension<T> on ValueNotifier<T> {
+  ChangeNotifier call([T value, bool save = true]) {
     // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
-    if(value==null) notifyListeners();
+    if (value == null)
+      notifyListeners();
     else {
       T _ = this.value;
       this.value = value;
       // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
       notifyListeners();
-      if(!(save??true)) this.value = _;
+      if (!(save ?? true)) this.value = _;
     }
     return this;
   }
 }
 
 /// An extension method that enables the developer to directly call an [Iterable]<[ChangeNotifier]>
-extension IterableChangeNotifier_Extension on Iterable<ChangeNotifier>
-{
-  Iterable<ChangeNotifier> call([dynamic value]){
+extension IterableChangeNotifier_Extension on Iterable<ChangeNotifier> {
+  Iterable<ChangeNotifier> call([dynamic value]) {
     // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
-    forEach((cn)=>cn());
+    forEach((cn) => cn());
     return this;
   }
 
@@ -241,33 +241,36 @@ extension IterableChangeNotifier_Extension on Iterable<ChangeNotifier>
   ///
   /// true at any given index just means that that ChangeNotifier was not disposed while performing that
   /// operation.
-  Iterable<bool> addListener(void Function() listener) =>
-    map((cn) {
-      try{
-        cn.addListener(listener);
-        return true;
-      } catch(e){return false;}
-    });
+  Iterable<bool> addListener(void Function() listener) => map((cn) {
+        try {
+          cn.addListener(listener);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      });
 
   /// Tries to remove the [listener] to all the [ChangeNotifier]s.
   ///
   /// true at any given index just means that that ChangeNotifier was not disposed while performing that
   /// operation.
-  Iterable<bool> removeListener(void Function() listener) =>
-      map((cn) {
-        try{
+  Iterable<bool> removeListener(void Function() listener) => map((cn) {
+        try {
           cn.removeListener(listener);
           return true;
-        } catch(e){return false;}
+        } catch (e) {
+          return false;
+        }
       });
 }
 
 /// An extension method that enables the developer to directly call an [Iterable]<[ValueNotifier]<[T]>>
-extension IterableValueNotifier_Extension<T> on Iterable<ValueNotifier<T>>
-{
-  Iterable<ValueNotifier<T>> call([T value,bool save=true]){
+extension IterableValueNotifier_Extension<T> on Iterable<ValueNotifier<T>> {
+  Iterable<ValueNotifier<T>> call([T value, bool save = true]) {
     // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
-    forEach((cn){cn(value,save);});
+    forEach((cn) {
+      cn(value, save);
+    });
     return this;
   }
 }
@@ -275,7 +278,6 @@ extension IterableValueNotifier_Extension<T> on Iterable<ValueNotifier<T>>
 /// A [CircularProgressIndicator] that can decently auto-adjust itself with respect to the widget tree it is placed in, and is
 /// hence considered to be smart.
 class SmartCircularProgressIndicator extends StatelessWidget {
-
   const SmartCircularProgressIndicator();
 
   Widget build(BuildContext context) {

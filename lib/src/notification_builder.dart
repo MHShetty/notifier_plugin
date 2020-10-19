@@ -44,7 +44,6 @@ part of notifier_plugin;
 /// re-built either by the notification of one of the [notifier]s or when the widget tree in which it is placed in gets
 /// rebuilt.
 class SimpleNotificationBuilder extends StatefulWidget {
-
   /// Accepts a set of [notifier]s whose notification events this [SimpleNotificationBuilder] can listen to.
   final Iterable<Notifier> notifier;
 
@@ -57,7 +56,6 @@ class SimpleNotificationBuilder extends StatefulWidget {
 }
 
 class _SimpleNotificationBuilderState extends State<SimpleNotificationBuilder> {
-
   void initState() {
     super.initState();
     widget.notifier.addListener(_setState);
@@ -84,7 +82,6 @@ class _SimpleNotificationBuilderState extends State<SimpleNotificationBuilder> {
 
 /// A (private) lighter version on SimpleNotificationBuilder that automatically disposes it's notifiers
 class _NotificationBuilder extends StatefulWidget {
-
   final Iterable<Notifier> notifier;
   final Widget Function(BuildContext) builder;
 
@@ -94,7 +91,6 @@ class _NotificationBuilder extends StatefulWidget {
 }
 
 class __NotificationBuilderState extends State<_NotificationBuilder> {
-
   void initState() {
     super.initState();
     widget.notifier.addListener(_setState);
@@ -123,8 +119,7 @@ class __NotificationBuilderState extends State<_NotificationBuilder> {
 /// passed to it gets called/receives a notification. Optionally, one could decide when the [NotificationBuilder] should
 /// re-build on notification and when not by the help of [canRebuild] parameter. The passed [notifier]s can be disposed when
 /// this widget gets disposed by passing true to the [disposeNotifier] parameter.
-class NotificationBuilder extends StatefulWidget
-{
+class NotificationBuilder extends StatefulWidget {
   /// The [notifier]s that can rebuild this widget with the help of the passed [builder] (whenever it/they get(s) notified)
   final Iterable<Notifier> notifier;
 
@@ -153,15 +148,14 @@ class NotificationBuilder extends StatefulWidget
     this.canRebuild,
     this.disposeNotifier,
     Key key,
-  }) : assert(notifier != null),
-       assert(builder != null),
-       super(key: key);
+  })  : assert(notifier != null),
+        assert(builder != null),
+        super(key: key);
 
   _NotificationBuilderState createState() => _NotificationBuilderState();
 }
 
 class _NotificationBuilderState extends State<NotificationBuilder> {
-
   void initState() {
     super.initState();
     widget.notifier.unDisposedNotifiers.addListener(this._setState);
@@ -169,7 +163,7 @@ class _NotificationBuilderState extends State<NotificationBuilder> {
 
   void dispose() {
     widget.notifier.removeListener(this._setState);
-    if (widget.disposeNotifier==true) widget.notifier.dispose();
+    if (widget.disposeNotifier == true) widget.notifier.dispose();
     super.dispose();
   }
 
@@ -181,7 +175,10 @@ class _NotificationBuilderState extends State<NotificationBuilder> {
     super.didUpdateWidget(oldWidget);
   }
 
-  void _setState() => (mounted && (widget.canRebuild == null || widget.canRebuild() ?? false)) ? setState(() {}) : null;
+  void _setState() =>
+      (mounted && (widget.canRebuild == null || widget.canRebuild() ?? false))
+          ? setState(() {})
+          : null;
 
   Widget build(BuildContext context) => widget.builder(context);
 }
@@ -251,7 +248,6 @@ class _NotificationBuilderState extends State<NotificationBuilder> {
 /// and return true on whichever notification the widget should rebuild else false. Optionally, one can pass true to the
 /// to the [disposeNotifier] parameter to dispose the passed [notifier], once this widget gets disposed.
 class ValNotificationBuilder<T> extends StatefulWidget {
-
   /// The [notifier] parameter accepts a [ValNotifier]<[T]> whose changes this [ValNotificationBuilder] listens to in order to
   /// conditionally re-build with the help of the [canRebuild] method.
   final ValNotifier<T> notifier;
@@ -271,23 +267,20 @@ class ValNotificationBuilder<T> extends StatefulWidget {
   final bool Function(T) canRebuild;
 
   /// A const constructor that gets called in order to completely instantiate a [ValNotificationBuilder].
-  const ValNotificationBuilder({
-    @required this.notifier,
-    @required this.builder,
-    this.canRebuild,
-    this.disposeNotifier,
-    Key key})
-      :
-        assert(notifier != null),
+  const ValNotificationBuilder(
+      {@required this.notifier,
+      @required this.builder,
+      this.canRebuild,
+      this.disposeNotifier,
+      Key key})
+      : assert(notifier != null),
         assert(builder != null),
         super(key: key);
 
   createState() => _ValNotificationBuilderState<T>();
 }
 
-
 class _ValNotificationBuilderState<T> extends State<ValNotificationBuilder<T>> {
-
   void initState() {
     super.initState();
     widget.notifier.unDisposedNotifiers.addListener(this._setState);
@@ -295,8 +288,8 @@ class _ValNotificationBuilderState<T> extends State<ValNotificationBuilder<T>> {
 
   void dispose() {
     widget.notifier.removeListener(this._setState);
-    if (widget.disposeNotifier != null && widget.disposeNotifier) widget
-        .notifier.dispose();
+    if (widget.disposeNotifier != null && widget.disposeNotifier)
+      widget.notifier.dispose();
     super.dispose();
   }
 
@@ -308,11 +301,12 @@ class _ValNotificationBuilderState<T> extends State<ValNotificationBuilder<T>> {
     super.didUpdateWidget(oldWidget);
   }
 
-  void _setState() =>
-      (mounted && (widget.canRebuild == null ||
-          widget.canRebuild(widget.notifier.val) ?? false))
-          ? setState(() {})
-          : null;
+  void _setState() => (mounted &&
+          (widget.canRebuild == null ||
+                  widget.canRebuild(widget.notifier.val) ??
+              false))
+      ? setState(() {})
+      : null;
 
   build(BuildContext context) => widget.builder(context, widget.notifier.val);
 }
@@ -333,7 +327,8 @@ extension Notifiable__Widget on Widget Function(BuildContext) {
 extension Temp_Notifier on Widget Function(Notifier) {
   SimpleNotificationBuilder operator ~() {
     Notifier notifier = Notifier();
-    return SimpleNotificationBuilder(notifier: notifier, builder: (c) => this(notifier));
+    return SimpleNotificationBuilder(
+        notifier: notifier, builder: (c) => this(notifier));
   }
 }
 
@@ -342,10 +337,12 @@ extension Temp_Notifier on Widget Function(Notifier) {
 ///
 /// The instance of the [ValNotifier]<[T]> that was implicitly instantiated can be obtained by the first (and only) parameter of the
 /// passed function. The returned widget is the widget that needs to be rendered.
-extension Temp_ValNotifier<T> on Widget Function(ValNotifier<T>,T){
-  SimpleNotificationBuilder operator ~(){
+extension Temp_ValNotifier<T> on Widget Function(ValNotifier<T>, T) {
+  SimpleNotificationBuilder operator ~() {
     ValNotifier<T> valNotifier = ValNotifier<T>();
-    return SimpleNotificationBuilder(notifier: valNotifier, builder: (c)=>this(valNotifier,valNotifier.val));
+    return SimpleNotificationBuilder(
+        notifier: valNotifier,
+        builder: (c) => this(valNotifier, valNotifier.val));
   }
 }
 

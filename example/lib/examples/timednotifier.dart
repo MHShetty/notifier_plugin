@@ -52,6 +52,19 @@ class _TimedNotifierExampleState extends State<TimedNotifierExample> {
                             ),
                           );
                 },
+            Positioned(
+              left: 20,
+              top: 40,
+              child: InkWell(
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                child: Icon(
+                  Icons.arrow_back_ios,
+                  color: Colors.black,
+                ),
+              ),
+            ),
             const Center(
               child: SizedBox(
                 width: 100.0,

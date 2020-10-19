@@ -21,9 +21,8 @@ part of notifier_plugin;
 /// However, you'll have to maintain a separate buffer and design your widget tree according to that buffer to actually
 /// deal with data. To overcome that, the [ValNotifier] class was made.
 class Notifier extends Iterable<Notifier> {
-
   List<Function> _listeners = <Function>[]; // Auto-init
-  bool Function(Function,dynamic) _handleError;
+  bool Function(Function, dynamic) _handleError;
 
   /// This constructor instantiates a [Notifier].
   ///
@@ -43,14 +42,15 @@ class Notifier extends Iterable<Notifier> {
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) {
     if (mergeNotifiers != null) _addListeners(mergeNotifiers._listeners);
     if (attachNotifiers != null) _attach(attachNotifiers);
     if (listenToNotifiers != null) _startListeningTo(listenToNotifiers);
     if (initialListeners != null) _addListeners(initialListeners);
     this.._handleError = removeListenerOnError;
-    if(lockListenersOnInit==true) _listeners = List.from(_listeners, growable: false);
+    if (lockListenersOnInit == true)
+      _listeners = List.from(_listeners, growable: false);
     WidgetsFlutterBinding.ensureInitialized();
   }
 
@@ -79,13 +79,14 @@ class Notifier extends Iterable<Notifier> {
   /// This method polls a Notifier with notifications over a fixed [duration] of time and returns
   /// the current instance of [Notifier] as a [Future]. A TickerProvider can be provided to this
   /// method via the [vsync] parameter.
-  Future<Notifier> pollFor(Duration duration, {TickerProvider vsync})
-  {
+  Future<Notifier> pollFor(Duration duration, {TickerProvider vsync}) {
     if (_isNotDisposed) {
       Ticker t;
       Function onTick = (d) {
         if (d > duration) {
-          t..stop()..dispose();
+          t
+            ..stop()
+            ..dispose();
           return;
         }
         call();
@@ -108,7 +109,9 @@ class Notifier extends Iterable<Notifier> {
       Function onTick = (d) {
         if (times-- == 0) {
           end = d;
-          t..stop()..dispose();
+          t
+            ..stop()
+            ..dispose();
         }
         this();
       };
@@ -118,23 +121,28 @@ class Notifier extends Iterable<Notifier> {
     return null;
   }
 
-
   /// A method that notifies the listeners of the current [Notifier], whenever the passed Future
   /// completes or if it has already completed. You can tell the method what needs to be done
   /// if Future completes/has completed with an error or with an value.
   ///
   /// This is different from load(ing) the error onto a [ValNotifier]. (It cannot be strongly
   /// supported due to type issues)
-  void notifyOnComplete<R>(Future<R> res,[Function(R) onData, Function onError]) => res.then(onData??(_){}).catchError(onError??(){}).whenComplete(this);
+  void notifyOnComplete<R>(Future<R> res,
+          [Function(R) onData, Function onError]) =>
+      res
+          .then(onData ?? (_) {})
+          .catchError(onError ?? () {})
+          .whenComplete(this);
 
   /// A method that notifies the listeners of the current [Notifier], if the passed Future completes
   /// with an error else nothing is done with the [Notifier]. You can tell the method what needs to be
   /// done if the Future completes/has completed with an error or value.
   ///
   /// This is different from load(ing) the thrown error onto a [ValNotifier].
-  void notifyIfError(Future res,[Function(dynamic) onData, Function onError]) =>
-      res.then(onData??(_){}).catchError((e){
-        if(onError!=null) onError is Function()?onError():onError(e);
+  void notifyIfError(Future res,
+          [Function(dynamic) onData, Function onError]) =>
+      res.then(onData ?? (_) {}).catchError((e) {
+        if (onError != null) onError is Function() ? onError() : onError(e);
         this();
       });
 
@@ -144,11 +152,12 @@ class Notifier extends Iterable<Notifier> {
   ///
   /// This is different from load(ing) the data received after awaiting a Future onto a
   /// [ValNotifier].
-  void notifyIfSuccess<R>(Future<R> res, [Function(R) onData, Function onError]) =>
-      res.then((_){
+  void notifyIfSuccess<R>(Future<R> res,
+          [Function(R) onData, Function onError]) =>
+      res.then((_) {
         onData?.call(_);
         this();
-      }).catchError(onError??(){});
+      }).catchError(onError ?? () {});
 
   /// The method [notifyAtInterval] notifies the current [Notifier] at the given/passed [interval].
   ///
@@ -157,27 +166,33 @@ class Notifier extends Iterable<Notifier> {
   ///
   /// If null is explicitly passed to this method, it'll automatically get resolved to
   /// [Duration.zero].
-  Timer notifyAtInterval(Duration interval) => _isNotDisposed ? Timer.periodic(interval??Duration.zero, (timer)=>this()) : null;
+  Timer notifyAtInterval(Duration interval) => _isNotDisposed
+      ? Timer.periodic(interval ?? Duration.zero, (timer) => this())
+      : null;
 
   /// Attach a [ChangeNotifier] to this [Notifier].
   ///
   /// Attaches the passed [changeNotifier] and returns true, if it wasn't previously attached else
   /// just returns false.
   // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
-  bool attachChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed?addListener(changeNotifier.notifyListeners)!=null:null;
+  bool attachChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed
+      ? addListener(changeNotifier.notifyListeners) != null
+      : null;
 
   /// Detach a [ChangeNotifier] from this [Notifier].
   ///
   /// Detaches the passed [changeNotifier] and returns true if it was previously attached, else
   /// just returns false.
   // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
-  bool detachChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed?removeListener(changeNotifier.notifyListeners):null;
+  bool detachChangeNotifier(ChangeNotifier changeNotifier) =>
+      _isNotDisposed ? removeListener(changeNotifier.notifyListeners) : null;
 
   /// Checks if the [Notifier] has attached this [ChangeNotifier].
   ///
   /// Returns true if it has attached the [changeNotifier] else false.
   // ignore: invalid_use_of_visible_for_testing_member, invalid_use_of_protected_member
-  bool hasAttachedChangeNotifier(ChangeNotifier changeNotifier) => _isNotDisposed?hasListener(changeNotifier.notifyListeners):null;
+  bool hasAttachedChangeNotifier(ChangeNotifier changeNotifier) =>
+      _isNotDisposed ? hasListener(changeNotifier.notifyListeners) : null;
 
   /// Tries to start listening to the passed [changeNotifier].
   ///
@@ -185,13 +200,15 @@ class Notifier extends Iterable<Notifier> {
   /// if it wasn't previously listening to it or else just returns false.
   ///
   /// Note: A [ValueNotifier] is also a [ChangeNotifier].
-  bool startListeningToChangeNotifier(ChangeNotifier changeNotifier){
-    assert(changeNotifier!=null,"Could not start listening to a null.");
-    if(_isNotDisposed){
+  bool startListeningToChangeNotifier(ChangeNotifier changeNotifier) {
+    assert(changeNotifier != null, "Could not start listening to a null.");
+    if (_isNotDisposed) {
       try {
         changeNotifier.addListener(this);
         return true;
-      } catch(e) { return false; }
+      } catch (e) {
+        return false;
+      }
     }
     return null;
   }
@@ -200,25 +217,30 @@ class Notifier extends Iterable<Notifier> {
   ///
   /// Note: A [ValueNotifier] is also a [ChangeNotifier].
   bool stopListeningToChangeNotifier(ChangeNotifier changeNotifier) {
-    assert(changeNotifier!=null,"Could not start listening to a null.");
-    if(_isNotDisposed){
+    assert(changeNotifier != null, "Could not start listening to a null.");
+    if (_isNotDisposed) {
       try {
         changeNotifier.removeListener(this);
         return true;
-      } catch(e) { return false; }
+      } catch (e) {
+        return false;
+      }
     }
     return null;
   }
 
   /// Attach a Stream to this [Notifier]. Do not use this if your [Stream] is actually expecting some
   /// value apart from null!
-  bool attachStream(StreamController s) => _isNotDisposed&&s!=null?addListener(s.add)!=null:null;
+  bool attachStream(StreamController s) =>
+      _isNotDisposed && s != null ? addListener(s.add) != null : null;
 
   /// Detach a Stream that was previously attached to this [Notifier] using [attachStream].
-  bool detachStream(StreamController s) => _isNotDisposed&&s!=null?removeListener(s.add):null;
+  bool detachStream(StreamController s) =>
+      _isNotDisposed && s != null ? removeListener(s.add) : null;
 
   /// Checks if the Notifier has attached the Stream
-  bool hasAttachedStream(StreamController s) => _isNotDisposed&&s!=null?_hasListener(s.add):null;
+  bool hasAttachedStream(StreamController s) =>
+      _isNotDisposed && s != null ? _hasListener(s.add) : null;
 
   /// Makes the [Notifier] listen to an existing [stream]. In order to control or stop listening to
   /// this connection, you'll need to store the [StreamSubscription] returned by this function and use
@@ -226,15 +248,18 @@ class Notifier extends Iterable<Notifier> {
   StreamSubscription listenTo(Stream stream) => stream?.listen(this);
 
   /// Asynchronously notify the listeners without blocking the
-  Future<Notifier> asyncNotify([dynamic _]) async => Future(()=>call(_));
+  Future<Notifier> asyncNotify([dynamic _]) async => Future(() => call(_));
 
   /// Attaches the passed [notifier] to the current [Notifier]. The current [Notifier] will notify the attached [notifier]
   /// whenever it receives a notification. In order to [attach] multiple notifiers to the current [Notifier] use
   /// [attachAll]. The notifier will remained attached as long as it exists as one of the current [Notifier]'s listeners.
   bool attach(Notifier notifier) {
-    assert(notifier != null, "You are trying to attach null to Notifier#$hashCode.\n");
-    assert(notifier != this, "Please make sure that you don't attach the Notifier to itself, as it would lead to an Stack Overflow error whenever the Notifier gets notified.\n");
-    assert(!this.isListeningTo(notifier), "Cross-attaching two notifiers is highly not recommended as it would lead to an endless cycle of notifier calls between the two notifiers until a Stack Overflow Error is finally thrown by the VM.\n\nYou could either merge() the two notifiers to create a new notifier that holds the listeners of both the notifiers (you'll have to maintain the newly created notifier separately)\n\nor\n\nIf you want to notify both/all the Notifiers while separately maintaining them create a List of them then notify that list as per your requirements.\n");
+    assert(notifier != null,
+        "You are trying to attach null to Notifier#$hashCode.\n");
+    assert(notifier != this,
+        "Please make sure that you don't attach the Notifier to itself, as it would lead to an Stack Overflow error whenever the Notifier gets notified.\n");
+    assert(!this.isListeningTo(notifier),
+        "Cross-attaching two notifiers is highly not recommended as it would lead to an endless cycle of notifier calls between the two notifiers until a Stack Overflow Error is finally thrown by the VM.\n\nYou could either merge() the two notifiers to create a new notifier that holds the listeners of both the notifiers (you'll have to maintain the newly created notifier separately)\n\nor\n\nIf you want to notify both/all the Notifiers while separately maintaining them create a List of them then notify that list as per your requirements.\n");
     return _attach(notifier);
   }
 
@@ -270,7 +295,8 @@ class Notifier extends Iterable<Notifier> {
   bool hasAttached(Notifier notifier) =>
       _isNotDisposed ? _hasAttached(notifier) : null;
 
-  bool _hasAttached(Notifier notifier) => _listeners.containsEitherComp(notifier);
+  bool _hasAttached(Notifier notifier) =>
+      _listeners.containsEitherComp(notifier);
 
   /// Checks if the passed [notifiers] are attached to this [Notifier] and returns an [Iterable]
   /// <[bool]>.
@@ -316,8 +342,10 @@ class Notifier extends Iterable<Notifier> {
   /// Starts listening to the [notifier] and returns true if it was not previously listening to
   /// that [notifier] else just returns false.
   bool startListeningTo(Notifier notifier) {
-    assert(notifier != null, "$runtimeType#$hashCode: A notifier cannot start listening to null.");
-    assert(this != notifier, "$runtimeType#$hashCode: A notifier cannot start listening to itself.");
+    assert(notifier != null,
+        "$runtimeType#$hashCode: A notifier cannot start listening to null.");
+    assert(this != notifier,
+        "$runtimeType#$hashCode: A notifier cannot start listening to itself.");
     return _startListeningTo(notifier);
   }
 
@@ -350,7 +378,8 @@ class Notifier extends Iterable<Notifier> {
   Iterable<bool> stopListeningToAll(Iterable<Notifier> notifiers) =>
       _isNotDisposed ? _stopListeningToAll(notifiers) : null;
 
-  Iterable<bool> _stopListeningToAll(Iterable<Notifier> notifiers) => notifiers?.detach(this);
+  Iterable<bool> _stopListeningToAll(Iterable<Notifier> notifiers) =>
+      notifiers?.detach(this);
 
   /// Checks if the current [Notifier] is listening to the passed [notifier].
   ///
@@ -358,8 +387,7 @@ class Notifier extends Iterable<Notifier> {
   bool isListeningTo(Notifier notifier) =>
       _isNotDisposed ? _isListeningTo(notifier) : null;
 
-  bool _isListeningTo(Notifier notifier) =>
-      notifier?._hasAttached(this);
+  bool _isListeningTo(Notifier notifier) => notifier?._hasAttached(this);
 
   /// Checks if the current [Notifier] is listening to the passed [notifiers].
   ///
@@ -384,13 +412,14 @@ class Notifier extends Iterable<Notifier> {
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) {
     if (isDisposed && _init()) {
       if (mergeNotifiers != null) _addListeners(mergeNotifiers._listeners);
       if (attachNotifiers != null) _attach(attachNotifiers);
       if (listenToNotifiers != null) _startListeningTo(listenToNotifiers);
-      if(lockListenersOnInit==true) _listeners = List.from(_listeners, growable: false);
+      if (lockListenersOnInit == true)
+        _listeners = List.from(_listeners, growable: false);
       this.._handleError = removeListenerOnError;
       return true;
     }
@@ -419,7 +448,8 @@ class Notifier extends Iterable<Notifier> {
   _dispose() => _listeners = null;
 
   static bool disposeNotifier(Notifier notifier) => notifier?.dispose();
-  static Iterable<bool> disposeNotifiers(Iterable<Notifier> notifiers) => notifiers?.dispose();
+  static Iterable<bool> disposeNotifiers(Iterable<Notifier> notifiers) =>
+      notifiers?.dispose();
 
   /// Adds a listener to the [Notifier] and returns the listener's [hashCode] if successfully added else returns [null].
   ///
@@ -430,8 +460,10 @@ class Notifier extends Iterable<Notifier> {
   ///
   /// If the current [Notifier] already contains the given listener or if null is passed as a
   /// listener, it returns false else true.
-  int addListener(Function listener) => _isNotDisposed && !_listeners.containsEitherComp(listener)
-      ? _addListener(listener) : null;
+  int addListener(Function listener) =>
+      _isNotDisposed && !_listeners.containsEitherComp(listener)
+          ? _addListener(listener)
+          : null;
 
   int _addListener(Function listener) {
     if (listener == null) return null;
@@ -439,18 +471,21 @@ class Notifier extends Iterable<Notifier> {
         "$runtimeType#$hashCode: A Notifier can only notify a listener that does not accept a parameter or accepts a 'single' parameter.");
     // ignore: unrelated_type_equality_checks
     if (this == listener)
-      throw ArgumentError("$runtimeType#$hashCode: A notifier cannot listen to itself.");
+      throw ArgumentError(
+          "$runtimeType#$hashCode: A notifier cannot listen to itself.");
     try {
       _listeners.add(listener);
-    }catch(e){
-      if(e is UnsupportedError) throw StateError("$runtimeType#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly add a listener next time.");
+    } catch (e) {
+      if (e is UnsupportedError)
+        throw StateError(
+            "$runtimeType#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly add a listener next time.");
       rethrow; // for any other unexpected error
     }
     return listener.hashCode;
   }
 
-
-  static Map<Notifier, Iterable<int>> customListenerAdder(Map<Iterable<Notifier>, Function> options) =>
+  static Map<Notifier, Iterable<int>> customListenerAdder(
+          Map<Iterable<Notifier>, Function> options) =>
       options.map((notifiers, listener) =>
           MapEntry(notifiers, notifiers.addListener(listener)));
 
@@ -470,14 +505,17 @@ class Notifier extends Iterable<Notifier> {
           ?.map((notifier) => notifier.addListeners(listeners).elementAt(0))
           ?.toList();
 
-  static Map<Notifier, Iterable<Iterable<int>>> customListenersAdder(Map<Iterable<Notifier>, Iterable<Function>> options) =>
-      options.map((notifier, listeners) => MapEntry(notifier, notifier.addListeners(listeners)));
+  static Map<Notifier, Iterable<Iterable<int>>> customListenersAdder(
+          Map<Iterable<Notifier>, Iterable<Function>> options) =>
+      options.map((notifier, listeners) =>
+          MapEntry(notifier, notifier.addListeners(listeners)));
 
   /// Checks if the current [Notifier] has the passed [listener]. If it has it, it returns [true], else [false].
   bool hasListener(Function listener) =>
       _isNotDisposed && _hasListener(listener);
 
-  bool _hasListener(Function listener) => _listeners.containsEitherComp(listener);
+  bool _hasListener(Function listener) =>
+      _listeners.containsEitherComp(listener);
 
   /// Checks if the current [Notifier] has any listeners.
   ///
@@ -488,7 +526,8 @@ class Notifier extends Iterable<Notifier> {
   /// Checks if the current [Notifier] has at least any one of the given [listeners].
   ///
   /// Returns [true] if it finds it else [false].
-  bool hasAnyListener(Iterable<Function> listeners) => _isNotDisposed ? _hasAnyListener(listeners) : null;
+  bool hasAnyListener(Iterable<Function> listeners) =>
+      _isNotDisposed ? _hasAnyListener(listeners) : null;
 
   bool _hasAnyListener(Iterable<Function> listeners) {
     for (Function listener in listeners)
@@ -499,7 +538,8 @@ class Notifier extends Iterable<Notifier> {
   /// Checks if the current [Notifier] has all of the given [listeners].
   ///
   /// Returns [true] if it finds all else [false].
-  bool hasAllListeners(Iterable<Function> listeners) => _isNotDisposed ? _hasAllListeners(listeners) : null;
+  bool hasAllListeners(Iterable<Function> listeners) =>
+      _isNotDisposed ? _hasAllListeners(listeners) : null;
 
   bool _hasAllListeners(Iterable<Function> listeners) {
     for (Function listener in listeners)
@@ -507,7 +547,8 @@ class Notifier extends Iterable<Notifier> {
     return true;
   }
 
-  void _call(Function listener) => listener is Function() ? listener() : listener(null);
+  void _call(Function listener) =>
+      listener is Function() ? listener() : listener(null);
 
   /// Calls/notifies the listeners of the current Notifier
   ///
@@ -521,14 +562,16 @@ class Notifier extends Iterable<Notifier> {
           _call(_listeners[i]);
         } catch (e) {
           if (_handleError == null) rethrow;
-          bool _ = _handleError(_listeners[i],e);
+          bool _ = _handleError(_listeners[i], e);
           if (_ == null) rethrow;
           if (_) {
             try {
               _listeners.removeAt(i--);
-            } catch(e) {
+            } catch (e) {
               i++;
-              if(e is UnsupportedError) throw StateError("$runtimeType#$hashCode: Could not remove ${_listeners[i]} as my listeners have been locked!\nPlease call unlockListeners() on me.");
+              if (e is UnsupportedError)
+                throw StateError(
+                    "$runtimeType#$hashCode: Could not remove ${_listeners[i]} as my listeners have been locked!\nPlease call unlockListeners() on me.");
               rethrow; // For any other unexpected error
             }
           }
@@ -567,11 +610,13 @@ class Notifier extends Iterable<Notifier> {
       _isNotDisposed ? _removeListener(listener) : null;
 
   bool _removeListener(Function listener) {
-    try{
+    try {
       _listeners.remove(listener);
       return true;
-    } catch(e){
-      if(e is UnsupportedError) throw StateError("$runtimeType#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly remove a listener next time.");
+    } catch (e) {
+      if (e is UnsupportedError)
+        throw StateError(
+            "$runtimeType#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly remove a listener next time.");
       rethrow; // For any unexpected error
     }
   }
@@ -579,14 +624,17 @@ class Notifier extends Iterable<Notifier> {
   /// This function can be used to remove a specific listener by it's [hashCode], which can either be obtained as the
   /// return value of [addListener] or by manually storing the function as a variable and then obtaining it with the
   /// help of the getter hashCode. The return value determines if the transaction was successful or not.
-  bool removeListenerByHashCode(int hashCode) => _isNotDisposed ? _removeListenerByHashCode(hashCode) : null;
+  bool removeListenerByHashCode(int hashCode) =>
+      _isNotDisposed ? _removeListenerByHashCode(hashCode) : null;
 
   bool _removeListenerByHashCode(int hashCode) {
     try {
       return _listeners.remove(
           _listeners.firstWhere((listener) => listener.hashCode == hashCode));
     } catch (e) {
-      if(e is UnsupportedError) throw StateError("$runtimeType#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly remove a listener next time.");
+      if (e is UnsupportedError)
+        throw StateError(
+            "$runtimeType#$hashCode: The listeners have been currently locked from any modifications.\n\nPlease try calling unlockListeners() on me, before trying to (in)directly remove a listener next time.");
       return false;
     }
   }
@@ -594,7 +642,9 @@ class Notifier extends Iterable<Notifier> {
   /// An implementation of [removeListenerByHashCode] which deals with multiple [hashCodes]. Returns an [Iterable<bool>]
   /// based on the result of each transactions which equals the length of the passed list of [hashCodes].
   Iterable<bool> removeListenersByHashCodes(Iterable<int> hashCodes) =>
-      _isNotDisposed ? hashCodes?.map(_removeListenerByHashCode)?.toList() : null;
+      _isNotDisposed
+          ? hashCodes?.map(_removeListenerByHashCode)?.toList()
+          : null;
 
   Iterable<bool> _removeListenersByHashCodes(Iterable<int> hashCodes) =>
       hashCodes?.map(_removeListenerByHashCode)?.toList();
@@ -680,10 +730,15 @@ class Notifier extends Iterable<Notifier> {
     if (_ == null) return null;
     if (_ is Iterable<Notifier>) return merge(_);
     // if (_ is Widget) return NotifiableChild(notifier: this, child: _);
-    if (_ is Function(dynamic)) return SimpleNotificationBuilder(notifier: this, builder: (c)=>_(null));
-    if (_ is Function()) return SimpleNotificationBuilder(notifier: this, builder: (c) => _());
-    if (_ is Function(BuildContext,dynamic)) return SimpleNotificationBuilder(notifier: this, builder: (c) => _(c,null));
-    throw UnsupportedError("$runtimeType#$hashCode: Notifier's operator - does not support ${_.runtimeType}.");
+    if (_ is Function(dynamic))
+      return SimpleNotificationBuilder(notifier: this, builder: (c) => _(null));
+    if (_ is Function())
+      return SimpleNotificationBuilder(notifier: this, builder: (c) => _());
+    if (_ is Function(BuildContext, dynamic))
+      return SimpleNotificationBuilder(
+          notifier: this, builder: (c) => _(c, null));
+    throw UnsupportedError(
+        "$runtimeType#$hashCode: Notifier's operator - does not support ${_.runtimeType}.");
   }
 
 //  /// Creates a new instance of [Notifier] that holds the listeners of the current [Notifier] and the passed [notifier].
@@ -723,7 +778,7 @@ class Notifier extends Iterable<Notifier> {
   /// not cross-attaching two notifiers is solely in the hands of the developer)
   bool operator ==(Object other) =>
       (other is Notifier || other is Notifier Function([dynamic])) &&
-          (other.hashCode == hashCode);
+      (other.hashCode == hashCode);
 
   /// Returns the [hashCode] of the current [Notifier].
   int get hashCode => this.call.hashCode;
@@ -741,10 +796,11 @@ class Notifier extends Iterable<Notifier> {
         (listener) => listener.hashCode == hashCode,
         orElse: () => null);
     if (_ == null) return false;
-    try{
+    try {
       _ is Function() ? _() : _(null);
-    } catch(e){
-      debugPrint("$runtimeType#${this.hashCode}: An error was thrown while specifically notifying the listener#$hashCode (String rep.:$_)");
+    } catch (e) {
+      debugPrint(
+          "$runtimeType#${this.hashCode}: An error was thrown while specifically notifying the listener#$hashCode (String rep.:$_)");
       rethrow;
     }
     return true;
@@ -769,8 +825,12 @@ class Notifier extends Iterable<Notifier> {
   /// Merges the passed set of [notifiers] into a single one.
   ///
   /// One can optionally set the [removeListenerOnError] parameter for the final returned [Notifier]
-  static Notifier merge([Iterable<Notifier> notifiers, bool Function(Function, dynamic) removeListenerOnError]) =>
-      notifiers == null ? Notifier._() : notifiers.merge(const [],removeListenerOnError);
+  static Notifier merge(
+          [Iterable<Notifier> notifiers,
+          bool Function(Function, dynamic) removeListenerOnError]) =>
+      notifiers == null
+          ? Notifier._()
+          : notifiers.merge(const [], removeListenerOnError);
 
   /// Returns a copy/clone of the passed [notifier].
   static Notifier from(Notifier notifier) {
@@ -778,7 +838,8 @@ class Notifier extends Iterable<Notifier> {
       throw ArgumentError(
           """A disposed ${notifier.runtimeType} cannot be cloned!\nPlease make sure you clone it before disposing
            it, as a disposed ${notifier.runtimeType} loses track of it's listeners, once it's disposed.""");
-    return Notifier(removeListenerOnError: notifier._handleError).._listeners = List.from(notifier._listeners);
+    return Notifier(removeListenerOnError: notifier._handleError)
+      .._listeners = List.from(notifier._listeners);
   }
 
   static Notifier Function(Notifier) clone = from;
@@ -791,26 +852,28 @@ class Notifier extends Iterable<Notifier> {
   ///
   /// If the listeners are already locked, it returns false, else it locks the listeners and
   /// returns true.
-  bool lockListeners(){
-    if(_isNotDisposed) return _lockListeners();
+  bool lockListeners() {
+    if (_isNotDisposed) return _lockListeners();
     return null;
   }
 
-  bool _lockListeners(){
+  bool _lockListeners() {
     try {
       _listeners.add(null);
       _listeners.remove(null);
       _listeners = List.from(_listeners, growable: false);
       return true;
-    } catch(e){ return false; }
+    } catch (e) {
+      return false;
+    }
   }
 
   /// Unlocks the listeners of the current [Notifier] and allows others to add a listener to it.
   ///
   /// If the listeners are already locked it returns false else it locks the listeners and
   /// returns true.
-  bool unlockListeners(){
-    if(_isNotDisposed) return _unlockListeners();
+  bool unlockListeners() {
+    if (_isNotDisposed) return _unlockListeners();
     return null;
   }
 
@@ -819,7 +882,7 @@ class Notifier extends Iterable<Notifier> {
       _listeners.add(null);
       _listeners.remove(null);
       return false;
-    } catch(e) {
+    } catch (e) {
       _listeners = List.from(_listeners);
       return true;
     }
@@ -830,12 +893,14 @@ class Notifier extends Iterable<Notifier> {
   ///
   /// If it returns true it means they are locked else false.
   bool get listenersAreLocked {
-    if(_isNotDisposed){
+    if (_isNotDisposed) {
       try {
         _listeners.add(null);
         _listeners.remove(null);
         return false;
-      } catch(e){return true;}
+      } catch (e) {
+        return true;
+      }
     }
     return null;
   }
@@ -857,7 +922,6 @@ class Notifier extends Iterable<Notifier> {
 
 /// An extension method declared on [Iterable]<[bool]>
 extension Iterable_Bool_Ease on Iterable<bool> {
-
   /// Reduces all the bool values present in this [Iterable] into a single value (by and-ing them)
   bool andAll([int start = 0, int end]) {
     // Default values just in case the parameter contains null
@@ -879,7 +943,8 @@ extension Iterable_Bool_Ease on Iterable<bool> {
 
   /// Performs not operation on all the bool values present in this [Iterable]<[bool]> and returns the resultant
   /// [Iterable].
-  Iterable<bool> notAll([int start, int end]) => toList().sublist(start,end).map((e)=>e==null?null:!e).toList();
+  Iterable<bool> notAll([int start, int end]) =>
+      toList().sublist(start, end).map((e) => e == null ? null : !e).toList();
 
   /// Returns true if the current [Iterable]<[bool]> has at least one null value.
   bool hasNullValue([int start, int end]) {
@@ -891,14 +956,13 @@ extension Iterable_Bool_Ease on Iterable<bool> {
   /// Fills the null values in this [Iterable]<[bool]> with the passed [value].
   Iterable<bool> fillNullValuesWith([bool value = true, int start, int end]) {
     assert((start ??= 0) >= 0 && (end ??= length - 1) < length);
-    return toList().sublist(start,end).map((e) => e ?? value);
+    return toList().sublist(start, end).map((e) => e ?? value);
   }
 }
 
 /// A special extension applied on [Iterable]<[Notifier]> to make performing compound operations on multiple notifiers
 /// easy.
 extension Iterable_Notifier on Iterable<Notifier> {
-
   /// Re-init s all the notifiers present in this [Iterable]. Interfaces the [Notifier.init] for multiple notifiers.
   Iterable<bool> init() => map(Notifier.initNotifier).toList();
 
@@ -907,7 +971,8 @@ extension Iterable_Notifier on Iterable<Notifier> {
 
   /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
   /// this [Iterable] had the given [listener] or not. Interfaces the [Notifier.hasListener] for multiple notifiers.
-  Iterable<bool> hasListener(Function listener) => map((notifier) => notifier?.hasListener(listener)).toList();
+  Iterable<bool> hasListener(Function listener) =>
+      map((notifier) => notifier?.hasListener(listener)).toList();
 
   /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
   /// this [Iterable] had at least one of the passed [listeners] or not. Interfaces the [Notifier.hasAnyListener] for
@@ -924,7 +989,8 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// Tries to attach the passed [Notifier] [attachment] to the notifiers in this [Iterable]<[Notifier]> and returns an
   /// [Iterable]<[bool]> based on the return value obtained while trying to [Notifier.attach] the given [attachment] to
   /// each notifier.
-  Iterable<bool> attach(Notifier attachment) => map((notifier) => notifier.attach(attachment)).toList();
+  Iterable<bool> attach(Notifier attachment) =>
+      map((notifier) => notifier.attach(attachment)).toList();
 
   /// Tries to attach all the passed [attachments] to the notifiers in this [Iterable]<[Notifier]> and returns an
   /// [Iterable]<[Iterable]<[bool]>> based on the return value obtained while trying to [Notifier.attachAll] the given
@@ -935,17 +1001,20 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
   /// this [Iterable] has attached the passed [attachment] or not. Interfaces the [Notifier.hasAttached] for
   /// multiple notifiers.
-  Iterable<bool> hasAttached(Notifier attachment) => map((n) => n?.hasAttached(attachment)).toList();
+  Iterable<bool> hasAttached(Notifier attachment) =>
+      map((n) => n?.hasAttached(attachment)).toList();
 
   /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
   /// this [Iterable] has attached the passed [attachments] or not. Interfaces the [Notifier.hasAttachedAll] for
   /// multiple notifiers.
-  Iterable<bool> hasAttachedAll(Iterable<Notifier> notifiers) => map((n) => n?.hasAttachedAll(notifiers)).toList();
+  Iterable<bool> hasAttachedAll(Iterable<Notifier> notifiers) =>
+      map((n) => n?.hasAttachedAll(notifiers)).toList();
 
   /// Tries to detach the passed [Notifier] [attachment] to the notifiers in this [Iterable]<[Notifier]> and returns an
   /// [Iterable]<[bool]> based on the return value obtained while trying to [Notifier.detach] the given [attachment]
   /// from each notifier.
-  Iterable<bool> detach(Notifier attachment) => map((notifier) => notifier?.detach(attachment)).toList();
+  Iterable<bool> detach(Notifier attachment) =>
+      map((notifier) => notifier?.detach(attachment)).toList();
 
   /// Tries to detach all the passed [attachments] to the notifiers in this [Iterable]<[Notifier]> and returns an
   /// [Iterable]<[Iterable]<[bool]>> based on the return value obtained while trying to [Notifier.detachAll] the given
@@ -955,7 +1024,8 @@ extension Iterable_Notifier on Iterable<Notifier> {
 
   /// Tries to make every notifier present in this [Iterable] start listening to the given [notifier]. This method is
   /// an interface to [Notifier.startListeningTo] for multiple notifiers.
-  Iterable<bool> startListeningTo(Notifier notifier) => map((n) => notifier?.attach(n))?.toList();
+  Iterable<bool> startListeningTo(Notifier notifier) =>
+      map((n) => notifier?.attach(n))?.toList();
 
   /// Tries to make every notifier present in this [Iterable] start listening to all the given [notifiers].
   /// This method is an interface to [Notifier.startListeningToAll] for multiple notifiers.
@@ -964,16 +1034,19 @@ extension Iterable_Notifier on Iterable<Notifier> {
 
   /// Tries to make every notifier present in this [Iterable] stop listening to the given [notifier]. This method is an
   /// interface to [Notifier.stopListeningTo] for multiple notifiers.
-  Iterable<bool> stopListeningTo(Notifier notifier) => map((n) => notifier?.detach(n)).toList();
+  Iterable<bool> stopListeningTo(Notifier notifier) =>
+      map((n) => notifier?.detach(n)).toList();
 
   /// Tries to make every notifier present in this [Iterable] stop listening to all the given [notifiers].
   /// This method is an interface to [Notifier.stopListeningToAll] for multiple notifiers.
-  Iterable<Iterable<bool>> stopListeningToAll(Iterable<Notifier> notifiers) => notifiers?.detachAll(this);
+  Iterable<Iterable<bool>> stopListeningToAll(Iterable<Notifier> notifiers) =>
+      notifiers?.detachAll(this);
 
   /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
   /// the [Iterable] is listening to the passed [notifier] or not. Interfaces the [Notifier.isListeningTo] for
   /// multiple notifiers.
-  Iterable<bool> isListeningTo(Notifier notifier) => map((n) => n?.isListeningTo(notifier));
+  Iterable<bool> isListeningTo(Notifier notifier) =>
+      map((n) => n?.isListeningTo(notifier));
 
   /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
   /// the [Iterable] is listening to the passed [notifiers] or not. Interfaces the [Notifier.isListeningToAll] for
@@ -983,7 +1056,8 @@ extension Iterable_Notifier on Iterable<Notifier> {
 
   /// Tries to add the given [listener] to the notifiers present in this [Iterable]. This method just interfaces the
   /// [Notifier.addListener] method for multiple notifiers (present in this [Iterable]).
-  Iterable<int> addListener(Function listener) => map((notifier) => notifier?.addListener(listener)).toList();
+  Iterable<int> addListener(Function listener) =>
+      map((notifier) => notifier?.addListener(listener)).toList();
 
   /// Tries to add all the given [listeners] to the notifiers present in this [Iterable]. This method just interfaces
   /// the [Notifier.addListeners] method for multiple notifiers (present in this [Iterable]).
@@ -992,27 +1066,34 @@ extension Iterable_Notifier on Iterable<Notifier> {
 
   /// Tries to remove the passed [listener] from all the notifiers present in this [Iterable]. This method just
   /// interfaces the method [Notifier.removeListener].
-  Iterable<bool> removeListener(Function listener) => map((notifier) => notifier.removeListener(listener)).toList();
+  Iterable<bool> removeListener(Function listener) =>
+      map((notifier) => notifier.removeListener(listener)).toList();
 
   /// Tries to remove the passed [listeners] from all the notifiers present in this [Iterable]. This method just
   /// interfaces the method [Notifier.removeListeners].
-  Iterable<Iterable<bool>> removeListeners(Iterable<Function> listeners) => map((n) => n?.removeListeners(listeners)).toList();
+  Iterable<Iterable<bool>> removeListeners(Iterable<Function> listeners) =>
+      map((n) => n?.removeListeners(listeners)).toList();
 
   /// Tries to notify a listener with the given [hashCode] for all the notifiers present in this [Iterable]. This
   /// method just interfaces the method [Notifier.notifyByHashCode] for multiple notifiers.
-  Iterable<bool> notifyByHashCode(int hashCode) => map((n) => n?.notifyByHashCode(hashCode)).toList();
+  Iterable<bool> notifyByHashCode(int hashCode) =>
+      map((n) => n?.notifyByHashCode(hashCode)).toList();
 
   /// Tries to notify the listeners with the given [hashCodes] for all the notifiers present in this [Iterable]. This
   /// method just interfaces the method [Notifier.notifyByHashCodes] for multiple notifiers.
-  Iterable<Iterable<bool>> notifyByHashCodes(Iterable<int> hashCodes) => map((n) => n?.notifyByHashCodes(hashCodes)).toList();
+  Iterable<Iterable<bool>> notifyByHashCodes(Iterable<int> hashCodes) =>
+      map((n) => n?.notifyByHashCodes(hashCodes)).toList();
 
   /// Tries to remove a listener with the given [hashCode] for all the notifiers present in this [Iterable]. This
   /// method just interfaces the method [Notifier.removeListenerByHashCode] for multiple notifiers.
-  Iterable<bool> removeListenerByHashCode(int hashCode) => map((n) => n?.removeListenerByHashCode(hashCode)).toList();
+  Iterable<bool> removeListenerByHashCode(int hashCode) =>
+      map((n) => n?.removeListenerByHashCode(hashCode)).toList();
 
   /// Tries to remove the listeners with the given [hashCodes] for all the notifiers present in this [Iterable]. This
   /// method just interfaces the method [Notifier.removeListenersByHashCodes] for multiple notifiers.
-  Iterable<Iterable<bool>> removeListenersByHashCodes(Iterable<int> hashCodes) => map((n) => n?.removeListenersByHashCodes(hashCodes)).toList();
+  Iterable<Iterable<bool>> removeListenersByHashCodes(
+          Iterable<int> hashCodes) =>
+      map((n) => n?.removeListenersByHashCodes(hashCodes)).toList();
 
   /// Tries to clear the listeners of the notifiers present in this [Iterable]. Interfaces the method
   /// [Notifier.clearListeners] for multiple notifiers (present in this Iterable).
@@ -1020,11 +1101,11 @@ extension Iterable_Notifier on Iterable<Notifier> {
 
   /// Tries to lock the listeners of the notifiers present in this [Iterable]. Interfaces the method
   /// [Notifier.lockListeners] for multiple notifiers (present in this Iterable).
-  Iterable<bool> lockListeners() => map((n)=>n?.lockListeners()).toList();
+  Iterable<bool> lockListeners() => map((n) => n?.lockListeners()).toList();
 
   /// Tries to unlock the listeners of the notifiers present in this [Iterable]. Interfaces the method
   /// [Notifier.unlockListeners] for multiple notifiers (present in this Iterable).
-  Iterable<bool> unlockListeners() => map((n)=>n?.lockListeners()).toList();
+  Iterable<bool> unlockListeners() => map((n) => n?.lockListeners()).toList();
 
   /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
   /// this [Iterable] had the given [listener] or not. Interfaces the [Notifier.hasListener] for multiple notifiers.
@@ -1032,7 +1113,9 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
   /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> hasListenerAtomic(Function listener) =>
-      _atomicTest("hasListener") ? map((n) => n?._hasListener(listener)).toList() : null;
+      _atomicTest("hasListener")
+          ? map((n) => n?._hasListener(listener)).toList()
+          : null;
 
   /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
   /// this [Iterable] had at least one of the passed [listeners] or not. Interfaces the [Notifier.hasAnyListener] for
@@ -1041,7 +1124,9 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
   /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> hasAnyListenerAtomic(Iterable<Function> listeners) =>
-      _atomicTest("hasAnyListener") ? map((n) => n._hasAnyListener(listeners)).toList() : null;
+      _atomicTest("hasAnyListener")
+          ? map((n) => n._hasAnyListener(listeners)).toList()
+          : null;
 
   /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
   /// this [Iterable] has all of the given [listeners] or not. Interfaces the [Notifier.hasAllListeners] for multiple
@@ -1050,7 +1135,9 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
   /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> hasAllListenersAtomic(Iterable<Function> listeners) =>
-      _atomicTest("hasAllListeners") ? map((n) => n._hasAllListeners(listeners)).toList() : null;
+      _atomicTest("hasAllListeners")
+          ? map((n) => n._hasAllListeners(listeners)).toList()
+          : null;
 
   /// Tries to attach the passed [Notifier] [attachment] to the notifiers in this [Iterable]<[Notifier]> and returns an
   /// [Iterable]<[bool]> based on the return value obtained while trying to [Notifier.attach] the given [attachment] to
@@ -1059,7 +1146,9 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
   /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> attachAtomic(Iterable<Notifier> attachments) =>
-      _atomicTest("attach") ? map((notifier) => notifier?._attach(attachments)).toList() : null;
+      _atomicTest("attach")
+          ? map((notifier) => notifier?._attach(attachments)).toList()
+          : null;
 
   /// Tries to attach all the passed [attachments] to the notifiers in this [Iterable]<[Notifier]> and returns an
   /// [Iterable]<[Iterable]<[bool]>> based on the return value obtained while trying to [Notifier.attachAll] the given
@@ -1068,7 +1157,9 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
   /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<Iterable<bool>> attachAllAtomic(Iterable<Notifier> notifiers) =>
-      _atomicTest("attachAll") ? map((notifier) => notifier._attachAll(notifiers)).toList() : null;
+      _atomicTest("attachAll")
+          ? map((notifier) => notifier._attachAll(notifiers)).toList()
+          : null;
 
   /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
   /// this [Iterable] has attached the passed [attachment] or not. Interfaces the [Notifier.hasAttached] for
@@ -1077,7 +1168,9 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
   /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> hasAttachedAtomic(Notifier notifier) =>
-      _atomicTest("hasAttached") ? map((n) => n._hasAttached(notifier)).toList() : null;
+      _atomicTest("hasAttached")
+          ? map((n) => n._hasAttached(notifier)).toList()
+          : null;
 
   /// Returns an [Iterable], where every [bool] value indirectly states whether or not the notifier at that index of
   /// this [Iterable] has attached the passed [attachments] or not. Interfaces the [Notifier.hasAttachedAll] for
@@ -1086,7 +1179,9 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
   /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> hasAttachedAllAtomic(Iterable<Notifier> notifiers) =>
-      _atomicTest("hasAttachedAll") ? map((n) => n._hasAttachedAll(notifiers)).toList() : null;
+      _atomicTest("hasAttachedAll")
+          ? map((n) => n._hasAttachedAll(notifiers)).toList()
+          : null;
 
   /// Tries to detach the passed [Notifier] [attachment] to the notifiers in this [Iterable]<[Notifier]> and returns an
   /// [Iterable]<[bool]> based on the return value obtained while trying to [Notifier.detach] the given [attachment]
@@ -1167,7 +1262,8 @@ extension Iterable_Notifier on Iterable<Notifier> {
   ///
   /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
   /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
-  Iterable<Iterable<bool>> isListeningToAllAtomic(Iterable<Notifier> notifiers) =>
+  Iterable<Iterable<bool>> isListeningToAllAtomic(
+          Iterable<Notifier> notifiers) =>
       _atomicTest("isListeningToAll")
           ? map((n) => n.isListeningToAll(notifiers))
           : null;
@@ -1239,14 +1335,17 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
   /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
   Iterable<bool> removeListenerByHashCodeAtomic(int hashCode) =>
-      _atomicTest("removeListenerByHashCode") ? map((n) => n._removeListenerByHashCode(hashCode)).toList() : null;
+      _atomicTest("removeListenerByHashCode")
+          ? map((n) => n._removeListenerByHashCode(hashCode)).toList()
+          : null;
 
   /// Tries to remove the listeners with the given [hashCodes] for all the notifiers present in this [Iterable]. This
   /// method just interfaces the method [Notifier.removeListenersByHashCodes] for multiple notifiers.
   ///
   /// Atomic: If even one of the notifier present in this Iterable is found to be null, this entire operation shall
   /// atomically fail (i.e. the operation won't be performed on any notifier present in this [Iterable].
-  Iterable<Iterable<bool>> removeListenersByHashCodesAtomic(Iterable<int> hashCodes) =>
+  Iterable<Iterable<bool>> removeListenersByHashCodesAtomic(
+          Iterable<int> hashCodes) =>
       _atomicTest("removeListenersByHashCodes")
           ? map((n) => n._removeListenersByHashCodes(hashCodes)).toList()
           : null;
@@ -1260,15 +1359,15 @@ extension Iterable_Notifier on Iterable<Notifier> {
       ? forEach((n) => n._listeners.clear())
       : null;
 
-
   bool _atomicTest(String _) {
     if (contains(null))
-      throw AtomicError("Could not atomically perform $_() as this $runtimeType#$hashCode contains at least one null value.");
+      throw AtomicError(
+          "Could not atomically perform $_() as this $runtimeType#$hashCode contains at least one null value.");
     if (isAnyDisposed)
-      throw AtomicError("Could not atomically perform $_() as this $runtimeType#$hashCode contains at least one Notifier that was disposed.");
+      throw AtomicError(
+          "Could not atomically perform $_() as this $runtimeType#$hashCode contains at least one Notifier that was disposed.");
     return true;
   }
-
 
   /// Returns the disposed status of each notifier in this [Iterable].
   ///
@@ -1282,7 +1381,7 @@ extension Iterable_Notifier on Iterable<Notifier> {
   /// disposed else it is not disposed.
   Iterable<bool> isNotDisposed() => _isDisposed().notAll();
 
-  Iterable<bool> _isDisposed() => map((n) => n?.isDisposed ?? true );
+  Iterable<bool> _isDisposed() => map((n) => n?.isDisposed ?? true);
 
   /// Returns true if any notifier in this list of notifiers is disposed or is null else false.
   bool get isAnyDisposed {
@@ -1301,7 +1400,8 @@ extension Iterable_Notifier on Iterable<Notifier> {
   bool get isAnyNotDisposed => !isAnyDisposed;
 
   /// Returns the notifiers that are not disposed/not null in this [Iterable] as a [Iterable].
-  Iterable<Notifier> get unDisposedNotifiers => where((notifier) => notifier?.isNotDisposed ?? false);
+  Iterable<Notifier> get unDisposedNotifiers =>
+      where((notifier) => notifier?.isNotDisposed ?? false);
 
   Iterable<Notifier> get notify => this;
   Iterable<Function> get _notify => map((notifier) => notifier?.notify);
@@ -1309,37 +1409,47 @@ extension Iterable_Notifier on Iterable<Notifier> {
   void get printMe => print(toString());
 
   /// Interfaces the getter [Notifier.listenersAreLocked] for multiple notifiers (present in this [Iterable])
-  Iterable<bool> get listenersAreLocked => map((n)=>n?.listenersAreLocked)?.toList();
+  Iterable<bool> get listenersAreLocked =>
+      map((n) => n?.listenersAreLocked)?.toList();
 
   /// Interfaces the getter [Notifier.listenersAreUnlocked] for multiple notifiers (present in this [Iterable])
-  Iterable<bool> get listenersAreUnlocked => map((n)=>n?.listenersAreUnlocked)?.toList();
+  Iterable<bool> get listenersAreUnlocked =>
+      map((n) => n?.listenersAreUnlocked)?.toList();
 
   /// Merges the current [Iterable]'s notifiers with the other [notifiers] into a single [Notifier].
-  Notifier merge([Iterable<Notifier> notifiers, bool Function(Function, dynamic) removeListenerOnError]){
-    assert(notifiers.isAnyNotDisposed, "This method expects you to pass an Iterable of un-disposed notifiers.");
-    assert(isAnyNotDisposed, "Couldn't merge another Iterable as the current iterable had disposed/null values.");
+  Notifier merge(
+      [Iterable<Notifier> notifiers,
+      bool Function(Function, dynamic) removeListenerOnError]) {
+    assert(notifiers.isAnyNotDisposed,
+        "This method expects you to pass an Iterable of un-disposed notifiers.");
+    assert(isAnyNotDisposed,
+        "Couldn't merge another Iterable as the current iterable had disposed/null values.");
     Notifier n = Notifier._();
     n._addListeners(_listeners);
     n._addListeners(notifiers._listeners);
-    return n.._handleError=removeListenerOnError;
+    return n.._handleError = removeListenerOnError;
   }
 
   /// Reverses the listening of all the un-disposed notifiers present in this [Iterable]
-  void reverseListeningOrder() => unDisposedNotifiers.forEach((n) => n?.reverseListeningOrder());
+  void reverseListeningOrder() =>
+      unDisposedNotifiers.forEach((n) => n?.reverseListeningOrder());
 
   /// Reverses the listening of the notifier present in the given [index].
-  void reverseListeningOrderOf(int index) => this.elementAt(index)?.reverseListeningOrder();
+  void reverseListeningOrderOf(int index) =>
+      this.elementAt(index)?.reverseListeningOrder();
 
   /// Clones every [Notifier] present in this [Iterable].
   Iterable<Notifier> clone() => map(Notifier.clone);
 
   /// Gets the number of listeners in each notifier present in this [Iterable].
-  Iterable<int> get numberOfListeners => map((n) => n?.numberOfListeners).toList();
+  Iterable<int> get numberOfListeners =>
+      map((n) => n?.numberOfListeners).toList();
 
   /// Gets the number of listeners present in every notifier as a total (default: 0)
   int get totalNumberOfListeners {
     int totalNumberOfListeners = 0;
-    unDisposedNotifiers.forEach((notifier) => totalNumberOfListeners+=notifier.numberOfListeners);
+    unDisposedNotifiers.forEach(
+        (notifier) => totalNumberOfListeners += notifier.numberOfListeners);
     return totalNumberOfListeners;
   }
 
@@ -1350,7 +1460,8 @@ extension Iterable_Notifier on Iterable<Notifier> {
   }
 
   /// Gets the listeners present in each notifier of this [Iterable] as an [Iterable] of those iterables.
-  Iterable<Iterable<Function>> get listeners => map((n)=>n?.listeners).toList();
+  Iterable<Iterable<Function>> get listeners =>
+      map((n) => n?.listeners).toList();
 
   /// Collects all the listeners of every notifier present in this [Iterable]<[Function]>.
   Iterable<Function> get allListeners {
@@ -1395,8 +1506,7 @@ extension Iterable_Notifier on Iterable<Notifier> {
 /// way. If you want to control the animations you perform, please try using the [TweenNotifier]<[T]> class, which
 /// again is a [ValNotifier]<[T]>. However, it can only perform/control a single tween at a time (for a good reason)
 /// and trying to violate this rule would throw an error.
-class ValNotifier<T> extends Notifier
-{
+class ValNotifier<T> extends Notifier {
   T _val;
 
   /// This constructor is called after instantiating the [ValNotifier]<[T]>
@@ -1424,8 +1534,10 @@ class ValNotifier<T> extends Notifier
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
-  }) : _val=initialVal, super(attachNotifiers: attachNotifiers,
+    bool Function(Function, dynamic) removeListenerOnError,
+  })  : _val = initialVal,
+        super(
+            attachNotifiers: attachNotifiers,
             listenToNotifiers: listenToNotifiers,
             mergeNotifiers: mergeNotifiers,
             initialListeners: initialListeners,
@@ -1439,7 +1551,8 @@ class ValNotifier<T> extends Notifier
 
   /// A method that can be used to load an async resource of type T and then pass it to the [ValNotifier]'s
   /// listeners if it's successfully retrieved else the error is either passed to the onError function
-  Future<T> load(covariant Future<T> res, [Function onError]) => res.then((_)=>this(_)._val).catchError(onError??(){});
+  Future<T> load(covariant Future<T> res, [Function onError]) =>
+      res.then((_) => this(_)._val).catchError(onError ?? () {});
 
   /// The method [notifyAtInterval] notifies the current [ValNotifier] at the given/passed
   /// [interval].
@@ -1449,51 +1562,73 @@ class ValNotifier<T> extends Notifier
   ///
   /// If null is explicitly passed to this method, it'll automatically get resolved to
   /// [Duration.zero].
-  Timer notifyAtInterval(Duration interval) =>
-      _isNotDisposed ? Timer.periodic(interval??Duration.zero, (timer)=>this(_val,false)) : null;
+  Timer notifyAtInterval(Duration interval) => _isNotDisposed
+      ? Timer.periodic(interval ?? Duration.zero, (timer) => this(_val, false))
+      : null;
 
   static ValNotifier<T> merge<T>([Iterable<ValNotifier<T>> notifiers]) =>
       notifiers == null ? ValNotifier._() : notifiers.merge();
 
   /// This is a simple method that checks whether the given [ValNotifier]<[T]> can perform this tween or not.
   bool canPerformThisTween(Tween<T> tween) {
-    if(_isNotDisposed){
-      if(tween==null||tween.end==null||tween.begin==null) return false;
+    if (_isNotDisposed) {
+      if (tween == null || tween.end == null || tween.begin == null)
+        return false;
       _canPerformThisTween(tween);
     }
     return null;
   }
 
   bool _canPerformThisTween(Tween<T> tween) {
-    if(tween==null||tween.end==null||tween.begin==null) return false;
+    if (tween == null || tween.end == null || tween.begin == null) return false;
     try {
       tween.transform(0.5);
       return true;
-    } catch (e) { return _transform(tween)!=null; }
+    } catch (e) {
+      return _transform(tween) != null;
+    }
   }
 
   Tween _transform(Tween tween) {
-
-    switch(T) {
-      case AlignmentGeometry: return AlignmentGeometryTween(begin: tween.begin, end: tween.end);
-      case Alignment: return AlignmentTween(begin: tween.begin, end: tween.end);
-      case BorderRadius: return BorderRadiusTween(begin: tween.begin, end: tween.end);
-      case Border: return BorderTween(begin: tween.begin, end: tween.end);
-      case BoxConstraints: return BoxConstraintsTween(begin: tween.begin, end: tween.end);
-      case Color: return ColorTween(begin: tween.begin,end: tween.end);
-      case Decoration: return DecorationTween(begin: tween.begin,end: tween.end);
-      case EdgeInsetsGeometry: return EdgeInsetsGeometryTween(begin: tween.begin,end: tween.end);
-      case EdgeInsets: return EdgeInsetsTween(begin: tween.begin,end: tween.end);
-      case FractionalOffset: return FractionalOffsetTween(begin: tween.begin,end: tween.end);
-      case int: return IntTween(begin: tween.begin,end: tween.end);
-      case Offset: return MaterialPointArcTween(begin: tween.begin,end: tween.end);
-      case Matrix4: return Matrix4Tween(begin: tween.begin,end: tween.end);
-      case Rect: return RectTween(begin: tween.begin,end: tween.end);
-      case RelativeRect: return RelativeRectTween(begin: tween.begin,end: tween.end);
-      case ShapeBorder: return ShapeBorderTween(begin: tween.begin,end: tween.end);
-      case Size: return SizeTween(begin: tween.begin,end: tween.end);
-      case TextStyle: return TextStyleTween(begin: tween.begin,end: tween.end);
-      case ThemeData: return ThemeDataTween(begin: tween.begin,end: tween.end);
+    switch (T) {
+      case AlignmentGeometry:
+        return AlignmentGeometryTween(begin: tween.begin, end: tween.end);
+      case Alignment:
+        return AlignmentTween(begin: tween.begin, end: tween.end);
+      case BorderRadius:
+        return BorderRadiusTween(begin: tween.begin, end: tween.end);
+      case Border:
+        return BorderTween(begin: tween.begin, end: tween.end);
+      case BoxConstraints:
+        return BoxConstraintsTween(begin: tween.begin, end: tween.end);
+      case Color:
+        return ColorTween(begin: tween.begin, end: tween.end);
+      case Decoration:
+        return DecorationTween(begin: tween.begin, end: tween.end);
+      case EdgeInsetsGeometry:
+        return EdgeInsetsGeometryTween(begin: tween.begin, end: tween.end);
+      case EdgeInsets:
+        return EdgeInsetsTween(begin: tween.begin, end: tween.end);
+      case FractionalOffset:
+        return FractionalOffsetTween(begin: tween.begin, end: tween.end);
+      case int:
+        return IntTween(begin: tween.begin, end: tween.end);
+      case Offset:
+        return MaterialPointArcTween(begin: tween.begin, end: tween.end);
+      case Matrix4:
+        return Matrix4Tween(begin: tween.begin, end: tween.end);
+      case Rect:
+        return RectTween(begin: tween.begin, end: tween.end);
+      case RelativeRect:
+        return RelativeRectTween(begin: tween.begin, end: tween.end);
+      case ShapeBorder:
+        return ShapeBorderTween(begin: tween.begin, end: tween.end);
+      case Size:
+        return SizeTween(begin: tween.begin, end: tween.end);
+      case TextStyle:
+        return TextStyleTween(begin: tween.begin, end: tween.end);
+      case ThemeData:
+        return ThemeDataTween(begin: tween.begin, end: tween.end);
     }
 
     return null;
@@ -1505,12 +1640,16 @@ class ValNotifier<T> extends Notifier
   ///
   /// For more info on how this method animates across the two values or uses the named parameters, please check the
   /// docs of the [performTween] method.
-  Future<ValNotifier<T>> animate(T begin, T end, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) {
-    if(T==dynamic) debugPrint("Calling animate on a ValNotifier<dynamic> might be an bad idea.\n"
-        "Please try being more specific by using the method performTween with the appropriate type.");
+  Future<ValNotifier<T>> animate(T begin, T end, Duration duration,
+      {int loop = 1, bool reverse = false, Curve curve = Curves.linear}) {
+    if (T == dynamic)
+      debugPrint(
+          "Calling animate on a ValNotifier<dynamic> might be an bad idea.\n"
+          "Please try being more specific by using the method performTween with the appropriate type.");
     // Error wasn't throw for the type dynamic since there is a very tiny possibility that someone might
     // declare an extension method on Tween<dynamic>.
-    return performTween(Tween<T>(begin: begin, end: end), duration, loop: loop, reverse: reverse , curve: curve);
+    return performTween(Tween<T>(begin: begin, end: end), duration,
+        loop: loop, reverse: reverse, curve: curve);
   }
 
   /// The method [animateTo] animates from the current [val]ue stored in the buffer to the value passed to the [end]
@@ -1521,14 +1660,20 @@ class ValNotifier<T> extends Notifier
   ///
   /// For more info on how this method animates across two values or uses the other named parameters, please check the
   /// docs of the [performTween] method.
-  Future<ValNotifier<T>> animateTo(T end, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Tween<T> helperTween}) {
-    if(T==dynamic) debugPrint("Calling animate on a ValNotifier<dynamic> might be an bad idea.\n"
-        "Please try being more specific by using the method performTween with the appropriate type.");
+  Future<ValNotifier<T>> animateTo(T end, Duration duration,
+      {int loop = 1,
+      bool reverse = false,
+      Curve curve = Curves.linear,
+      Tween<T> helperTween}) {
+    if (T == dynamic)
+      debugPrint(
+          "Calling animate on a ValNotifier<dynamic> might be an bad idea.\n"
+          "Please try being more specific by using the method performTween with the appropriate type.");
     // Error wasn't throw for the type dynamic since there is a very tiny possibility that someone might
     // declare an extension method on Tween<dynamic>.
-    return performTween(Tween<T>(begin: _val, end: end), duration, loop: loop, reverse: reverse , curve: curve);
+    return performTween(Tween<T>(begin: _val, end: end), duration,
+        loop: loop, reverse: reverse, curve: curve);
   }
-
 
   /// The method [circularAnimate] is just a simple method that interfaces the method [performCircularTween] to perform
   /// a circular animation with the help of the given values ([begin] and [end]) over the given duration. The type [T] is
@@ -1536,13 +1681,23 @@ class ValNotifier<T> extends Notifier
   ///
   /// For more info on how a [ValNotifier] performs a tween in circular manner, please check out the docs of the
   /// [performCircularTween] method.
-  Future<ValNotifier<T>> circularAnimate(T begin, T end, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) {
-    if(_isNotDisposed){
-      if(T==dynamic) debugPrint("Calling circularAnimate on a ValNotifier<dynamic> might be an bad idea.\n"
-          "Please try being more specific while specifying the type of variable that holds the ValNotifier().");
+  Future<ValNotifier<T>> circularAnimate(T begin, T end, Duration duration,
+      {int circles = 1,
+      bool reverse = false,
+      Curve firstCurve = Curves.linear,
+      Curve secondCurve = Curves.linear}) {
+    if (_isNotDisposed) {
+      if (T == dynamic)
+        debugPrint(
+            "Calling circularAnimate on a ValNotifier<dynamic> might be an bad idea.\n"
+            "Please try being more specific while specifying the type of variable that holds the ValNotifier().");
       // Error wasn't throw for the type dynamic since there is a very tiny possibility that someone might
       // declare an extension method on Tween<dynamic>.
-      return performCircularTween(Tween<T>(begin: begin, end: end), duration, circles: circles, reverse: reverse , firstCurve: firstCurve, secondCurve: secondCurve);
+      return performCircularTween(Tween<T>(begin: begin, end: end), duration,
+          circles: circles,
+          reverse: reverse,
+          firstCurve: firstCurve,
+          secondCurve: secondCurve);
     }
     return null;
   }
@@ -1575,30 +1730,34 @@ class ValNotifier<T> extends Notifier
   /// A [ValNotifier]<[T]> by default, is not capable of controlling a animation that is being
   /// performed on it and is actually unaware of it. If you want to control the animation that is being
   /// performed by the [ValNotifier]<[T]> then please consider using a [TweenNotifier]<[T]> instead.
-  Future<ValNotifier<T>> performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) async {
-
-    if(_isNotDisposed) {
-
+  Future<ValNotifier<T>> performTween(Tween<T> tween, Duration duration,
+      {int loop = 1, bool reverse = false, Curve curve = Curves.linear}) async {
+    if (_isNotDisposed) {
       assert(tween != null,
-      "$runtimeType#$hashCode: Make sure that you pass a non-null value to the tween parameter of performTween([...]) method.");
+          "$runtimeType#$hashCode: Make sure that you pass a non-null value to the tween parameter of performTween([...]) method.");
       assert(
-      tween.begin != null && tween.end != null,
-      "$runtimeType#$hashCode: Cannot performTween([...]) through null values. tween.begin or tween.end was initialized to null\n"
+          tween.begin != null && tween.end != null,
+          "$runtimeType#$hashCode: Cannot performTween([...]) through null values. tween.begin or tween.end was initialized to null\n"
           "Use the notifyNull");
       assert(duration != null && duration != Duration.zero,
-      "The performTween() method needs a valid duration to perform a Tween.");
-      assert(curve != null,
-      "The parameter curve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
+          "The performTween() method needs a valid duration to perform a Tween.");
+      assert(
+          curve != null,
+          "The parameter curve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
           "Passing value to curve parameter is not necessary.");
 
-      try{
+      try {
         tween.transform(0.5);
-      } catch(e){
+      } catch (e) {
         tween = _transform(tween);
-        if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use/implement an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please directly use that instead of relying on a raw class.");
+        if (tween == null)
+          throw UnsupportedError(
+              "The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use/implement an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please directly use that instead of relying on a raw class.");
       }
 
-      return _performTween(tween, duration, loop: loop, reverse: reverse, curve: curve).then((t){
+      return _performTween(tween, duration,
+              loop: loop, reverse: reverse, curve: curve)
+          .then((t) {
         t.dispose();
         return this;
       });
@@ -1607,13 +1766,16 @@ class ValNotifier<T> extends Notifier
     return null;
   }
 
-  Future<Ticker> _performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Ticker t}) async {
-
+  Future<Ticker> _performTween(Tween<T> tween, Duration duration,
+      {int loop = 1,
+      bool reverse = false,
+      Curve curve = Curves.linear,
+      Ticker t}) async {
     T _;
-    reverse??=false;
+    reverse ??= false;
 
-    if(t==null){
-      if(reverse){
+    if (t == null) {
+      if (reverse) {
         _ = tween.end;
         tween.end = tween.begin;
         tween.begin = _;
@@ -1624,13 +1786,14 @@ class ValNotifier<T> extends Notifier
           call(tween.begin);
           return t..stop();
         }
-        return call(tween.transform(1 - curve.transform(d.inMilliseconds / duration.inMilliseconds)));
+        return call(tween.transform(
+            1 - curve.transform(d.inMilliseconds / duration.inMilliseconds)));
       });
     }
 
     loop = _times(loop);
-    while(loop--!=0) await t.start();
-    if(reverse==null){
+    while (loop-- != 0) await t.start();
+    if (reverse == null) {
       tween.begin = tween.end;
       tween.end = _;
     }
@@ -1666,39 +1829,46 @@ class ValNotifier<T> extends Notifier
   /// A [ValNotifier]<[T]> by default, is not capable of controlling a animation that is being
   /// performed on it and is actually unaware of it. If you want to control the animation that is being
   /// performed by the [ValNotifier]<[T]> then please consider using a [TweenNotifier]<[T]> instead.
-  Future<ValNotifier<T>> performCircularTween(Tween<T> tween, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) async {
-
-    if(_isNotDisposed){
+  Future<ValNotifier<T>> performCircularTween(Tween<T> tween, Duration duration,
+      {int circles = 1,
+      bool reverse = false,
+      Curve firstCurve = Curves.linear,
+      Curve secondCurve = Curves.linear}) async {
+    if (_isNotDisposed) {
       assert(tween != null,
-      "$runtimeType#$hashCode: Make sure that you pass a non-null value to the tween parameter of performTween([...]) method.");
+          "$runtimeType#$hashCode: Make sure that you pass a non-null value to the tween parameter of performTween([...]) method.");
       assert(
-      tween.begin != null && tween.end != null,
-      "$runtimeType#$hashCode: Cannot performTween([...]) through null values. tween.begin or tween.end was initialized to null\n"
+          tween.begin != null && tween.end != null,
+          "$runtimeType#$hashCode: Cannot performTween([...]) through null values. tween.begin or tween.end was initialized to null\n"
           "Use the notifyNull");
       assert(duration != null && duration != Duration.zero,
-      "The performTween() method needs a valid duration to perform a Tween.");
-      assert(firstCurve != null,
-      "The parameter firstCurve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
+          "The performTween() method needs a valid duration to perform a Tween.");
+      assert(
+          firstCurve != null,
+          "The parameter firstCurve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
           "Passing value to curve parameter is not necessary.");
-      assert(secondCurve != null,
-      "The parameter secondCurve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
+      assert(
+          secondCurve != null,
+          "The parameter secondCurve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
           "Passing value to curve parameter is not necessary.");
 
-      try{
+      try {
         tween.transform(0.5);
-      } catch(e){
+      } catch (e) {
         tween = _transform(tween);
-        if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
+        if (tween == null)
+          throw UnsupportedError(
+              "The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
       }
 
-      reverse??=false;
-      circles=_times(circles);
-      duration~/=2;
+      reverse ??= false;
+      circles = _times(circles);
+      duration ~/= 2;
 
-      Ticker t1,t2;
+      Ticker t1, t2;
       T _;
 
-      if(reverse){
+      if (reverse) {
         _ = tween.end;
         tween.end = tween.begin;
         tween.begin = _;
@@ -1710,7 +1880,8 @@ class ValNotifier<T> extends Notifier
           call(tween.end);
           return t1..stop();
         }
-        return call(tween.transform(firstCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
+        return call(tween.transform(
+            firstCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
       });
 
       t2 = Ticker((d) {
@@ -1718,18 +1889,18 @@ class ValNotifier<T> extends Notifier
           call(tween.begin);
           return t2..stop();
         }
-        return call(tween.transform(1 - secondCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
+        return call(tween.transform(1 -
+            secondCurve.transform(d.inMilliseconds / duration.inMilliseconds)));
       });
-
 
       return Future.doWhile(() async {
         await _performTween(tween, duration, t: t1);
         await _performTween(tween, duration, t: t2);
-        return --circles!=0;
-      }).then((_){
+        return --circles != 0;
+      }).then((_) {
         t1.dispose();
         t2.dispose();
-        if(reverse==null){
+        if (reverse == null) {
           tween.begin = tween.end;
           tween.end = _;
         }
@@ -1741,7 +1912,7 @@ class ValNotifier<T> extends Notifier
   }
 
   int _times(int times) {
-    if(times==null||times==0) return 1;
+    if (times == null || times == 0) return 1;
     return times.abs();
   }
 
@@ -1769,11 +1940,19 @@ class ValNotifier<T> extends Notifier
   /// A animation animation/interpolation performed by a [ValNotifier] cannot be controlled in any way, once it starts.
   /// If you want to be control this interpolation, then please consider using a [TweenNotifier] instead. It performs
   /// only one animation at a time that can be controlled by the instance methods provided by it's class.
-  Future<ValNotifier<T>> interpolateR(Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
-    if(_isNotDisposed) {
-      if(T==dynamic) debugPrint("Calling interpolateR on a $runtimeType<dynamic> might be an bad idea.\n"
-          "Please try being more specific while specifying the type of variable that holds the ValNotifier().");
-      return interpolate(Tween<T>(),values, totalDuration, loop: loop, reverse: reverse, curve: curve, curves: curves);
+  Future<ValNotifier<T>> interpolateR(
+      Iterable<T> values, Duration totalDuration,
+      {int loop = 1,
+      bool reverse = false,
+      Curve curve = Curves.linear,
+      Iterable<Curve> curves}) async {
+    if (_isNotDisposed) {
+      if (T == dynamic)
+        debugPrint(
+            "Calling interpolateR on a $runtimeType<dynamic> might be an bad idea.\n"
+            "Please try being more specific while specifying the type of variable that holds the ValNotifier().");
+      return interpolate(Tween<T>(), values, totalDuration,
+          loop: loop, reverse: reverse, curve: curve, curves: curves);
     }
     return null;
   }
@@ -1806,35 +1985,48 @@ class ValNotifier<T> extends Notifier
   /// A [ValNotifier]<[T]> by default, is not capable of controlling a animation that is being
   /// performed on it and is actually unaware of it. If you want to control the animation that is being
   /// performed by the [ValNotifier]<[T]> then please consider using a [TweenNotifier]<[T]> instead.
-  Future<ValNotifier<T>> interpolate(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
-    if(_isNotDisposed){
-
+  Future<ValNotifier<T>> interpolate(
+      Tween<T> tween, Iterable<T> values, Duration totalDuration,
+      {int loop = 1,
+      bool reverse = false,
+      Curve curve = Curves.linear,
+      Iterable<Curve> curves}) async {
+    if (_isNotDisposed) {
       List<Curve> _curves = curves?.toList();
 
-      assert(tween!=null,"You cannot interpolate across values without a buffer Tween.");
-      assert(values!=null,"The parameter values cannot be set to null.");
-      assert(totalDuration!=null && totalDuration!=Duration.zero,"The total duration of the interpolation cannot be set to null or zero.");
-      assert(values.length>1,"We need at least two values to successfully interpolate.");
-      if(curves==null) _curves = List.filled(values.length-1, curve);
+      assert(tween != null,
+          "You cannot interpolate across values without a buffer Tween.");
+      assert(values != null, "The parameter values cannot be set to null.");
+      assert(totalDuration != null && totalDuration != Duration.zero,
+          "The total duration of the interpolation cannot be set to null or zero.");
+      assert(values.length > 1,
+          "We need at least two values to successfully interpolate.");
+      if (curves == null)
+        _curves = List.filled(values.length - 1, curve);
       else {
         _curves = curves.map((e) => e ?? curve).toList();
-        while(_curves.length<values.length) _curves.add(curve);
+        while (_curves.length < values.length) _curves.add(curve);
         _curves.removeLast();
-        assert(!_curves.contains(null),"Please pass some value to the curve parameter in order to fill the null(s) in the passed curves Iterable with it or please fix it, if it was unexpected.");
+        assert(!_curves.contains(null),
+            "Please pass some value to the curve parameter in order to fill the null(s) in the passed curves Iterable with it or please fix it, if it was unexpected.");
       }
-      assert(_curves.length+1==values.length,"Please make sure that you have a curve for each transformation and not each value. There were ${curves.length-values.length+1} more curves than expected.");
+      assert(_curves.length + 1 == values.length,
+          "Please make sure that you have a curve for each transformation and not each value. There were ${curves.length - values.length + 1} more curves than expected.");
 
-      try{
+      try {
         tween.transform(0.5);
-      } catch(e){
+      } catch (e) {
         tween = _transform(tween);
-        if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
+        if (tween == null)
+          throw UnsupportedError(
+              "The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
       }
 
       loop = _times(loop);
-      totalDuration~/=_curves.length;
+      totalDuration ~/= _curves.length;
 
-      return _interpolate(tween, values, totalDuration, loop: loop, reverse: reverse, curves: _curves);
+      return _interpolate(tween, values, totalDuration,
+          loop: loop, reverse: reverse, curves: _curves);
     }
     return null;
   }
@@ -1848,12 +2040,23 @@ class ValNotifier<T> extends Notifier
   ///
   /// To know more about circular interpolation, please read the docs of the method
   /// [circularInterpolation].
-  Future<ValNotifier<T>> circularInterpolationR(Iterable<T> values, Duration totalDuration, {int circles=1, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
-  {
-    if(_isNotDisposed){
-      assert(values!=null,"The parameter values cannot be set to null.");
-      assert(values.length>1, "We need at least two values to successfully interpolate.");
-      return circularInterpolation(_sTween(values), values, totalDuration, circles: circles, firstCurve: firstCurve, secondCurve: secondCurve, firstCurves: firstCurves, secondCurves: secondCurves);
+  Future<ValNotifier<T>> circularInterpolationR(
+      Iterable<T> values, Duration totalDuration,
+      {int circles = 1,
+      Curve firstCurve = Curves.linear,
+      Curve secondCurve = Curves.linear,
+      Iterable<Curve> firstCurves,
+      Iterable<Curve> secondCurves}) {
+    if (_isNotDisposed) {
+      assert(values != null, "The parameter values cannot be set to null.");
+      assert(values.length > 1,
+          "We need at least two values to successfully interpolate.");
+      return circularInterpolation(_sTween(values), values, totalDuration,
+          circles: circles,
+          firstCurve: firstCurve,
+          secondCurve: secondCurve,
+          firstCurves: firstCurves,
+          secondCurves: secondCurves);
     }
     return null;
   }
@@ -1880,25 +2083,51 @@ class ValNotifier<T> extends Notifier
   // };
 
   Tween _sTween(Iterable<T> values) {
-    if(values is Iterable<AlignmentGeometry>) return AlignmentGeometryTween(begin: Alignment.center, end: Alignment.center);
-    if(values is Iterable<Alignment>) return AlignmentTween(begin: Alignment.center, end: Alignment.center);
-    if(values is Iterable<BorderRadius>) return BorderRadiusTween(begin: BorderRadius.zero, end: BorderRadius.zero);
-    if(values is Iterable<Border>) return BorderTween(begin: const Border(), end: const Border());
-    if(values is Iterable<BoxConstraints>) return BoxConstraintsTween(begin: const BoxConstraints(), end: const BoxConstraints());
-    if(values is Iterable<Color>) return ColorTween(begin: Colors.transparent, end: Colors.transparent);
-    if(values is Iterable<Decoration>) return DecorationTween(begin: const BoxDecoration(), end: const BoxDecoration());
-    if(values is Iterable<EdgeInsetsGeometry>) return EdgeInsetsGeometryTween(begin: EdgeInsets.zero, end: EdgeInsets.zero);
-    if(values is Iterable<EdgeInsets>) return EdgeInsetsTween(begin: EdgeInsets.zero, end: EdgeInsets.zero);
-    if(values is Iterable<FractionalOffset>) return FractionalOffsetTween(begin: const FractionalOffset(0,0), end: const FractionalOffset(0,0));
-    if(values is Iterable<int>) return IntTween(begin: 0, end: 0);
-    if(values is Iterable<Offset>) return MaterialPointArcTween(begin: Offset.zero, end: Offset.zero);
-    if(values is Iterable<Matrix4>) return Matrix4Tween(begin: Matrix4.zero(), end: Matrix4.zero());
-    if(values is Iterable<Rect>) return RectTween(begin: Rect.zero, end: Rect.zero);
-    if(values is Iterable<RelativeRect>) return RelativeRectTween(begin: RelativeRect.fill, end: RelativeRect.fill);
-    if(values is Iterable<ShapeBorder>) return ShapeBorderTween(begin: const Border(), end: const Border());
-    if(values is Iterable<Size>) return SizeTween(begin: Size.zero, end: Size.zero);
-    if(values is Iterable<TextStyle>) return TextStyleTween(begin: const TextStyle(), end: const TextStyle());
-    if(values is Iterable<ThemeData>) return ThemeDataTween(begin: ThemeData(), end: ThemeData());
+    if (values is Iterable<AlignmentGeometry>)
+      return AlignmentGeometryTween(
+          begin: Alignment.center, end: Alignment.center);
+    if (values is Iterable<Alignment>)
+      return AlignmentTween(begin: Alignment.center, end: Alignment.center);
+    if (values is Iterable<BorderRadius>)
+      return BorderRadiusTween(
+          begin: BorderRadius.zero, end: BorderRadius.zero);
+    if (values is Iterable<Border>)
+      return BorderTween(begin: const Border(), end: const Border());
+    if (values is Iterable<BoxConstraints>)
+      return BoxConstraintsTween(
+          begin: const BoxConstraints(), end: const BoxConstraints());
+    if (values is Iterable<Color>)
+      return ColorTween(begin: Colors.transparent, end: Colors.transparent);
+    if (values is Iterable<Decoration>)
+      return DecorationTween(
+          begin: const BoxDecoration(), end: const BoxDecoration());
+    if (values is Iterable<EdgeInsetsGeometry>)
+      return EdgeInsetsGeometryTween(
+          begin: EdgeInsets.zero, end: EdgeInsets.zero);
+    if (values is Iterable<EdgeInsets>)
+      return EdgeInsetsTween(begin: EdgeInsets.zero, end: EdgeInsets.zero);
+    if (values is Iterable<FractionalOffset>)
+      return FractionalOffsetTween(
+          begin: const FractionalOffset(0, 0),
+          end: const FractionalOffset(0, 0));
+    if (values is Iterable<int>) return IntTween(begin: 0, end: 0);
+    if (values is Iterable<Offset>)
+      return MaterialPointArcTween(begin: Offset.zero, end: Offset.zero);
+    if (values is Iterable<Matrix4>)
+      return Matrix4Tween(begin: Matrix4.zero(), end: Matrix4.zero());
+    if (values is Iterable<Rect>)
+      return RectTween(begin: Rect.zero, end: Rect.zero);
+    if (values is Iterable<RelativeRect>)
+      return RelativeRectTween(
+          begin: RelativeRect.fill, end: RelativeRect.fill);
+    if (values is Iterable<ShapeBorder>)
+      return ShapeBorderTween(begin: const Border(), end: const Border());
+    if (values is Iterable<Size>)
+      return SizeTween(begin: Size.zero, end: Size.zero);
+    if (values is Iterable<TextStyle>)
+      return TextStyleTween(begin: const TextStyle(), end: const TextStyle());
+    if (values is Iterable<ThemeData>)
+      return ThemeDataTween(begin: ThemeData(), end: ThemeData());
     return _transform(Tween<T>());
   }
 
@@ -1932,93 +2161,120 @@ class ValNotifier<T> extends Notifier
   /// filled with [secondCurve] values to meet the expected requirement. If null is still found in the
   /// passed iterable since [secondCurve] could have been null or if it's longer than that, the
   /// expected length an assertion fails.
-  Future<ValNotifier<T>> circularInterpolation(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int circles=1, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
-  {
+  Future<ValNotifier<T>> circularInterpolation(
+      Tween<T> tween, Iterable<T> values, Duration totalDuration,
+      {int circles = 1,
+      Curve firstCurve = Curves.linear,
+      Curve secondCurve = Curves.linear,
+      Iterable<Curve> firstCurves,
+      Iterable<Curve> secondCurves}) {
+    if (_isNotDisposed) {
+      assert(tween != null,
+          "You cannot interpolate across values without a buffer Tween.");
+      assert(values != null, "The parameter values cannot be set to null.");
+      assert(totalDuration != null && totalDuration != Duration.zero,
+          "The total duration of the interpolation cannot be set to null.");
+      assert(values.length > 1,
+          "We need at least two values to successfully interpolate.");
 
-    if(_isNotDisposed) {
+      assert(!(firstCurves == null && firstCurve == null),
+          "Please ensure that either firstCurve or firstCurves is not null.");
+      assert(!(secondCurves == null && secondCurve == null),
+          "Please ensure that either secondCurve or secondCurves is not null.");
 
-      assert(tween!=null,"You cannot interpolate across values without a buffer Tween.");
-      assert(values!=null,"The parameter values cannot be set to null.");
-      assert(totalDuration!=null && totalDuration!=Duration.zero,"The total duration of the interpolation cannot be set to null.");
-      assert(values.length>1, "We need at least two values to successfully interpolate.");
+      List<Curve> _firstCurves = firstCurves?.toList(),
+          _secondCurves = secondCurves?.toList();
 
-      assert(!(firstCurves==null&&firstCurve==null), "Please ensure that either firstCurve or firstCurves is not null.");
-      assert(!(secondCurves==null&&secondCurve==null), "Please ensure that either secondCurve or secondCurves is not null.");
-
-      List<Curve> _firstCurves = firstCurves?.toList(), _secondCurves = secondCurves?.toList();
-
-      if(firstCurves==null) _firstCurves = List.filled(values.length-1, firstCurve);
+      if (firstCurves == null)
+        _firstCurves = List.filled(values.length - 1, firstCurve);
       else {
-        assert(firstCurves.length<values.length,"Please make sure that there is a (first)Curve for every interpolation and not every value. The firstCurves iterable had ${firstCurves.length-values.length} more curves than expected!");
+        assert(firstCurves.length < values.length,
+            "Please make sure that there is a (first)Curve for every interpolation and not every value. The firstCurves iterable had ${firstCurves.length - values.length} more curves than expected!");
         _firstCurves = firstCurves.map((e) => e ?? firstCurve).toList();
-        while(_firstCurves.length<values.length) _firstCurves.add(firstCurve);
+        while (_firstCurves.length < values.length)
+          _firstCurves.add(firstCurve);
         _firstCurves.removeLast();
-        assert(!_firstCurves.contains(null),"Please pass some value to the firstCurve parameter in order to fill the null(s) in the passed firstCurve Iterable with it or please fix it, if it was unexpected.");
+        assert(!_firstCurves.contains(null),
+            "Please pass some value to the firstCurve parameter in order to fill the null(s) in the passed firstCurve Iterable with it or please fix it, if it was unexpected.");
       }
 
-      if(secondCurves==null) _secondCurves = List.filled(values.length-1, secondCurve);
+      if (secondCurves == null)
+        _secondCurves = List.filled(values.length - 1, secondCurve);
       else {
-        assert(secondCurves.length<values.length,"Please make sure that there is a (first)Curve for every interpolation and not every value. The firstCurves iterable had ${secondCurves.length-values.length} more curves than expected!");
+        assert(secondCurves.length < values.length,
+            "Please make sure that there is a (first)Curve for every interpolation and not every value. The firstCurves iterable had ${secondCurves.length - values.length} more curves than expected!");
         _secondCurves = secondCurves.map((e) => e ?? secondCurve).toList();
-        while(_secondCurves.length<values.length) _secondCurves.add(secondCurve);
+        while (_secondCurves.length < values.length)
+          _secondCurves.add(secondCurve);
         _secondCurves.removeLast();
-        assert(!_secondCurves.contains(null),"Please pass some value to the secondCurve parameter in order to fill the null(s) in the passed curves secondCurve with it or please fix it, if it was unexpected.");
+        assert(!_secondCurves.contains(null),
+            "Please pass some value to the secondCurve parameter in order to fill the null(s) in the passed curves secondCurve with it or please fix it, if it was unexpected.");
       }
 
-      try{
+      try {
         tween.transform(0.5);
-      } catch(e){
+      } catch (e) {
         tween = _transform(tween);
-        if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
+        if (tween == null)
+          throw UnsupportedError(
+              "The $runtimeType#$hashCode could not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please");
       }
 
-      List<T> _values = []..addAll(values)..removeLast()..addAll(values.toList().reversed);
+      List<T> _values = []
+        ..addAll(values)
+        ..removeLast()
+        ..addAll(values.toList().reversed);
       List<Curve> _curves = []..addAll(_firstCurves)..addAll(_secondCurves);
 
       circles = _times(circles);
-      totalDuration~/=_curves.length;
+      totalDuration ~/= _curves.length;
 
       return Future.doWhile(() async {
         await _interpolate(tween, _values, totalDuration, curves: _curves);
-        return --circles!=0;
+        return --circles != 0;
       }).then((value) => this);
     }
     return null;
   }
 
-  Future<ValNotifier<T>> _interpolate(Tween<T> tween, Iterable<T> values, Duration duration, {int loop=1, bool reverse=false, Iterable<Curve> curves, Ticker t}) async {
+  Future<ValNotifier<T>> _interpolate(
+      Tween<T> tween, Iterable<T> values, Duration duration,
+      {int loop = 1,
+      bool reverse = false,
+      Iterable<Curve> curves,
+      Ticker t}) async {
+    Curve curve;
 
-      Curve curve;
+    if (reverse ??= false) {
+      values = values.toList().reversed;
+      curves = curves.toList().reversed;
+    }
 
-      if(reverse??=false) {
-        values = values.toList().reversed;
-        curves = curves.toList().reversed;
+    int i;
+
+    t = Ticker((d) async {
+      if (d > duration) {
+        call(tween.end);
+        return t..stop();
       }
+      return call(tween.transform(
+          curve.transform(d.inMilliseconds / duration.inMilliseconds)));
+    });
 
-      int i;
-
-      t = Ticker((d) async {
-        if (d > duration) {
-          call(tween.end);
-          return t..stop();
-        }
-        return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
-      });
-
-      tween.end=values.first;
-      return Future.doWhile(() async {
-        i = 1;
-        do {
-          tween.begin = tween.end;
-          tween.end = values[i];
-          curve = curves[i-1];
-          await t.start();
-        } while(++i!=values.length);
-        return --loop!=0;
-      }).then((_){
-        t.dispose();
-        return this;
-      });
+    tween.end = values.first;
+    return Future.doWhile(() async {
+      i = 1;
+      do {
+        tween.begin = tween.end;
+        tween.end = values[i];
+        curve = curves[i - 1];
+        await t.start();
+      } while (++i != values.length);
+      return --loop != 0;
+    }).then((_) {
+      t.dispose();
+      return this;
+    });
   }
 
   /// The [performTweens] method is just a helper method for the [performTween] method that can perform
@@ -2044,50 +2300,61 @@ class ValNotifier<T> extends Notifier
   /// This method was made with the intention of performing multiple [tweens] with the same setting.
   /// If your requirements wish you to perform multiple [tweens] with different settings, then please
   /// consider using [performTween] while awaiting each of them in an async to keep them in sync.
-  Future<ValNotifier<T>> performTweens(Iterable<Tween<T>> tweens, Duration duration, {int loop=1,bool reverse=false, Curve curve = Curves.linear}) async {
-    if(_isNotDisposed){
+  Future<ValNotifier<T>> performTweens(
+      Iterable<Tween<T>> tweens, Duration duration,
+      {int loop = 1, bool reverse = false, Curve curve = Curves.linear}) async {
+    if (_isNotDisposed) {
       assert(tweens != null,
-      "$runtimeType#$hashCode: You passed null value to the tweens parameter of the performTweens([...]) method.");
+          "$runtimeType#$hashCode: You passed null value to the tweens parameter of the performTweens([...]) method.");
       assert(duration != null && duration != Duration.zero,
-      "The performTween() method needs a valid duration to perform a Tween.");
-      assert(curve != null,
-      "The parameter curve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
+          "The performTween() method needs a valid duration to perform a Tween.");
+      assert(
+          curve != null,
+          "The parameter curve of performTween method just received null.\nThe default value of curve is Curves.linear.\n"
           "Passing value to curve parameter is not necessary.");
 
-      tweens = tweens.map((tween){
+      tweens = tweens.map((tween) {
         try {
           tween.transform(0.5);
-        } catch(e) {
+        } catch (e) {
           tween = _transform(tween);
-          if(tween==null) throw UnsupportedError("The $runtimeType#$hashCode cannot not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please ensure that you pass it's instance as a Tween.");
+          if (tween == null)
+            throw UnsupportedError(
+                "The $runtimeType#$hashCode cannot not perform the tween $tween. Make sure you use an custom class that extends Tween<$T> and has overriden the transform method in an expected manner. The plugin has added support to directly convert a raw Tween instance to an appropriate one (if supported by the SDK), but it unfortunately couldn't find one for the current type $T. If you have implemented a custom class from your end then please ensure that you pass it's instance as a Tween.");
         }
         return tween;
       });
 
-      reverse??=false;
+      reverse ??= false;
 
-      Iterable<Ticker> iT = tweens.map((tween){
+      Iterable<Ticker> iT = tweens.map((tween) {
         Ticker t;
-        return t = reverse ? Ticker((d) {
-          if (d > duration) {
-            call(tween.begin);
-            return t..stop();
-          }
-          return call(tween.transform(1 - curve.transform(d.inMilliseconds / duration.inMilliseconds)));
-        }) : Ticker((d) {
-          if (d > duration) {
-            call(tween.end);
-            return t..stop();
-          }
-          return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
-        });
+        return t = reverse
+            ? Ticker((d) {
+                if (d > duration) {
+                  call(tween.begin);
+                  return t..stop();
+                }
+                return call(tween.transform(1 -
+                    curve.transform(
+                        d.inMilliseconds / duration.inMilliseconds)));
+              })
+            : Ticker((d) {
+                if (d > duration) {
+                  call(tween.end);
+                  return t..stop();
+                }
+                return call(tween.transform(curve
+                    .transform(d.inMilliseconds / duration.inMilliseconds)));
+              });
       });
 
-      loop=_times(loop);
+      loop = _times(loop);
 
-      while(loop--!=0)
-        for(Ticker t in iT)
-          await _performTween(null, duration, loop: loop, reverse: reverse, curve: curve, t: t);
+      while (loop-- != 0)
+        for (Ticker t in iT)
+          await _performTween(null, duration,
+              loop: loop, reverse: reverse, curve: curve, t: t);
       return this;
     }
     return null;
@@ -2096,13 +2363,14 @@ class ValNotifier<T> extends Notifier
   @override
   bool _notifyByHashCode(int hashCode) {
     Function _ = _listeners.firstWhere(
-            (listener) => listener.hashCode == hashCode,
+        (listener) => listener.hashCode == hashCode,
         orElse: () => null);
     if (_ == null) return false;
-    try{
+    try {
       _ is Function() ? _() : _(val);
-    } catch(e){
-      debugPrint("Notifier#${this.hashCode}: An error was thrown while specifically notifying the listener#$hashCode (String rep.:$_)");
+    } catch (e) {
+      debugPrint(
+          "Notifier#${this.hashCode}: An error was thrown while specifically notifying the listener#$hashCode (String rep.:$_)");
       rethrow;
     }
     return true;
@@ -2125,34 +2393,39 @@ class ValNotifier<T> extends Notifier
           _listeners[i] is Function(T) ? _listeners[i](val) : _listeners[i]();
         } catch (e) {
           if (_handleError == null) rethrow;
-          bool _ = _handleError(_listeners[i],e);
+          bool _ = _handleError(_listeners[i], e);
           if (_ == null) rethrow;
           if (_) {
             try {
               _listeners.removeAt(i--);
-            } catch(e) {
+            } catch (e) {
               i++;
-              if(e is UnsupportedError) throw StateError("$runtimeType#$hashCode: Could not remove ${_listeners[i]} as my listeners had been locked!\nPlease call unlockListeners() on me.");
+              if (e is UnsupportedError)
+                throw StateError(
+                    "$runtimeType#$hashCode: Could not remove ${_listeners[i]} as my listeners had been locked!\nPlease call unlockListeners() on me.");
               rethrow; // For any other unexpected error
             }
           }
         }
       }
-      if (save==true) _val = val;
+      if (save == true) _val = val;
       return this;
     }
     return null;
   }
 
   /// Attach a Stream to this [ValNotifier] to get notified, whenever it gets called.
-  bool attachStream(covariant StreamController<T> s) => _isNotDisposed?addListener(s.add)!=null:null;
+  bool attachStream(covariant StreamController<T> s) =>
+      _isNotDisposed ? addListener(s.add) != null : null;
 
   /// Detach a Stream that was previously attached to this [ValNotifier] via [attachStream] method.
-  bool detachStream(covariant StreamController<T> s) => _isNotDisposed?removeListener(s.add):null;
+  bool detachStream(covariant StreamController<T> s) =>
+      _isNotDisposed ? removeListener(s.add) : null;
 
   /// Makes the [ValNotifier] listen to an existing stream. Use the [StreamSubscription] returned from
   /// this method control or cancel this connection.
-  StreamSubscription<T> listenTo(covariant Stream<T> stream) => stream.listen(this);
+  StreamSubscription<T> listenTo(covariant Stream<T> stream) =>
+      stream.listen(this);
 
   /// Notifies null to all the listeners and clears the value stored in the ValNotifier's buffer.
   ///
@@ -2193,16 +2466,19 @@ class ValNotifier<T> extends Notifier
   /// method is passed. If the two types differ in any way or are not within the scope of expected types
   /// an [UnsupportedError] shall been thrown.
   operator -(_) {
-    if(_ == null) return null;
+    if (_ == null) return null;
     if (_ is ValNotifier<T>) return ValNotifier.merge<T>([this, _]);
     if (_ is Iterable<Notifier>) return merge(_);
-    if (_ is Function()) return NotificationBuilder(notifier: this, builder: (c) => _());
-    if (_ is Function(T)) return NotificationBuilder(notifier: this, builder: (c) => _(_val));
-    if (_ is Function(BuildContext, T)) return NotificationBuilder(notifier: this, builder: (c) => _(c, _val));
+    if (_ is Function())
+      return NotificationBuilder(notifier: this, builder: (c) => _());
+    if (_ is Function(T))
+      return NotificationBuilder(notifier: this, builder: (c) => _(_val));
+    if (_ is Function(BuildContext, T))
+      return NotificationBuilder(notifier: this, builder: (c) => _(c, _val));
     // if (_ is Widget) return NotifiableChild(notifier: this, child: _);
-    throw UnsupportedError("$runtimeType<$T>#$hashCode: $runtimeType<$T>'s operator - does not support ${_.runtimeType}.");
+    throw UnsupportedError(
+        "$runtimeType<$T>#$hashCode: $runtimeType<$T>'s operator - does not support ${_.runtimeType}.");
   }
-
 
   /// The method [init] can be used to re-init a disposed [ValNotifier]<[T]>.
   ///
@@ -2216,11 +2492,17 @@ class ValNotifier<T> extends Notifier
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
-  }){
-    if(isDisposed){
+    bool Function(Function, dynamic) removeListenerOnError,
+  }) {
+    if (isDisposed) {
       _val = initialVal;
-      super.init(attachNotifiers: attachNotifiers, listenToNotifiers: listenToNotifiers, mergeNotifiers: mergeNotifiers, initialListeners: initialListeners, removeListenerOnError: removeListenerOnError, lockListenersOnInit: lockListenersOnInit);
+      super.init(
+          attachNotifiers: attachNotifiers,
+          listenToNotifiers: listenToNotifiers,
+          mergeNotifiers: mergeNotifiers,
+          initialListeners: initialListeners,
+          removeListenerOnError: removeListenerOnError,
+          lockListenersOnInit: lockListenersOnInit);
       return true;
     }
     return false;
@@ -2240,7 +2522,6 @@ enum HttpRequestType { GET, HEAD, DELETE, READ, READBYTES, POST, PUT, PATCH }
 /// previous values/type. This could reduce the boilerplate code while performing requests to the same url or with
 /// similar or same parameter at different places in the app.
 class HttpNotifier extends ValNotifier {
-
   /// A single client for all http requests
   http.Client _client;
 
@@ -2254,9 +2535,14 @@ class HttpNotifier extends ValNotifier {
   /// valid one.
   set url(String url) {
     if (_isNotDisposed) {
-      assert(url != null, "$runtimeType#$hashCode could not set the url to null.");
+      assert(
+          url != null, "$runtimeType#$hashCode could not set the url to null.");
       // Regex Source: https://stackoverflow.com/a/55674757
-      assert(RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url), "Please make sure that you set $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case).");
+      assert(
+          RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?",
+                  caseSensitive: false)
+              .hasMatch(url),
+          "Please make sure that you set $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case).");
       _url = url;
     }
   }
@@ -2265,14 +2551,14 @@ class HttpNotifier extends ValNotifier {
   Map<String, String> _headers;
 
   /// A setter that can be used to set the default headers of this [HttpNotifier].
-  set headers(Map<String, String> headers){
-    if(_isNotDisposed){
+  set headers(Map<String, String> headers) {
+    if (_isNotDisposed) {
       _headers = headers;
     }
   }
 
   /// A getter that can be used to get the default headers of this [HttpNotifier].
-  Map<String,String> get headers => _isNotDisposed?_headers:null;
+  Map<String, String> get headers => _isNotDisposed ? _headers : null;
 
   /// A buffer that stores the request type (for sync)
   HttpRequestType _requestType;
@@ -2283,9 +2569,9 @@ class HttpNotifier extends ValNotifier {
   /// A setter that can be used to set the default request type of this [HttpNotifier].
   set requestType(HttpRequestType requestType) {
     if (_isNotDisposed) {
-      assert(requestType != null, "$runtimeType#$hashCode cannot set requestType to null");
+      assert(requestType != null,
+          "$runtimeType#$hashCode cannot set requestType to null");
       _requestType = requestType;
-
     }
   }
 
@@ -2294,8 +2580,10 @@ class HttpNotifier extends ValNotifier {
 
   /// A getter that can be used to get the default body for this [HttpNotifier].
   get body {
-    if(_isNotDisposed){
-      if(HttpRequestType.values.indexOf(requestType) <= 4) throw ArgumentError("$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body.\n\nPlease try setting the requestType of the $runtimeType to something that actually supports sending a body as the request.\n");
+    if (_isNotDisposed) {
+      if (HttpRequestType.values.indexOf(requestType) <= 4)
+        throw ArgumentError(
+            "$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body.\n\nPlease try setting the requestType of the $runtimeType to something that actually supports sending a body as the request.\n");
       return _body;
     }
   }
@@ -2303,9 +2591,14 @@ class HttpNotifier extends ValNotifier {
   /// A setter that can be used to set the default body for this [HttpNotifier].
   set body(dynamic body) {
     if (_isNotDisposed) {
-      assert(body!=null,"The setter body expected the passed body to be a non-null value.");
-      if(HttpRequestType.values.indexOf(requestType) <= 4) throw ArgumentError("$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body.\n\nPlease either set the requestType of the $runtimeType to something that actually supports sending a body as the request.");
-      if (!(body is String || body is Map<String, dynamic>))  throw ArgumentError("$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
+      assert(body != null,
+          "The setter body expected the passed body to be a non-null value.");
+      if (HttpRequestType.values.indexOf(requestType) <= 4)
+        throw ArgumentError(
+            "$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body.\n\nPlease either set the requestType of the $runtimeType to something that actually supports sending a body as the request.");
+      if (!(body is String || body is Map<String, dynamic>))
+        throw ArgumentError(
+            "$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
       if (body is Map<String, dynamic>) body = json.encode(body);
       _body = body;
     }
@@ -2316,16 +2609,20 @@ class HttpNotifier extends ValNotifier {
 
   /// A getter that can be used to get the default body encoding for this [HttpNotifier].
   get encoding {
-    if(_isNotDisposed){
-      if(HttpRequestType.values.indexOf(requestType) <= 4) throw ArgumentError("$runtimeType#$hashCode has not been set to a type that requires a body. Therefore the encoding couldn't be retrieved.\n");
+    if (_isNotDisposed) {
+      if (HttpRequestType.values.indexOf(requestType) <= 4)
+        throw ArgumentError(
+            "$runtimeType#$hashCode has not been set to a type that requires a body. Therefore the encoding couldn't be retrieved.\n");
       return _encoding;
     }
   }
 
   /// A setter that can be used to set the default body encoding for this [HttpNotifier].
   set encoding(Encoding encoding) {
-    if(_isNotDisposed){
-      if(HttpRequestType.values.indexOf(requestType) <= 4) throw ArgumentError("$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body that could be 'encoded' in a specific way.\n\nPlease either set the requestType of the $runtimeType to something that could actually support it.");
+    if (_isNotDisposed) {
+      if (HttpRequestType.values.indexOf(requestType) <= 4)
+        throw ArgumentError(
+            "$runtimeType#$hashCode's requestType ($requestType) doesn't allow it to hold a body that could be 'encoded' in a specific way.\n\nPlease either set the requestType of the $runtimeType to something that could actually support it.");
       _encoding = encoding;
     }
   }
@@ -2336,17 +2633,18 @@ class HttpNotifier extends ValNotifier {
 
   /// Get the function that is used to transform the value obtained from a http request before calling the
   /// [HttpNotifier] with it.
-  get parseResponse => _isNotDisposed?_parseResponse:null;
+  get parseResponse => _isNotDisposed ? _parseResponse : null;
 
   /// Set a function that can be used to transform the value received after performing an http request before calling
   /// the [HttpNotifier] with the obtained value.
-  set parseResponse(Function(dynamic) parseResponse) => _isNotDisposed?_parseResponse = parseResponse:null;
+  set parseResponse(Function(dynamic) parseResponse) =>
+      _isNotDisposed ? _parseResponse = parseResponse : null;
 
   bool _isLoading = false;
 
   /// The return value of this getter determines whether the [HttpNotifier] is trying to load something over the
   /// internet (true) or is idle (false).
-  bool get isSyncing => _isNotDisposed ? _isLoading==true : null;
+  bool get isSyncing => _isNotDisposed ? _isLoading == true : null;
 
   /// The return value of this getter determines whether the [HttpNotifier] is idle (true) or is trying to load
   /// something over the internet (false)
@@ -2354,7 +2652,7 @@ class HttpNotifier extends ValNotifier {
 
   /// The return value of this getter determines whether the [HttpNotifier] had received an error the last time it
   /// performed a network call (true) or not.
-  bool get hadError  => _isNotDisposed?_isLoading==null:null;
+  bool get hadError => _isNotDisposed ? _isLoading == null : null;
 
   /// This constructor is called after instantiating the [HttpNotifier]
   ///
@@ -2402,7 +2700,7 @@ class HttpNotifier extends ValNotifier {
     Map<String, String> headers,
     String body,
     Encoding encoding,
-    bool syncOnCreate=true,
+    bool syncOnCreate = true,
     dynamic initialVal,
     Function(dynamic) parseResponse,
     Iterable<Notifier> attachNotifiers,
@@ -2410,26 +2708,44 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Function,dynamic) removeListenerOnError,
-  })  : assert(url != null, "A $runtimeType cannot be created without an URL. Please make sure that you provide a valid url."),
+    bool Function(Function, dynamic) removeListenerOnError,
+  })  : assert(url != null,
+            "A $runtimeType cannot be created without an URL. Please make sure that you provide a valid url."),
         // Regex Source: https://stackoverflow.com/a/55674757
-        assert(RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url), "Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add http:// or https:// at the start of the url (as per your use case)."),
-        assert((HttpRequestType.values.indexOf(requestType) > 4) || (body == null && encoding == null), "Please make sure that you only pass a body when the request type is capable of sending one!"),
-        _url=url,
-        _headers=headers,
-        _body=body,
+        assert(
+            RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?",
+                    caseSensitive: false)
+                .hasMatch(url),
+            "Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add http:// or https:// at the start of the url (as per your use case)."),
+        assert(
+            (HttpRequestType.values.indexOf(requestType) > 4) ||
+                (body == null && encoding == null),
+            "Please make sure that you only pass a body when the request type is capable of sending one!"),
+        _url = url,
+        _headers = headers,
+        _body = body,
         _requestType = requestType,
-        _encoding=encoding,
-        _parseResponse=parseResponse,
+        _encoding = encoding,
+        _parseResponse = parseResponse,
         _client = http.Client(),
-        super(attachNotifiers: attachNotifiers, initialVal: initialVal, listenToNotifiers: listenToNotifiers, mergeNotifiers: mergeNotifiers, initialListeners: initialListeners, removeListenerOnError: removeListenerOnError, lockListenersOnInit: lockListenersOnInit)
-  {
-      if (_requestType == null) {
-        debugPrint("Could not find detect a requestType for $runtimeType#$hashCode");
-        _requestType = (body == null && encoding == null)?HttpRequestType.GET:HttpRequestType.POST;
-        debugPrint("Resolving the default type of $runtimeType#$hashCode to $_requestType");
-      }
-      if(syncOnCreate) sync();
+        super(
+            attachNotifiers: attachNotifiers,
+            initialVal: initialVal,
+            listenToNotifiers: listenToNotifiers,
+            mergeNotifiers: mergeNotifiers,
+            initialListeners: initialListeners,
+            removeListenerOnError: removeListenerOnError,
+            lockListenersOnInit: lockListenersOnInit) {
+    if (_requestType == null) {
+      debugPrint(
+          "Could not find detect a requestType for $runtimeType#$hashCode");
+      _requestType = (body == null && encoding == null)
+          ? HttpRequestType.GET
+          : HttpRequestType.POST;
+      debugPrint(
+          "Resolving the default type of $runtimeType#$hashCode to $_requestType");
+    }
+    if (syncOnCreate) sync();
   }
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.GET].
@@ -2445,18 +2761,20 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Function,dynamic) removeListenerOnError,
-  }) => HttpNotifier(url: url,
-          initialVal: initialVal,
-          requestType: HttpRequestType.GET,
-          parseResponse: parseResponse,
-          headers: headers,
-          attachNotifiers: attachNotifiers,
-          listenToNotifiers: listenToNotifiers,
-          mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners,
-          lockListenersOnInit: lockListenersOnInit,
-  );
+    bool Function(Function, dynamic) removeListenerOnError,
+  }) =>
+      HttpNotifier(
+        url: url,
+        initialVal: initialVal,
+        requestType: HttpRequestType.GET,
+        parseResponse: parseResponse,
+        headers: headers,
+        attachNotifiers: attachNotifiers,
+        listenToNotifiers: listenToNotifiers,
+        mergeNotifiers: mergeNotifiers,
+        initialListeners: initialListeners,
+        lockListenersOnInit: lockListenersOnInit,
+      );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.HEAD].
   ///
@@ -2471,19 +2789,20 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
-  }) => HttpNotifier(
-          url: url,
-          initialVal: initialVal,
-          requestType: HttpRequestType.HEAD,
-          parseResponse: parseResponse,
-          headers: headers,
-          attachNotifiers: attachNotifiers,
-          listenToNotifiers: listenToNotifiers,
-          mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners,
-          lockListenersOnInit: lockListenersOnInit,
-  );
+    bool Function(Function, dynamic) removeListenerOnError,
+  }) =>
+      HttpNotifier(
+        url: url,
+        initialVal: initialVal,
+        requestType: HttpRequestType.HEAD,
+        parseResponse: parseResponse,
+        headers: headers,
+        attachNotifiers: attachNotifiers,
+        listenToNotifiers: listenToNotifiers,
+        mergeNotifiers: mergeNotifiers,
+        initialListeners: initialListeners,
+        lockListenersOnInit: lockListenersOnInit,
+      );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.DELETE].
   ///
@@ -2498,19 +2817,19 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
-          url: url,
-          requestType: HttpRequestType.DELETE,
-          headers: headers,
-          initialVal: initialVal,
-          parseResponse: parseResponse,
-          attachNotifiers: attachNotifiers,
-          listenToNotifiers: listenToNotifiers,
-          mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners,
-          lockListenersOnInit: lockListenersOnInit,
+        url: url,
+        requestType: HttpRequestType.DELETE,
+        headers: headers,
+        initialVal: initialVal,
+        parseResponse: parseResponse,
+        attachNotifiers: attachNotifiers,
+        listenToNotifiers: listenToNotifiers,
+        mergeNotifiers: mergeNotifiers,
+        initialListeners: initialListeners,
+        lockListenersOnInit: lockListenersOnInit,
       );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.READ].
@@ -2526,19 +2845,19 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
-          url: url,
-          initialVal: initialVal,
-          requestType: HttpRequestType.READ,
-          headers: headers,
-          parseResponse: parseResponse,
-          attachNotifiers: attachNotifiers,
-          listenToNotifiers: listenToNotifiers,
-          mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners,
-          lockListenersOnInit: lockListenersOnInit,
+        url: url,
+        initialVal: initialVal,
+        requestType: HttpRequestType.READ,
+        headers: headers,
+        parseResponse: parseResponse,
+        attachNotifiers: attachNotifiers,
+        listenToNotifiers: listenToNotifiers,
+        mergeNotifiers: mergeNotifiers,
+        initialListeners: initialListeners,
+        lockListenersOnInit: lockListenersOnInit,
       );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.READBYTES].
@@ -2554,19 +2873,19 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
-          url: url,
-          requestType: HttpRequestType.READBYTES,
-          parseResponse: parseResponse,
-          initialVal: initialVal,
-          headers: headers,
-          attachNotifiers: attachNotifiers,
-          listenToNotifiers: listenToNotifiers,
-          mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners,
-          lockListenersOnInit: lockListenersOnInit,
+        url: url,
+        requestType: HttpRequestType.READBYTES,
+        parseResponse: parseResponse,
+        initialVal: initialVal,
+        headers: headers,
+        attachNotifiers: attachNotifiers,
+        listenToNotifiers: listenToNotifiers,
+        mergeNotifiers: mergeNotifiers,
+        initialListeners: initialListeners,
+        lockListenersOnInit: lockListenersOnInit,
       );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.POST] (syntactic sugar)
@@ -2582,21 +2901,21 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
-          url: url,
-          requestType: HttpRequestType.POST,
-          initialVal: initialVal,
-          headers: headers,
-          parseResponse: parseResponse,
-          body: body,
-          encoding: encoding,
-          attachNotifiers: attachNotifiers,
-          listenToNotifiers: listenToNotifiers,
-          mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners,
-          lockListenersOnInit: lockListenersOnInit,
+        url: url,
+        requestType: HttpRequestType.POST,
+        initialVal: initialVal,
+        headers: headers,
+        parseResponse: parseResponse,
+        body: body,
+        encoding: encoding,
+        attachNotifiers: attachNotifiers,
+        listenToNotifiers: listenToNotifiers,
+        mergeNotifiers: mergeNotifiers,
+        initialListeners: initialListeners,
+        lockListenersOnInit: lockListenersOnInit,
       );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.PUT]. (syntactic sugar)
@@ -2612,21 +2931,21 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
-          url: url,
-          requestType: HttpRequestType.PUT,
-          headers: headers,
-          body: body,
-          encoding: encoding,
-          parseResponse: parseResponse,
-          initialVal: initialVal,
-          attachNotifiers: attachNotifiers,
-          listenToNotifiers: listenToNotifiers,
-          mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners,
-          lockListenersOnInit: lockListenersOnInit,
+        url: url,
+        requestType: HttpRequestType.PUT,
+        headers: headers,
+        body: body,
+        encoding: encoding,
+        parseResponse: parseResponse,
+        initialVal: initialVal,
+        attachNotifiers: attachNotifiers,
+        listenToNotifiers: listenToNotifiers,
+        mergeNotifiers: mergeNotifiers,
+        initialListeners: initialListeners,
+        lockListenersOnInit: lockListenersOnInit,
       );
 
   /// Creates a [HttpNotifier] with the initial request type [HttpRequestType.PATCH]. (syntactic sugar)
@@ -2642,20 +2961,20 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) =>
       HttpNotifier(
-          url: url,
-          requestType: HttpRequestType.PATCH,
-          headers: headers,
-          body: body,
-          encoding: encoding,
-          parseResponse: parseResponse,
-          attachNotifiers: attachNotifiers,
-          listenToNotifiers: listenToNotifiers,
-          mergeNotifiers: mergeNotifiers,
-          initialListeners: initialListeners,
-          lockListenersOnInit: lockListenersOnInit,
+        url: url,
+        requestType: HttpRequestType.PATCH,
+        headers: headers,
+        body: body,
+        encoding: encoding,
+        parseResponse: parseResponse,
+        attachNotifiers: attachNotifiers,
+        listenToNotifiers: listenToNotifiers,
+        mergeNotifiers: mergeNotifiers,
+        initialListeners: initialListeners,
+        lockListenersOnInit: lockListenersOnInit,
       );
 
   /// Re-init an [HttpNotifier] that has already been disposed.
@@ -2674,13 +2993,22 @@ class HttpNotifier extends ValNotifier {
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) {
-    if(isDisposed) {
-      assert(url != null, "A $runtimeType cannot be init without an URL. Please make sure that you provide a valid url.");
+    if (isDisposed) {
+      assert(url != null,
+          "A $runtimeType cannot be init without an URL. Please make sure that you provide a valid url.");
       // Regex Source: https://stackoverflow.com/a/55674757
-      assert(RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url), "Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case).");
-      if (requestType != null)  assert((HttpRequestType.values.indexOf(requestType) > 4) || (body == null && encoding == null), "Please make sure that you only pass a body when the request type is capable of sending one!");
+      assert(
+          RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?",
+                  caseSensitive: false)
+              .hasMatch(url),
+          "Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case).");
+      if (requestType != null)
+        assert(
+            (HttpRequestType.values.indexOf(requestType) > 4) ||
+                (body == null && encoding == null),
+            "Please make sure that you only pass a body when the request type is capable of sending one!");
 
       if (super.init(
         initialVal: initialVal,
@@ -2698,13 +3026,18 @@ class HttpNotifier extends ValNotifier {
         _encoding = encoding;
         this.parseResponse = parseResponse;
         if (_requestType == null) {
-          debugPrint("Could not find detect a requestType for $runtimeType#$hashCode...");
-          _requestType = (body == null && encoding == null)?HttpRequestType.GET:HttpRequestType.POST;
-          debugPrint("Resolving the default type of $runtimeType#$hashCode to $_requestType");
+          debugPrint(
+              "Could not find detect a requestType for $runtimeType#$hashCode...");
+          _requestType = (body == null && encoding == null)
+              ? HttpRequestType.GET
+              : HttpRequestType.POST;
+          debugPrint(
+              "Resolving the default type of $runtimeType#$hashCode to $_requestType");
         }
         _client = http.Client();
         return true;
-      } else return false;
+      } else
+        return false;
     }
     return false;
   }
@@ -2731,13 +3064,13 @@ class HttpNotifier extends ValNotifier {
     bool syncIfAlreadyLoading = false,
   }) =>
       sync(
-          url: url,
-          parseResponse: parseResponse,
-          requestType: HttpRequestType.GET,
-          headers: headers,
-          saveResponse: saveResponse,
-          saveParams: saveParams,
-          syncIfAlreadyLoading: syncIfAlreadyLoading,
+        url: url,
+        parseResponse: parseResponse,
+        requestType: HttpRequestType.GET,
+        headers: headers,
+        saveResponse: saveResponse,
+        saveParams: saveParams,
+        syncIfAlreadyLoading: syncIfAlreadyLoading,
       );
 
   /// Syntactic sugar for the method [sync] that just performs HTTP HEAD requests.
@@ -2749,13 +3082,14 @@ class HttpNotifier extends ValNotifier {
     Function(dynamic) parseResponse,
     bool syncIfAlreadyLoading = false,
   }) =>
-      sync(url: url,
-          requestType: HttpRequestType.HEAD,
-          parseResponse: parseResponse,
-          headers: headers,
-          saveResponse: saveResponse,
-          saveParams: saveParams,
-          syncIfAlreadyLoading: syncIfAlreadyLoading,
+      sync(
+        url: url,
+        requestType: HttpRequestType.HEAD,
+        parseResponse: parseResponse,
+        headers: headers,
+        saveResponse: saveResponse,
+        saveParams: saveParams,
+        syncIfAlreadyLoading: syncIfAlreadyLoading,
       );
 
   /// Syntactic sugar for the method [sync] that just performs HTTP DELETE requests.
@@ -2778,7 +3112,7 @@ class HttpNotifier extends ValNotifier {
 
   /// Syntactic sugar for the method [sync] that just performs HTTP GET requests and returns the response's body as a
   /// [String].
-   Future read({
+  Future read({
     String url,
     Map<String, String> headers,
     Function(dynamic) parseResponse,
@@ -2798,7 +3132,7 @@ class HttpNotifier extends ValNotifier {
 
   /// Syntactic sugar for the method [sync] that just performs HTTP GET requests and returns the response's body as a
   /// [Uint8List].
-   Future readBytes({
+  Future readBytes({
     String url,
     Map<String, String> headers,
     Function(dynamic) parseResponse,
@@ -2807,13 +3141,13 @@ class HttpNotifier extends ValNotifier {
     bool syncIfAlreadyLoading = false,
   }) =>
       sync(
-          url: url,
-          headers: headers,
-          parseResponse: parseResponse,
-          requestType: HttpRequestType.READBYTES,
-          saveResponse: saveResponse,
-          saveParams: saveParams,
-          syncIfAlreadyLoading: syncIfAlreadyLoading,
+        url: url,
+        headers: headers,
+        parseResponse: parseResponse,
+        requestType: HttpRequestType.READBYTES,
+        saveResponse: saveResponse,
+        saveParams: saveParams,
+        syncIfAlreadyLoading: syncIfAlreadyLoading,
       );
 
   /// Syntactic sugar for the method [sync] that just performs HTTP POST requests.
@@ -2828,41 +3162,43 @@ class HttpNotifier extends ValNotifier {
     bool syncIfAlreadyLoading = false,
   }) =>
       sync(
-          url: url,
-          headers: headers,
-          body: body,
-          encoding: encoding,
-          parseResponse: parseResponse,
-          requestType: HttpRequestType.POST,
-          saveResponse: saveResponse,
-          saveParams: saveParams,
-          syncIfAlreadyLoading: syncIfAlreadyLoading,
+        url: url,
+        headers: headers,
+        body: body,
+        encoding: encoding,
+        parseResponse: parseResponse,
+        requestType: HttpRequestType.POST,
+        saveResponse: saveResponse,
+        saveParams: saveParams,
+        syncIfAlreadyLoading: syncIfAlreadyLoading,
       );
 
   /// Syntactic sugar for the method [sync] that just performs HTTP PUT requests.
-  Future put({String url,
-          Map<String, String> headers,
-          dynamic body,
-          Encoding encoding,
-          Function(dynamic) parseResponse,
-          bool saveResponse = true,
-          bool saveParams = true,
-          bool syncIfAlreadyLoading = false,
-          }) =>
+  Future put({
+    String url,
+    Map<String, String> headers,
+    dynamic body,
+    Encoding encoding,
+    Function(dynamic) parseResponse,
+    bool saveResponse = true,
+    bool saveParams = true,
+    bool syncIfAlreadyLoading = false,
+  }) =>
       sync(
-          url: url,
-          headers: headers,
-          body: body,
-          encoding: encoding,
-          parseResponse: parseResponse,
-          requestType: HttpRequestType.PUT,
-          saveResponse: saveResponse,
-          saveParams: saveParams,
-          syncIfAlreadyLoading: syncIfAlreadyLoading,
+        url: url,
+        headers: headers,
+        body: body,
+        encoding: encoding,
+        parseResponse: parseResponse,
+        requestType: HttpRequestType.PUT,
+        saveResponse: saveResponse,
+        saveParams: saveParams,
+        syncIfAlreadyLoading: syncIfAlreadyLoading,
       );
 
   /// Syntactic sugar for the method [sync] that just performs HTTP PATCH requests.
-  Future patch({String url,
+  Future patch(
+          {String url,
           Map<String, String> headers,
           dynamic body,
           Function(dynamic) parseResponse,
@@ -2871,16 +3207,15 @@ class HttpNotifier extends ValNotifier {
           bool saveParams = false,
           bool syncIfAlreadyLoading = false}) =>
       sync(
-        url: url,
-        headers: headers,
-        body: body,
-        encoding: encoding,
-        parseResponse: parseResponse,
-        requestType: HttpRequestType.PATCH,
-        saveResponse: saveResponse,
-        saveParams: saveParams,
-        syncIfAlreadyLoading: syncIfAlreadyLoading
-      );
+          url: url,
+          headers: headers,
+          body: body,
+          encoding: encoding,
+          parseResponse: parseResponse,
+          requestType: HttpRequestType.PATCH,
+          saveResponse: saveResponse,
+          saveParams: saveParams,
+          syncIfAlreadyLoading: syncIfAlreadyLoading);
 
   /// The [sync] method tries to perform an HTTP request based on the given parameters (and defaults to the values
   /// stored in the buffer for the parameters it does not receive).
@@ -2903,11 +3238,19 @@ class HttpNotifier extends ValNotifier {
   ///
   /// The method finally, if successful returns a Response/String/Uint8List else if an error is thrown 'while syncing',
   /// the error is simply returned a Future and also passed to all the listeners.
-  Future sync({HttpRequestType requestType, String url, Map<String, String> headers, dynamic body, Encoding encoding,
-      Function(dynamic) parseResponse, bool saveResponse = true, bool saveParams = true, bool syncIfAlreadyLoading = false}) async {
-
-    if(_isLoading==true&&syncIfAlreadyLoading==false){
-      print("A sync is already in progress. Please set syncIfAlreadyLoading parameter to true, to perform multiple sync"
+  Future sync(
+      {HttpRequestType requestType,
+      String url,
+      Map<String, String> headers,
+      dynamic body,
+      Encoding encoding,
+      Function(dynamic) parseResponse,
+      bool saveResponse = true,
+      bool saveParams = true,
+      bool syncIfAlreadyLoading = false}) async {
+    if (_isLoading == true && syncIfAlreadyLoading == false) {
+      print(
+          "A sync is already in progress. Please set syncIfAlreadyLoading parameter to true, to perform multiple sync"
           " operations on the same $runtimeType.");
       return;
     }
@@ -2916,28 +3259,39 @@ class HttpNotifier extends ValNotifier {
     requestType ??= this._requestType;
     url ??= this._url;
     headers ??= this._headers;
-    if(HttpRequestType.values.indexOf(requestType) > 4){
+    if (HttpRequestType.values.indexOf(requestType) > 4) {
       body ??= this._body;
       encoding ??= this._encoding;
     }
     parseResponse ??= this.parseResponse;
 
     // Parameter validation
-    if (requestType != null) assert(HttpRequestType.values.indexOf(requestType) > 4 || (body == null && encoding == null), "Please make sure that you only pass a body/encoding when the request type of this HttpNotifier is capable of sending one!");
-    if (body != null) assert(body is String || body is Map<String, dynamic>, "$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
+    if (requestType != null)
+      assert(
+          HttpRequestType.values.indexOf(requestType) > 4 ||
+              (body == null && encoding == null),
+          "Please make sure that you only pass a body/encoding when the request type of this HttpNotifier is capable of sending one!");
+    if (body != null)
+      assert(body is String || body is Map<String, dynamic>,
+          "$runtimeType#$hashCode could not set the body to a custom object.\n\nPlease either pass a String or a Map<String, dynamic> to the method setBody. If you meant to pass the String representation of the object then please directly pass it using toString().");
     // Regex Source: https://stackoverflow.com/a/55674757
-    if (url!=null&&!RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?", caseSensitive: false).hasMatch(url)) throw Exception("Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case).");
+    if (url != null &&
+        !RegExp(r"(https?|http)://([-A-Z0-9.]+)(/[-A-Z0-9+&@#/%=~_|!:,.;]*)?(\?[A-Z0-9+&@#/%=~_|!:‌​,.;]*)?",
+                caseSensitive: false)
+            .hasMatch(url))
+      throw Exception(
+          "Please make sure that you init $runtimeType#$hashCode with a valid url. Don't forget to add (http/https):// at the start of the url (as per your use case).");
 
     if (saveParams == true) {
-      if(requestType!=null) this.requestType = requestType;
-      if(url!=null) this.url = url;
-      if(headers!=null) this.headers = headers;
-      if(body!=null){
+      if (requestType != null) this.requestType = requestType;
+      if (url != null) this.url = url;
+      if (headers != null) this.headers = headers;
+      if (body != null) {
         if (body is Map<String, dynamic>) body = json.decode(body);
         this.body = body;
       }
-      if(parseResponse!=null) this.parseResponse = parseResponse;
-      if(encoding!=null) this.encoding = encoding;
+      if (parseResponse != null) this.parseResponse = parseResponse;
+      if (encoding != null) this.encoding = encoding;
     }
 
     dynamic r;
@@ -2963,24 +3317,27 @@ class HttpNotifier extends ValNotifier {
           r = await _client.readBytes(url, headers: headers);
           break;
         case HttpRequestType.POST:
-          r = await _client.post(url, headers: headers, body: body, encoding: encoding);
+          r = await _client.post(url,
+              headers: headers, body: body, encoding: encoding);
           break;
         case HttpRequestType.PUT:
-          r = await _client.put(url, headers: headers, body: body, encoding: encoding);
+          r = await _client.put(url,
+              headers: headers, body: body, encoding: encoding);
           break;
         case HttpRequestType.PATCH:
-          r = await _client.patch(url, headers: headers, body: body, encoding: encoding);
+          r = await _client.patch(url,
+              headers: headers, body: body, encoding: encoding);
           break;
       }
 
       _isLoading = false;
-
-    } catch(e) {
+    } catch (e) {
       _isLoading = null;
       r = e;
     }
 
-    call(parseResponse==null?r:parseResponse(r) ?? r, saveResponse == true);
+    call(parseResponse == null ? r : parseResponse(r) ?? r,
+        saveResponse == true);
     return r;
   }
 
@@ -3007,8 +3364,7 @@ class HttpNotifier extends ValNotifier {
 /// of time.
 ///
 /// Note: Starting ta [TickerNotifier] resets the values that it otherwise maintains. (By default, apart from the Ticker)
-class TickerNotifier extends Notifier
-{
+class TickerNotifier extends Notifier {
   Ticker _t;
   Duration _pD = Duration.zero;
   DateTime _pT;
@@ -3022,12 +3378,12 @@ class TickerNotifier extends Notifier
   ///
   /// It starts the default operation and returns true, if an operation was not previously active else
   /// just returns false.
-  bool start({bool play=true}){
-    if(_isNotDisposed){
-      if(_t.isActive) return false;
+  bool start({bool play = true}) {
+    if (_isNotDisposed) {
+      if (_t.isActive) return false;
       _pD = Duration.zero;
       _t.start();
-      _t.muted = play!=true;
+      _t.muted = play != true;
       return true;
     }
     return null;
@@ -3036,7 +3392,8 @@ class TickerNotifier extends Notifier
   /// This is a simple method that interfaces the [start] and tries to start the ticker that could
   /// have been ticking after the given [duration] of time. It returns the return value returned by
   /// the [pause] method as a [Future]<[bool]>
-  Future<bool> startAfter(Duration d) => _isNotDisposed ? Future.delayed(d,start) : null;
+  Future<bool> startAfter(Duration d) =>
+      _isNotDisposed ? Future.delayed(d, start) : null;
 
   /// The [play] method resumes the playing of an ticker operation that had been previously either
   /// stopped by the [pause] method or had been set to pause by default while starting it via
@@ -3045,10 +3402,12 @@ class TickerNotifier extends Notifier
   ///
   /// Resumes the default ticker operation is it was previously paused and returns true else just
   /// returns false.
-  bool play(){
-    if(_isNotDisposed){
-      if(!_t.isActive) debugPrint("Please call the start method() before calling the play() method.");
-      if(_t.muted) {
+  bool play() {
+    if (_isNotDisposed) {
+      if (!_t.isActive)
+        debugPrint(
+            "Please call the start method() before calling the play() method.");
+      if (_t.muted) {
         _pD += DateTime.now().difference(_pT);
         _t.muted = false;
         return true;
@@ -3061,7 +3420,8 @@ class TickerNotifier extends Notifier
   /// This is a simple method that interfaces the [play] and tries to resume the playing of a ticker
   /// after the given [duration] of time. It returns the return value returned by the [play] method
   /// as a [Future]<[bool]>.
-  Future<bool> playAfter(Duration d) => _isNotDisposed ? Future.delayed(d,play) : null;
+  Future<bool> playAfter(Duration d) =>
+      _isNotDisposed ? Future.delayed(d, play) : null;
 
   /// The [pause] method pauses the ticker operation that's currently active. This doesn't make the
   /// current ticker inactive but just pauses it (abstract). Calling this method on an un-disposed
@@ -3069,9 +3429,9 @@ class TickerNotifier extends Notifier
   ///
   /// This method pauses the current ticker and returns [true], if it was previously paused and active,
   /// else returns [false].
-  bool pause(){
-    if(_isNotDisposed){
-      if(_t.muted) return false;
+  bool pause() {
+    if (_isNotDisposed) {
+      if (_t.muted) return false;
       _pT = DateTime.now();
       return _t.muted = true;
     }
@@ -3081,7 +3441,8 @@ class TickerNotifier extends Notifier
   /// This is a simple method that interfaces the [pause] and tries to pause the ticker that could
   /// have been ticking after the given [duration] of time. It returns the return value returned by
   /// the [pause] method as a [Future]<[bool]>
-  Future<bool> pauseAfter(Duration d) => _isNotDisposed ? Future.delayed(d,pause) : null;
+  Future<bool> pauseAfter(Duration d) =>
+      _isNotDisposed ? Future.delayed(d, pause) : null;
 
   /// Stops the current async operation that is being performed by the [TickerNotifier]. If you are
   /// trying to [stop] the polling being done by the async method [poll] or [pollFor] with the
@@ -3092,8 +3453,8 @@ class TickerNotifier extends Notifier
   /// This method stops the ticker and returns true, if the ticker was previously active else just
   /// returns false.
   bool stop() {
-    if(_isNotDisposed) {
-      if(_t.isActive) {
+    if (_isNotDisposed) {
+      if (_t.isActive) {
         _t.stop();
         return true;
       }
@@ -3105,14 +3466,15 @@ class TickerNotifier extends Notifier
   /// This is a simple method that interfaces the [stop] and tries to stop the ticker that could have
   /// been active after the given [duration] of time. It returns the return value returned by the
   /// [stop] method as a [Future]<[bool]>.
-  Future<bool> stopAfter(Duration duration) => _isNotDisposed ? Future.delayed(duration,stop) : null;
+  Future<bool> stopAfter(Duration duration) =>
+      _isNotDisposed ? Future.delayed(duration, stop) : null;
 
   /// Disposes the current [TickerNotifier]. In order to re-use this instance, you'll need to call
   /// the method [init]. However, it is highly recommended that you complete all the operations that
   /// you perform and then dispose it in one go, unless you want to re-use the state in your code's
   /// logic.
   bool dispose() {
-    if(super.dispose()){
+    if (super.dispose()) {
       _t.stop(canceled: true);
       _t.dispose();
       _t = null;
@@ -3160,20 +3522,29 @@ class TickerNotifier extends Notifier
   /// call this method when a polling or ticking is already active would lead to a [StateError].
   /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
   /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
-  Future<TickerNotifier> pollFor(Duration duration, {TickerProvider vsync, bool stopPrevious=false}) {
+  Future<TickerNotifier> pollFor(Duration duration,
+      {TickerProvider vsync, bool stopPrevious = false}) {
     if (_isNotDisposed) {
-      if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
+      if (stopPrevious ?? false) _t.dispose();
+      if (_t.isActive)
+        throw StateError(
+            "A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
       if (duration == Duration.zero) return Future.value(this);
-      duration=duration.abs();
+      duration = duration.abs();
       _pD = Duration.zero;
       Function onTick = (d) {
-        d-=_pD;
-        if (d>duration) return _t..stop()..dispose();
+        d -= _pD;
+        if (d > duration)
+          return _t
+            ..stop()
+            ..dispose();
         call();
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value){_t = Ticker(this);return this;});
+      return _t.start().then((value) {
+        _t = Ticker(this);
+        return this;
+      });
     }
     return null;
   }
@@ -3193,22 +3564,30 @@ class TickerNotifier extends Notifier
   /// call this method when a polling or ticking is already active would lead to a [StateError].
   /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
   /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
-  Future<Duration> poll(int times, {TickerProvider vsync, bool stopPrevious=false}) {
+  Future<Duration> poll(int times,
+      {TickerProvider vsync, bool stopPrevious = false}) {
     if (_isNotDisposed) {
       Duration end;
-      if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
+      if (stopPrevious ?? false) _t.dispose();
+      if (_t.isActive)
+        throw StateError(
+            "A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
       if (times == 0) return Future.value(Duration.zero);
       times = times.abs();
       Function onTick = (d) {
-        if (times--==0) {
+        if (times-- == 0) {
           end = d;
-          return _t..stop()..dispose();
+          return _t
+            ..stop()
+            ..dispose();
         }
         call();
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value){_t = Ticker(this); return end;});
+      return _t.start().then((value) {
+        _t = Ticker(this);
+        return end;
+      });
     }
     return null;
   }
@@ -3226,20 +3605,21 @@ class TickerNotifier extends Notifier
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
-  })
-  {
-    if(super.init(
-        attachNotifiers: attachNotifiers,
-        listenToNotifiers: listenToNotifiers,
-        mergeNotifiers: mergeNotifiers,
-        initialListeners: initialListeners,
-        removeListenerOnError: removeListenerOnError,
-        lockListenersOnInit: lockListenersOnInit,
+    bool Function(Function, dynamic) removeListenerOnError,
+  }) {
+    if (super.init(
+      attachNotifiers: attachNotifiers,
+      listenToNotifiers: listenToNotifiers,
+      mergeNotifiers: mergeNotifiers,
+      initialListeners: initialListeners,
+      removeListenerOnError: removeListenerOnError,
+      lockListenersOnInit: lockListenersOnInit,
     )) {
-      _t = vsync==null?Ticker((_)=>call()):vsync.createTicker((_)=>call());
-      if(startOnInit??false) start(play: pauseOnInit!=true);
-      _t.muted = pauseOnInit==true;
+      _t = vsync == null
+          ? Ticker((_) => call())
+          : vsync.createTicker((_) => call());
+      if (startOnInit ?? false) start(play: pauseOnInit != true);
+      _t.muted = pauseOnInit == true;
     }
     return false;
   }
@@ -3253,18 +3633,20 @@ class TickerNotifier extends Notifier
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) : super(
-    attachNotifiers: attachNotifiers,
-    listenToNotifiers: listenToNotifiers,
-    mergeNotifiers: mergeNotifiers,
-    initialListeners: initialListeners,
-    removeListenerOnError: removeListenerOnError,
-    lockListenersOnInit: lockListenersOnInit,
-  ) {
-    _t = vsync==null?Ticker((_)=>call()):vsync.createTicker((_)=>call());
-    if(startOnInit??false) start(play: pauseOnInit!=true);
-    _t.muted = pauseOnInit==true;
+          attachNotifiers: attachNotifiers,
+          listenToNotifiers: listenToNotifiers,
+          mergeNotifiers: mergeNotifiers,
+          initialListeners: initialListeners,
+          removeListenerOnError: removeListenerOnError,
+          lockListenersOnInit: lockListenersOnInit,
+        ) {
+    _t = vsync == null
+        ? Ticker((_) => call())
+        : vsync.createTicker((_) => call());
+    if (startOnInit ?? false) start(play: pauseOnInit != true);
+    _t.muted = pauseOnInit == true;
   }
 }
 
@@ -3272,8 +3654,7 @@ class TickerNotifier extends Notifier
 // found by the VM.
 // So the idea was dropped. call([dynamic]) and call([T,`bool`])
 
-class TickerValNotifier<T> extends ValNotifier<T>
-{
+class TickerValNotifier<T> extends ValNotifier<T> {
   Ticker _t;
   Duration _pD = Duration.zero;
   DateTime _pT;
@@ -3287,15 +3668,17 @@ class TickerValNotifier<T> extends ValNotifier<T>
   ///
   /// It starts the default operation and returns true, if an operation was not previously active else
   /// just returns false.
-  bool start({bool play=true}){
-    if(_isNotDisposed){
-      if(_t.isActive){
-        if(isNotPlaying) debugPrint("$runtimeType#$hashCode: I have already been started! Please consider using the play() method.");
+  bool start({bool play = true}) {
+    if (_isNotDisposed) {
+      if (_t.isActive) {
+        if (isNotPlaying)
+          debugPrint(
+              "$runtimeType#$hashCode: I have already been started! Please consider using the play() method.");
         return false;
       }
       _pD = Duration.zero;
       _t.start();
-      _t.muted = play!=true;
+      _t.muted = play != true;
       return true;
     }
     return null;
@@ -3304,7 +3687,8 @@ class TickerValNotifier<T> extends ValNotifier<T>
   /// This is a simple method that interfaces the [start] and tries to start the ticker that could
   /// have been ticking after the given [duration] of time. It returns the return value returned by
   /// the [pause] method as a [Future]<[bool]>
-  Future<bool> startAfter(Duration d) => _isNotDisposed ? Future.delayed(d,start) : null;
+  Future<bool> startAfter(Duration d) =>
+      _isNotDisposed ? Future.delayed(d, start) : null;
 
   /// The [play] method resumes the playing of an ticker operation that had been previously either
   /// stopped by the [pause] method or had been set to pause by default while starting it via
@@ -3313,9 +3697,9 @@ class TickerValNotifier<T> extends ValNotifier<T>
   ///
   /// Resumes the default ticker operation is it was previously paused and returns true else just
   /// returns false.
-  bool play(){
-    if(_isNotDisposed){
-      if(_t.muted) {
+  bool play() {
+    if (_isNotDisposed) {
+      if (_t.muted) {
         _pD += DateTime.now().difference(_pT);
         _t.muted = false;
         return true;
@@ -3328,7 +3712,8 @@ class TickerValNotifier<T> extends ValNotifier<T>
   /// This is a simple method that interfaces the [play] and tries to resume the playing of a ticker
   /// after the given [duration] of time. It returns the return value returned by the [play] method
   /// as a [Future]<[bool]>.
-  Future<bool> playAfter(Duration d) => _isNotDisposed ? Future.delayed(d,play) : null;
+  Future<bool> playAfter(Duration d) =>
+      _isNotDisposed ? Future.delayed(d, play) : null;
 
   /// The [pause] method pauses the ticker operation that's currently active. This doesn't make the
   /// current ticker inactive but just pauses it (abstract). Calling this method on an un-disposed
@@ -3336,9 +3721,9 @@ class TickerValNotifier<T> extends ValNotifier<T>
   ///
   /// This method pauses the current ticker and returns [true], if it was previously paused and active,
   /// else returns [false].
-  bool pause(){
-    if(_isNotDisposed){
-      if(_t.muted) return false;
+  bool pause() {
+    if (_isNotDisposed) {
+      if (_t.muted) return false;
       _t.muted = true;
       _pT = DateTime.now();
       call();
@@ -3350,7 +3735,8 @@ class TickerValNotifier<T> extends ValNotifier<T>
   /// This is a simple method that interfaces the [pause] and tries to pause the ticker that could
   /// have been ticking after the given [duration] of time. It returns the return value returned by
   /// the [pause] method as a [Future]<[bool]>
-  Future<bool> pauseAfter(Duration d) => _isNotDisposed ? Future.delayed(d,pause) : null;
+  Future<bool> pauseAfter(Duration d) =>
+      _isNotDisposed ? Future.delayed(d, pause) : null;
 
   /// Stops the current async operation that is being performed by the [TickerValNotifier]. If you are
   /// trying to [stop] the polling being done by the async method [poll] or [pollFor] with the
@@ -3361,8 +3747,8 @@ class TickerValNotifier<T> extends ValNotifier<T>
   /// This method stops the ticker and returns true, if the ticker was previously active else just
   /// returns false.
   bool stop() {
-    if(_isNotDisposed) {
-      if(_t.isActive) {
+    if (_isNotDisposed) {
+      if (_t.isActive) {
         _t.stop();
         return true;
       }
@@ -3374,14 +3760,15 @@ class TickerValNotifier<T> extends ValNotifier<T>
   /// This is a simple method that interfaces the [stop] and tries to stop the ticker that could have
   /// been active after the given [duration] of time. It returns the return value returned by the
   /// [stop] method as a [Future]<[bool]>.
-  Future<bool> stopAfter(Duration d) => _isNotDisposed ? Future.delayed(d,stop) : null;
+  Future<bool> stopAfter(Duration d) =>
+      _isNotDisposed ? Future.delayed(d, stop) : null;
 
   /// Disposes the current [TickerNotifier]. In order to re-use this instance, you'll need to call
   /// the method [init]. However, it is highly recommended that you complete all the operations that
   /// you perform and then dispose it in one go, unless you want to re-use the state in your code's
   /// logic.
   bool dispose() {
-    if(super.dispose()){
+    if (super.dispose()) {
       _t.stop(canceled: true);
       _t.dispose();
       _t = null;
@@ -3429,20 +3816,29 @@ class TickerValNotifier<T> extends ValNotifier<T>
   /// call this method when a polling or ticking is already active would lead to a [StateError].
   /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
   /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
-  Future<TickerValNotifier<T>> pollFor(Duration duration, {TickerProvider vsync, bool stopPrevious=false}) {
+  Future<TickerValNotifier<T>> pollFor(Duration duration,
+      {TickerProvider vsync, bool stopPrevious = false}) {
     if (_isNotDisposed) {
-      if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("$runtimeType<$T> can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
+      if (stopPrevious ?? false) _t.dispose();
+      if (_t.isActive)
+        throw StateError(
+            "$runtimeType<$T> can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
       if (duration == Duration.zero) return Future.value(this);
-      duration=duration.abs();
+      duration = duration.abs();
       _pD = Duration.zero;
       Function onTick = (d) {
         d -= _pD;
-        if (d>duration) return _t..stop()..dispose();
-        call(_val,false);
+        if (d > duration)
+          return _t
+            ..stop()
+            ..dispose();
+        call(_val, false);
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value){_t = Ticker((d)=>this(_val)); return this;});
+      return _t.start().then((value) {
+        _t = Ticker((d) => this(_val));
+        return this;
+      });
     }
     return null;
   }
@@ -3462,22 +3858,30 @@ class TickerValNotifier<T> extends ValNotifier<T>
   /// call this method when a polling or ticking is already active would lead to a [StateError].
   /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
   /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
-  Future<Duration> poll(int times, {TickerProvider vsync, bool stopPrevious=false}) {
+  Future<Duration> poll(int times,
+      {TickerProvider vsync, bool stopPrevious = false}) {
     if (_isNotDisposed) {
       Duration end;
-      if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("$runtimeType<$T> can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
+      if (stopPrevious ?? false) _t.dispose();
+      if (_t.isActive)
+        throw StateError(
+            "$runtimeType<$T> can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
       if (times == 0) return Future.value(Duration.zero);
       times = times.abs();
       Function onTick = (d) {
-        if (times--==0) {
+        if (times-- == 0) {
           end = d;
-          return _t..stop()..dispose();
+          return _t
+            ..stop()
+            ..dispose();
         }
-        call(_val,false);
+        call(_val, false);
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value){_t = Ticker((d)=>this()); return end;});
+      return _t.start().then((value) {
+        _t = Ticker((d) => this());
+        return end;
+      });
     }
     return null;
   }
@@ -3496,10 +3900,9 @@ class TickerValNotifier<T> extends ValNotifier<T>
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
-  })
-  {
-    if(super.init(
+    bool Function(Function, dynamic) removeListenerOnError,
+  }) {
+    if (super.init(
       initialVal: initialVal,
       attachNotifiers: attachNotifiers,
       listenToNotifiers: listenToNotifiers,
@@ -3507,10 +3910,12 @@ class TickerValNotifier<T> extends ValNotifier<T>
       initialListeners: initialListeners,
       removeListenerOnError: removeListenerOnError,
       lockListenersOnInit: lockListenersOnInit,
-    )){
-      _t = vsync==null?Ticker((_)=>call()):vsync.createTicker((_)=>call());
-      if(startOnInit==true) start(play: pauseOnInit!=true);
-      _t.muted = pauseOnInit==true;
+    )) {
+      _t = vsync == null
+          ? Ticker((_) => call())
+          : vsync.createTicker((_) => call());
+      if (startOnInit == true) start(play: pauseOnInit != true);
+      _t.muted = pauseOnInit == true;
     }
     return false;
   }
@@ -3525,23 +3930,23 @@ class TickerValNotifier<T> extends ValNotifier<T>
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) : super(
-    initialVal: initialVal,
-    attachNotifiers: attachNotifiers,
-    listenToNotifiers: listenToNotifiers,
-    mergeNotifiers: mergeNotifiers,
-    initialListeners: initialListeners,
-    removeListenerOnError: removeListenerOnError,
-    lockListenersOnInit: lockListenersOnInit) {
-    _t = vsync==null?Ticker((_)=>call()):vsync.createTicker((_)=>call());
-    if(startOnInit==true) start(play: pauseOnInit!=true);
+            initialVal: initialVal,
+            attachNotifiers: attachNotifiers,
+            listenToNotifiers: listenToNotifiers,
+            mergeNotifiers: mergeNotifiers,
+            initialListeners: initialListeners,
+            removeListenerOnError: removeListenerOnError,
+            lockListenersOnInit: lockListenersOnInit) {
+    _t = vsync == null
+        ? Ticker((_) => call())
+        : vsync.createTicker((_) => call());
+    if (startOnInit == true) start(play: pauseOnInit != true);
   }
 }
 
-class TweenNotifier<T> extends ValNotifier<T>
-{
-
+class TweenNotifier<T> extends ValNotifier<T> {
   Ticker _t;
   Duration _pD = Duration.zero;
   DateTime _pT;
@@ -3554,20 +3959,20 @@ class TweenNotifier<T> extends ValNotifier<T>
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) : super(
           initialVal: initialVal,
-      attachNotifiers: attachNotifiers,
-      listenToNotifiers: listenToNotifiers,
-      mergeNotifiers: mergeNotifiers,
-      initialListeners: initialListeners,
-      removeListenerOnError: removeListenerOnError,
-      lockListenersOnInit: lockListenersOnInit,
-  );
+          attachNotifiers: attachNotifiers,
+          listenToNotifiers: listenToNotifiers,
+          mergeNotifiers: mergeNotifiers,
+          initialListeners: initialListeners,
+          removeListenerOnError: removeListenerOnError,
+          lockListenersOnInit: lockListenersOnInit,
+        );
 
-  bool play(){
-    if(_isNotDisposed||_t==null){
-      if(_t.muted) {
+  bool play() {
+    if (_isNotDisposed || _t == null) {
+      if (_t.muted) {
         _pD += DateTime.now().difference(_pT);
         _t.muted = false;
         return true;
@@ -3577,9 +3982,9 @@ class TweenNotifier<T> extends ValNotifier<T>
     return null;
   }
 
-  bool pause(){
-    if(_isNotDisposed||_t==null){
-      if(_t.muted) return false;
+  bool pause() {
+    if (_isNotDisposed || _t == null) {
+      if (_t.muted) return false;
       _pT = DateTime.now();
       return _t.muted = true;
     }
@@ -3587,8 +3992,8 @@ class TweenNotifier<T> extends ValNotifier<T>
   }
 
   bool dispose() {
-    if(super.dispose()){
-      if(_t!=null){
+    if (super.dispose()) {
+      if (_t != null) {
         _t.stop(canceled: true);
         _t.dispose();
         _t = null;
@@ -3600,82 +4005,138 @@ class TweenNotifier<T> extends ValNotifier<T>
   /// States whether the [TweenNotifier] is currently performing a Tween or not (even if its in paused state)
   ///
   /// Returns true if it is performing a tween (playing/paused) else false.
-  bool get isPerformingTween => _isNotDisposed?_t!=null:null;
+  bool get isPerformingTween => _isNotDisposed ? _t != null : null;
 
   /// States whether the [TweenNotifier] is currently performing a Tween or not (even if its in paused state)
   ///
   /// Returns false if it is performing a tween (playing/paused) else true.
-  bool get isNotPerformingTween => _isNotDisposed?_t==null:null;
+  bool get isNotPerformingTween => _isNotDisposed ? _t == null : null;
 
   /// Returns true is the [TweenNotifier] is paused during an animation else false is returned if the [TweenNotifier]
   /// is playing an animation. However if it isn't performing an animation altogether, it just returns null.
-  bool get isPaused => _isNotDisposed&&_t!=null&&_t.isActive?_t.muted:null;
+  bool get isPaused =>
+      _isNotDisposed && _t != null && _t.isActive ? _t.muted : null;
 
   /// Returns true is the [TweenNotifier] is playing an animation else false is returned if the [TweenNotifier] is paused.
   /// However if it isn't performing an animation altogether, it just returns null.
-  bool get isPlaying => _isNotDisposed&&_t!=null&&_t.isActive?!_t.muted:null;
+  bool get isPlaying =>
+      _isNotDisposed && _t != null && _t.isActive ? !_t.muted : null;
 
-  Future<TweenNotifier<T>> performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear}) async {
-    if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation. Please wait for the current animation to get over.");
-      return super.performTween(tween, duration, loop: loop, reverse: reverse, curve: curve).then((value){
-        _t=null;
+  Future<TweenNotifier<T>> performTween(Tween<T> tween, Duration duration,
+      {int loop = 1, bool reverse = false, Curve curve = Curves.linear}) async {
+    if (_isNotDisposed) {
+      if (_t?.isActive ?? false)
+        throw StateError(
+            "A $runtimeType cannot perform more than one controllable animation. Please wait for the current animation to get over.");
+      return super
+          .performTween(tween, duration,
+              loop: loop, reverse: reverse, curve: curve)
+          .then((value) {
+        _t = null;
         return this;
       });
     }
     return null;
   }
 
-  Future<TweenNotifier<T>> performTweens(Iterable<Tween<T>> tweens, Duration duration, {int loop=1,bool reverse=false, Curve curve = Curves.linear}) async {
-    if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation. Please wait for the current animation to get over.");
-      return super.performTweens(tweens, duration, loop: loop, reverse: reverse, curve: curve).then((value){
-        _t=null;
+  Future<TweenNotifier<T>> performTweens(
+      Iterable<Tween<T>> tweens, Duration duration,
+      {int loop = 1, bool reverse = false, Curve curve = Curves.linear}) async {
+    if (_isNotDisposed) {
+      if (_t?.isActive ?? false)
+        throw StateError(
+            "A $runtimeType cannot perform more than one controllable animation. Please wait for the current animation to get over.");
+      return super
+          .performTweens(tweens, duration,
+              loop: loop, reverse: reverse, curve: curve)
+          .then((value) {
+        _t = null;
         return this;
       });
     }
     return null;
   }
 
-  Future<TweenNotifier<T>> performCircularTween(Tween<T> tween, Duration duration, {int circles=1, bool reverse=false, Curve firstCurve = Curves.linear, Curve secondCurve = Curves.linear}) async {
-    if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
-      return super.performCircularTween(tween, duration, circles: circles, reverse: reverse, firstCurve: firstCurve, secondCurve: secondCurve).then((value){
-        _t=null;
+  Future<TweenNotifier<T>> performCircularTween(
+      Tween<T> tween, Duration duration,
+      {int circles = 1,
+      bool reverse = false,
+      Curve firstCurve = Curves.linear,
+      Curve secondCurve = Curves.linear}) async {
+    if (_isNotDisposed) {
+      if (_t?.isActive ?? false)
+        throw StateError(
+            "A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
+      return super
+          .performCircularTween(tween, duration,
+              circles: circles,
+              reverse: reverse,
+              firstCurve: firstCurve,
+              secondCurve: secondCurve)
+          .then((value) {
+        _t = null;
         return this;
       });
     }
     return null;
   }
 
-  Future<TweenNotifier<T>> interpolate(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Iterable<Curve> curves}) async {
-    if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
-      return super.interpolate(tween, values, totalDuration, loop: loop, reverse: reverse, curve: curve, curves: curves).then((value){
-        _t=null;
+  Future<TweenNotifier<T>> interpolate(
+      Tween<T> tween, Iterable<T> values, Duration totalDuration,
+      {int loop = 1,
+      bool reverse = false,
+      Curve curve = Curves.linear,
+      Iterable<Curve> curves}) async {
+    if (_isNotDisposed) {
+      if (_t?.isActive ?? false)
+        throw StateError(
+            "A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
+      return super
+          .interpolate(tween, values, totalDuration,
+              loop: loop, reverse: reverse, curve: curve, curves: curves)
+          .then((value) {
+        _t = null;
         return this;
       });
     }
     return null;
   }
 
-  Future<TweenNotifier<T>> circularInterpolation(Tween<T> tween, Iterable<T> values, Duration totalDuration, {int circles=1, Curve firstCurve=Curves.linear, Curve secondCurve=Curves.linear, Iterable<Curve> firstCurves, Iterable<Curve> secondCurves})
-  {
-    if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
-      return super.circularInterpolation(Tween<T>(), values, totalDuration, circles: circles, firstCurve: firstCurve, secondCurve: secondCurve, firstCurves: firstCurves, secondCurves: secondCurves).then((value){
-        _t=null;
+  Future<TweenNotifier<T>> circularInterpolation(
+      Tween<T> tween, Iterable<T> values, Duration totalDuration,
+      {int circles = 1,
+      Curve firstCurve = Curves.linear,
+      Curve secondCurve = Curves.linear,
+      Iterable<Curve> firstCurves,
+      Iterable<Curve> secondCurves}) {
+    if (_isNotDisposed) {
+      if (_t?.isActive ?? false)
+        throw StateError(
+            "A $runtimeType cannot perform more than one controllable animation at once. Please wait for the current animation to get over.");
+      return super
+          .circularInterpolation(Tween<T>(), values, totalDuration,
+              circles: circles,
+              firstCurve: firstCurve,
+              secondCurve: secondCurve,
+              firstCurves: firstCurves,
+              secondCurves: secondCurves)
+          .then((value) {
+        _t = null;
         return this;
       });
     }
     return null;
   }
 
-  Future<TweenNotifier<T>> _interpolate(Tween<T> tween, Iterable<T> values, Duration duration, {int loop=1, bool reverse=false, Iterable<Curve> curves, Ticker t}) async {
-
+  Future<TweenNotifier<T>> _interpolate(
+      Tween<T> tween, Iterable<T> values, Duration duration,
+      {int loop = 1,
+      bool reverse = false,
+      Iterable<Curve> curves,
+      Ticker t}) async {
     Curve curve;
 
-    if(reverse??=false) {
+    if (reverse ??= false) {
       values = values.toList().reversed;
       curves = curves.toList().reversed;
     }
@@ -3683,12 +4144,13 @@ class TweenNotifier<T> extends ValNotifier<T>
     int i;
 
     t = Ticker((d) async {
-      d-=_pD;
+      d -= _pD;
       if (d > duration) {
         call(tween.end);
         return t..stop();
       }
-      return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
+      return call(tween.transform(
+          curve.transform(d.inMilliseconds / duration.inMilliseconds)));
     });
 
     tween.end = values.first;
@@ -3700,64 +4162,72 @@ class TweenNotifier<T> extends ValNotifier<T>
       do {
         tween.begin = tween.end;
         tween.end = values[i];
-        curve = curves[i-1];
+        curve = curves[i - 1];
         _pD = Duration.zero;
         await _t.start();
-      } while(++i!=values.length);
-      return --loop!=0;
-    }).then((_){
+      } while (++i != values.length);
+      return --loop != 0;
+    }).then((_) {
       _t.dispose();
       return this;
     });
   }
 
-  Future<Ticker> _performTween(Tween<T> tween, Duration duration, {int loop=1, bool reverse=false, Curve curve = Curves.linear, Ticker t}) async {
-
+  Future<Ticker> _performTween(Tween<T> tween, Duration duration,
+      {int loop = 1,
+      bool reverse = false,
+      Curve curve = Curves.linear,
+      Ticker t}) async {
     T _;
-    reverse??=false;
+    reverse ??= false;
 
-    if(t==null){
-      if(reverse) {
+    if (t == null) {
+      if (reverse) {
         _ = tween.begin;
         tween.end = tween.begin;
         tween.begin = _;
         reverse = null;
       }
       t = Ticker((d) {
-        d-=_pD;
+        d -= _pD;
         if (d > duration) {
           call(tween.end);
           return _t..stop();
         }
-        return call(tween.transform(curve.transform(d.inMilliseconds / duration.inMilliseconds)));
+        return call(tween.transform(
+            curve.transform(d.inMilliseconds / duration.inMilliseconds)));
       });
     }
 
     loop = _times(loop);
     _t = t;
-    while(loop--!=0) {
+    while (loop-- != 0) {
       _pD = Duration.zero;
       await _t.start();
     }
 
-    if(reverse==null){
+    if (reverse == null) {
       tween.begin = tween.end;
       tween.end = _;
     }
     return _t;
   }
 
-  Future<Duration> poll(int times, {TickerProvider vsync}){
-    if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot get polled while it's being animated. Please wait for the previous animation to get over using await/then.");
+  Future<Duration> poll(int times, {TickerProvider vsync}) {
+    if (_isNotDisposed) {
+      if (_t?.isActive ?? false)
+        throw StateError(
+            "A TweenNotifier cannot get polled while it's being animated. Please wait for the previous animation to get over using await/then.");
       return super.poll(times, vsync: vsync);
     }
     return null;
   }
 
-  Future<TweenNotifier> pollFor(Duration duration, {TickerProvider vsync}){
-    if(_isNotDisposed){
-      if(_t?.isActive ?? false) throw StateError("A TweenNotifier cannot get polled while it's being animated. Please wait for the previous animation to get over using await/then.");
+  Future<TweenNotifier> pollFor(Duration duration, {TickerProvider vsync}) {
+    if (_isNotDisposed) {
+      if (_t?.isActive ?? false)
+        throw StateError(
+            "A TweenNotifier cannot get polled while it's being animated. Please wait for the previous animation to get over using await/then.");
       return super.pollFor(duration, vsync: vsync);
     }
     return null;
@@ -3765,8 +4235,11 @@ class TweenNotifier<T> extends ValNotifier<T>
 }
 
 extension Iterable_ValNotifier<T> on Iterable<ValNotifier<T>> {
-  Iterable<ValNotifier<T>> nullNotify() => map((n)=>n?.nullNotify()).toList();
-  ValNotifier<T> merge([Iterable<ValNotifier<T>> notifiers]) => ValNotifier<T>._().._addListeners(_listeners).._addListeners(notifiers._listeners);
+  Iterable<ValNotifier<T>> nullNotify() => map((n) => n?.nullNotify()).toList();
+  ValNotifier<T> merge([Iterable<ValNotifier<T>> notifiers]) =>
+      ValNotifier<T>._()
+        .._addListeners(_listeners)
+        .._addListeners(notifiers._listeners);
 }
 
 /// [TimedNotifier] is just a simple TickerNotifier class that re-uses the [Ticker] variable provided by it's parent
@@ -3780,18 +4253,17 @@ extension Iterable_ValNotifier<T> on Iterable<ValNotifier<T>> {
 /// The setter [interval] can be used to change th interval that is being followed by the internal ticker to give
 /// functionality to the abstract timer. However, the change in [interval] will only be followed by the ticker from
 /// the next tick.
-class TimedNotifier extends TickerNotifier
-{
+class TimedNotifier extends TickerNotifier {
   int _ticks = 0;
   int _cTicks = 0;
   Duration _interval;
 
-  Duration get _nextTick => _interval*_cTicks;
+  Duration get _nextTick => _interval * _cTicks;
 
-  Duration get interval => _isNotDisposed?_interval:null;
-  set interval(Duration interval){
-    if(_isNotDisposed){
-      if(interval==_interval) return;
+  Duration get interval => _isNotDisposed ? _interval : null;
+  set interval(Duration interval) {
+    if (_isNotDisposed) {
+      if (interval == _interval) return;
       _ticks += _cTicks;
       _pD += _nextTick;
       _cTicks = 0;
@@ -3843,39 +4315,39 @@ class TimedNotifier extends TickerNotifier
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) : super(
-    attachNotifiers: attachNotifiers,
-    listenToNotifiers: listenToNotifiers,
-    mergeNotifiers: mergeNotifiers,
-    initialListeners: initialListeners,
-    lockListenersOnInit: lockListenersOnInit,
-    removeListenerOnError: removeListenerOnError)
-  {
+            attachNotifiers: attachNotifiers,
+            listenToNotifiers: listenToNotifiers,
+            mergeNotifiers: mergeNotifiers,
+            initialListeners: initialListeners,
+            lockListenersOnInit: lockListenersOnInit,
+            removeListenerOnError: removeListenerOnError) {
     _interval = interval;
-    _t = Ticker((d){
-      d-=_pD;
-      if(d>=_nextTick) {
+    _t = Ticker((d) {
+      d -= _pD;
+      if (d >= _nextTick) {
         ++_cTicks;
-        if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+        if (d >= _nextTick) _pD += d - _nextTick + _interval;
         call();
       }
     });
-    startOnInit ??= interval!=null;
-    if(startOnInit==true) start(play: pauseOnInit!=true);
+    startOnInit ??= interval != null;
+    if (startOnInit == true) start(play: pauseOnInit != true);
   }
 
   /// The [start] method can be called in order to start the internal ticker of this [TimedNotifier]
-  bool start({Duration interval,bool play=true}) {
-    if(_isNotDisposed){
-      if(_t.isActive) return false;
-      if(interval!=null) _interval = interval;
-      assert(_interval!=null,"You need to specify the interval for at least once for the $runtimeType to work as expected!");
+  bool start({Duration interval, bool play = true}) {
+    if (_isNotDisposed) {
+      if (_t.isActive) return false;
+      if (interval != null) _interval = interval;
+      assert(_interval != null,
+          "You need to specify the interval for at least once for the $runtimeType to work as expected!");
       _ticks = 0;
       _cTicks = 0;
       _pD = Duration.zero;
       _t.start();
-      _t.muted = play!=true;
+      _t.muted = play != true;
       return true;
     }
     return null;
@@ -3896,25 +4368,31 @@ class TimedNotifier extends TickerNotifier
   /// maintained. Trying to call this method when it's default operation or polling is already active would lead to a
   /// [StateError]. To avoid this, once can pass true to the [stopPrevious] parameter. This will entirely stop the
   /// previous polling/default operation and start a new one altogether. (Don't do it manually!)
-  Future<TimedNotifier> pollFor(Duration duration, {TickerProvider vsync, bool stopPrevious=false}) {
+  Future<TimedNotifier> pollFor(Duration duration,
+      {TickerProvider vsync, bool stopPrevious = false}) {
     if (_isNotDisposed) {
-      if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
+      if (stopPrevious ?? false) _t.dispose();
+      if (_t.isActive)
+        throw StateError(
+            "A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
       if (duration == Duration.zero) return Future.value(this);
-      duration=duration.abs();
+      duration = duration.abs();
       _pD = Duration.zero;
       Function onTick = (d) {
-        d-=_pD;
-        if (d>duration) return _t..stop()..dispose();
+        d -= _pD;
+        if (d > duration)
+          return _t
+            ..stop()
+            ..dispose();
         call();
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value){
-        _t = Ticker((d){
-          d-=_pD;
-          if(d>=_nextTick) {
+      return _t.start().then((value) {
+        _t = Ticker((d) {
+          d -= _pD;
+          if (d >= _nextTick) {
             ++_cTicks;
-            if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+            if (d >= _nextTick) _pD += d - _nextTick + _interval;
             call();
           }
         });
@@ -3939,27 +4417,32 @@ class TimedNotifier extends TickerNotifier
   /// call this method when a polling or ticking is already active would lead to a [StateError].
   /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
   /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
-  Future<Duration> poll(int times, {TickerProvider vsync, bool stopPrevious=false}) {
+  Future<Duration> poll(int times,
+      {TickerProvider vsync, bool stopPrevious = false}) {
     if (_isNotDisposed) {
       Duration end;
-      if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
+      if (stopPrevious ?? false) _t.dispose();
+      if (_t.isActive)
+        throw StateError(
+            "A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
       if (times == 0) return Future.value(Duration.zero);
       times = times.abs();
       Function onTick = (d) {
-        if (times--==0) {
+        if (times-- == 0) {
           end = d;
-          return _t..stop()..dispose();
+          return _t
+            ..stop()
+            ..dispose();
         }
         call();
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value){
-        _t = Ticker((d){
-          d-=_pD;
-          if(d>=_nextTick) {
+      return _t.start().then((value) {
+        _t = Ticker((d) {
+          d -= _pD;
+          if (d >= _nextTick) {
             ++_cTicks;
-            if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+            if (d >= _nextTick) _pD += d - _nextTick + _interval;
             call();
           }
         });
@@ -3982,22 +4465,22 @@ class TimedNotifier extends TickerNotifier
 /// The setter [interval] can be used to change th interval that is being followed by the internal ticker to give
 /// functionality to the abstract timer. However, the change in [interval] will only be followed by the ticker from
 /// the next tick.
-class TimedValNotifier<T> extends TickerValNotifier<T>
-{
+class TimedValNotifier<T> extends TickerValNotifier<T> {
   int _ticks = 0;
   int _cTicks = 0;
   Duration _interval;
 
-  Duration get _nextTick => _interval*_cTicks;
+  Duration get _nextTick => _interval * _cTicks;
 
   /// Get the [interval] of that is currently been followed by the internal ticker that simulates an abstract timer.
-  Duration get interval => _isNotDisposed?_interval:null;
+  Duration get interval => _isNotDisposed ? _interval : null;
 
   /// Set a [interval] that can be followed by the internal [ticker] that can simulate an abstract timer.
-  set interval(Duration interval){
-    if(_isNotDisposed){
-      if(interval==_interval) return;
-      assert(interval!=null,"Could not set the interval for the internal ticker to null!");
+  set interval(Duration interval) {
+    if (_isNotDisposed) {
+      if (interval == _interval) return;
+      assert(interval != null,
+          "Could not set the interval for the internal ticker to null!");
       _ticks += _cTicks;
       _pD += _nextTick;
       _cTicks = 0;
@@ -4049,39 +4532,39 @@ class TimedValNotifier<T> extends TickerValNotifier<T>
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) : super(
-      attachNotifiers: attachNotifiers,
-      listenToNotifiers: listenToNotifiers,
-      mergeNotifiers: mergeNotifiers,
-      initialListeners: initialListeners,
-      lockListenersOnInit: lockListenersOnInit,
-      removeListenerOnError: removeListenerOnError)
-  {
+            attachNotifiers: attachNotifiers,
+            listenToNotifiers: listenToNotifiers,
+            mergeNotifiers: mergeNotifiers,
+            initialListeners: initialListeners,
+            lockListenersOnInit: lockListenersOnInit,
+            removeListenerOnError: removeListenerOnError) {
     _interval = interval;
-    _t = Ticker((d){
-      d-=_pD;
-      if(d>=_nextTick) {
+    _t = Ticker((d) {
+      d -= _pD;
+      if (d >= _nextTick) {
         ++_cTicks;
-        if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+        if (d >= _nextTick) _pD += d - _nextTick + _interval;
         call();
       }
     });
-    startOnInit ??= interval!=null;
-    if(startOnInit==true) start(play: pauseOnInit!=true);
+    startOnInit ??= interval != null;
+    if (startOnInit == true) start(play: pauseOnInit != true);
   }
 
   /// The [start] method can be called in order to start the internal ticker of this [TimedValNotifier]
-  bool start({Duration interval,bool play=true}){
-    if(_isNotDisposed){
-      if(_t.isActive) return false;
-      if(interval!=null) _interval = interval;
-      assert(_interval!=null,"You need to specify the interval for at least once for the $runtimeType to work as expected!");
+  bool start({Duration interval, bool play = true}) {
+    if (_isNotDisposed) {
+      if (_t.isActive) return false;
+      if (interval != null) _interval = interval;
+      assert(_interval != null,
+          "You need to specify the interval for at least once for the $runtimeType to work as expected!");
       _ticks = 0;
       _cTicks = 0;
       _t.start();
       _pD = Duration.zero;
-      _t.muted = play!=true;
+      _t.muted = play != true;
       return true;
     }
     return null;
@@ -4102,25 +4585,31 @@ class TimedValNotifier<T> extends TickerValNotifier<T>
   /// maintained. Trying to call this method when it's default operation or polling is already active would lead to a
   /// [StateError]. To avoid this, once can pass true to the [stopPrevious] parameter. This will entirely stop the
   /// previous polling/default operation and start a new one altogether. (Don't do it manually!)
-  Future<TimedValNotifier<T>> pollFor(Duration duration, {TickerProvider vsync, bool stopPrevious=false}) {
+  Future<TimedValNotifier<T>> pollFor(Duration duration,
+      {TickerProvider vsync, bool stopPrevious = false}) {
     if (_isNotDisposed) {
-      if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
+      if (stopPrevious ?? false) _t.dispose();
+      if (_t.isActive)
+        throw StateError(
+            "A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method pollFor.");
       if (duration == Duration.zero) return Future.value(this);
-      duration=duration.abs();
+      duration = duration.abs();
       _pD = Duration.zero;
       Function onTick = (d) {
-        d-=_pD;
-        if (d>duration) return _t..stop()..dispose();
+        d -= _pD;
+        if (d > duration)
+          return _t
+            ..stop()
+            ..dispose();
         call();
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value){
-        _t = Ticker((d){
-          d-=_pD;
-          if(d>=_nextTick) {
+      return _t.start().then((value) {
+        _t = Ticker((d) {
+          d -= _pD;
+          if (d >= _nextTick) {
             ++_cTicks;
-            if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+            if (d >= _nextTick) _pD += d - _nextTick + _interval;
             call();
           }
         });
@@ -4145,27 +4634,32 @@ class TimedValNotifier<T> extends TickerValNotifier<T>
   /// call this method when a polling or ticking is already active would lead to a [StateError].
   /// To avoid this, once can pass [true] to the stopPrevious parameter. This will entirely stop
   /// the previous polling/ticking and start a new one altogether. (Don't do it manually!)
-  Future<Duration> poll(int times, {TickerProvider vsync, bool stopPrevious=false}) {
+  Future<Duration> poll(int times,
+      {TickerProvider vsync, bool stopPrevious = false}) {
     if (_isNotDisposed) {
       Duration end;
-      if(stopPrevious??false) _t.dispose();
-      if(_t.isActive) throw StateError("A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
+      if (stopPrevious ?? false) _t.dispose();
+      if (_t.isActive)
+        throw StateError(
+            "A $runtimeType can control only one form of ticking or polling at a time. Please pass true to the stopPrevious parameter, while calling the method poll.");
       if (times == 0) return Future.value(Duration.zero);
       times = times.abs();
       Function onTick = (d) {
-        if (times--==0) {
+        if (times-- == 0) {
           end = d;
-          return _t..stop()..dispose();
+          return _t
+            ..stop()
+            ..dispose();
         }
         call();
       };
       _t = vsync == null ? Ticker(onTick) : vsync.createTicker(onTick);
-      return _t.start().then((value){
-        _t = Ticker((d){
-          d-=_pD;
-          if(d>=_nextTick) {
+      return _t.start().then((value) {
+        _t = Ticker((d) {
+          d -= _pD;
+          if (d >= _nextTick) {
             ++_cTicks;
-            if(d>=_nextTick) _pD+=d-_nextTick+_interval;
+            if (d >= _nextTick) _pD += d - _nextTick + _interval;
             call();
           }
         });
@@ -4178,10 +4672,9 @@ class TimedValNotifier<T> extends TickerValNotifier<T>
 
 /// A simple extension method that makes adding some to Duration to a date and finding the difference between two
 /// [DateTime]s in [Duration] a bit easier.
-extension DateTime_Ease on DateTime
-{
-  DateTime operator +(Duration duration) => add(duration??Duration.zero);
-  Duration operator -(DateTime dateTime)=>difference(dateTime);
+extension DateTime_Ease on DateTime {
+  DateTime operator +(Duration duration) => add(duration ?? Duration.zero);
+  Duration operator -(DateTime dateTime) => difference(dateTime);
 }
 
 /// The [SWNotifier] class is a maintains an internal abstract stopwatch that can be [start]ed,
@@ -4191,31 +4684,35 @@ extension DateTime_Ease on DateTime
 /// easier, however it can also be indirectly used as a live timer with negative duration and by
 /// considering the absolute duration with the help of [Duration.abs]. (A simple listener can be
 /// attached to see when the [Timer] should be cancelled)
-class SWNotifier extends TickerValNotifier<Duration>
-{
+class SWNotifier extends TickerValNotifier<Duration> {
   DateTime _start;
 
   /// Returns the duration elapsed by the internal abstract stopwatch.
   ///
   /// If the internal ticker is not active, it will return [Duration.zero] else the elapsed time.
-  Duration get elapsed => _isNotDisposed ? (isActive ? _elapsed : Duration.zero) : null;
-  Duration get _elapsed => (isPlaying?DateTime.now():_pT).difference(_start) - _pD;
+  Duration get elapsed =>
+      _isNotDisposed ? (isActive ? _elapsed : Duration.zero) : null;
+  Duration get _elapsed =>
+      (isPlaying ? DateTime.now() : _pT).difference(_start) - _pD;
 
   /// Sets a new elapsed duration for the internal abstract stopwatch. If the internal ticker or
   /// abstract stopwatch isn't active it throws an [StateError]. Also, the [elapsed] duration passed
   /// to this setter method is expected to not be null.
   set elapsed(Duration elapsed) {
-    assert(elapsed!=null,"$runtimeType#$hashCode: The elapsed duration of cannot be set to null!");
-    if(isNotActive) throw StateError("$runtimeType#$hashCode: Couldn't modify the elapsed duration since I have not been started yet. Please use the start() method on me before trying to modify/play with this value.");
+    assert(elapsed != null,
+        "$runtimeType#$hashCode: The elapsed duration of cannot be set to null!");
+    if (isNotActive)
+      throw StateError(
+          "$runtimeType#$hashCode: Couldn't modify the elapsed duration since I have not been started yet. Please use the start() method on me before trying to modify/play with this value.");
     bool _ = isPlaying;
-    if(_==true) pause();
-    if(isPlaying){
-      _start= DateTime.now()+(-elapsed);
+    if (_ == true) pause();
+    if (isPlaying) {
+      _start = DateTime.now() + (-elapsed);
     } else {
-      _start=(_pT=DateTime.now())+(-elapsed);
+      _start = (_pT = DateTime.now()) + (-elapsed);
       _pD = Duration.zero;
     }
-    if(_==true) play();
+    if (_ == true) play();
     call();
   }
 
@@ -4232,11 +4729,13 @@ class SWNotifier extends TickerValNotifier<Duration>
   ///
   /// One can optionally decide to pause the stopwatch while starting it by passing false to the
   /// named parameter [play].
-  bool start({bool play=true}) {
-    if(_isNotDisposed) {
-      if(super.start(play: play)) {
-        if(play!=true) _pT = _start = DateTime.now();
-        else _start = DateTime.now();
+  bool start({bool play = true}) {
+    if (_isNotDisposed) {
+      if (super.start(play: play)) {
+        if (play != true)
+          _pT = _start = DateTime.now();
+        else
+          _start = DateTime.now();
         return true;
       }
       return false;
@@ -4250,12 +4749,11 @@ class SWNotifier extends TickerValNotifier<Duration>
   /// the named parameter [reset] when the abstract stopwatch is active. Trying to reset it when the
   /// stopwatch is inactive wouldn't reset the [elapsed] duration of the abstract stopwatch. You
   /// could use the [reset] method then and pass values to it's parameters as per your requirements.
-  bool stop({bool reset=false})
-  {
-    if(_isNotDisposed) {
-      if(super.stop()){
+  bool stop({bool reset = false}) {
+    if (_isNotDisposed) {
+      if (super.stop()) {
         _start = null;
-        if(reset==true) call(Duration.zero, false);
+        if (reset == true) call(Duration.zero, false);
         return true;
       }
       return false;
@@ -4266,8 +4764,8 @@ class SWNotifier extends TickerValNotifier<Duration>
   /// The method [reset] force resets the internal abstract stopwatch that is maintained by this
   /// [SWNotifier]. By default, this method starts playing the stopwatch as soon as it is reset.
   /// To change this behavior, please pass false to the named parameter [play] of this method.
-  void reset({bool play=true}) {
-    if(_isNotDisposed){
+  void reset({bool play = true}) {
+    if (_isNotDisposed) {
       stop(reset: true);
       start(play: play);
     }
@@ -4278,10 +4776,11 @@ class SWNotifier extends TickerValNotifier<Duration>
   ///
   /// This method is just an abstraction to the setter method [elapsed]= that returns false instead
   /// of throwing an error unless its an assertion.
-  bool jumpTo(Duration duration){
-    if(_isNotDisposed) {
-      assert(duration!=null,"SWNotifier:$hashCode Could not jump to duration null.");
-      if(isActive){
+  bool jumpTo(Duration duration) {
+    if (_isNotDisposed) {
+      assert(duration != null,
+          "SWNotifier:$hashCode Could not jump to duration null.");
+      if (isActive) {
         elapsed = duration;
         return false;
       }
@@ -4295,11 +4794,12 @@ class SWNotifier extends TickerValNotifier<Duration>
   ///
   /// This method is just an abstraction to the setter method [elapsed]+= that returns false instead
   /// of throwing an error (if the [SWNotifier] is inactive) unless its an assertion.
-  bool addElapsed(Duration duration){
-    if(_isNotDisposed){
-      assert(duration!=null,"SWNotifier:$hashCode Could not add null duration to elapsed.");
-      if(isActive){
-        elapsed+=duration;
+  bool addElapsed(Duration duration) {
+    if (_isNotDisposed) {
+      assert(duration != null,
+          "SWNotifier:$hashCode Could not add null duration to elapsed.");
+      if (isActive) {
+        elapsed += duration;
         return false;
       }
       return false;
@@ -4313,10 +4813,11 @@ class SWNotifier extends TickerValNotifier<Duration>
   /// This method is just an abstraction to the setter method [elapsed]-= that returns false instead
   /// of throwing an error (if the [SWNotifier] is inactive) unless its an assertion.
   bool deductElapsed(Duration duration) {
-    if(_isNotDisposed){
-      assert(duration!=null,"SWNotifier:$hashCode Could not deduct null duration to elapsed.");
-      if(isActive){
-        elapsed-=duration;
+    if (_isNotDisposed) {
+      assert(duration != null,
+          "SWNotifier:$hashCode Could not deduct null duration to elapsed.");
+      if (isActive) {
+        elapsed -= duration;
         return false;
       }
       return false;
@@ -4329,11 +4830,12 @@ class SWNotifier extends TickerValNotifier<Duration>
   ///
   /// This method is just an abstraction to the setter method [elapsed]+= that returns false instead
   /// of throwing an error (if the [SWNotifier] is inactive) unless its an assertion.
-  bool multiplyElapsed(num times){
-    if(_isNotDisposed){
-      assert(times!=null,"SWNotifier:$hashCode Could not multiply null to elapsed duration.");
-      if(isActive){
-        elapsed*=times;
+  bool multiplyElapsed(num times) {
+    if (_isNotDisposed) {
+      assert(times != null,
+          "SWNotifier:$hashCode Could not multiply null to elapsed duration.");
+      if (isActive) {
+        elapsed *= times;
         return false;
       }
       return false;
@@ -4346,11 +4848,12 @@ class SWNotifier extends TickerValNotifier<Duration>
   ///
   /// This method is just an abstraction to the setter method [elapsed]+= that returns false instead
   /// of throwing an error (if the [SWNotifier] is inactive) unless its an assertion.
-  bool divideElapsed(num times){
-    if(_isNotDisposed) {
-      assert(times!=null,"SWNotifier:$hashCode Could not divide null to elapsed duration.");
-      if(isActive){
-        elapsed~/=times;
+  bool divideElapsed(num times) {
+    if (_isNotDisposed) {
+      assert(times != null,
+          "SWNotifier:$hashCode Could not divide null to elapsed duration.");
+      if (isActive) {
+        elapsed ~/= times;
         return false;
       }
       return false;
@@ -4373,20 +4876,20 @@ class SWNotifier extends TickerValNotifier<Duration>
   /// a moment while the [SWNotifier] is playing then please pass false to the second parameter
   /// [save]. This wouldn't jump to that the passed duration but would just notify it for a moment.
   /// However, it must be noted that it saves it, even if the save parameter is set to false.
-  SWNotifier call([Duration elapsed,bool save=true]){
-    if(_isNotDisposed) {
-      if(_t.isActive&&save==true){
-          if(elapsed!=null) this.elapsed = elapsed;
-          return super.call(_elapsed);
-        }
-        return super.call(elapsed);
+  SWNotifier call([Duration elapsed, bool save = true]) {
+    if (_isNotDisposed) {
+      if (_t.isActive && save == true) {
+        if (elapsed != null) this.elapsed = elapsed;
+        return super.call(_elapsed);
+      }
+      return super.call(elapsed);
     }
     return null;
   }
 
   /// Can be used to re-init the [SWNotifier] once it's disposed. If its already disposed then
   /// it re-init s it and returns true else just returns false.
-  /// 
+  ///
   /// Note: The [initialVal] parameter just means initial value. It doesn't directly jump to that
   /// value, once the internal abstract stopwatch starts.
   bool init({
@@ -4399,10 +4902,9 @@ class SWNotifier extends TickerValNotifier<Duration>
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
     bool lockListenersOnInit = false,
-    bool Function(Function,dynamic) removeListenerOnError,
-  })
-  {
-    if(super.init(
+    bool Function(Function, dynamic) removeListenerOnError,
+  }) {
+    if (super.init(
       initialVal: initialVal ?? Duration.zero,
       attachNotifiers: attachNotifiers,
       listenToNotifiers: listenToNotifiers,
@@ -4411,8 +4913,8 @@ class SWNotifier extends TickerValNotifier<Duration>
       removeListenerOnError: removeListenerOnError,
       lockListenersOnInit: lockListenersOnInit,
       vsync: vsync,
-    )){
-      if(startOnInit==true) start(play: pauseOnInit!=true);
+    )) {
+      if (startOnInit == true) start(play: pauseOnInit != true);
     }
     return false;
   }
@@ -4420,7 +4922,7 @@ class SWNotifier extends TickerValNotifier<Duration>
   /// Disposes the current [SWNotifier]. Returns false if it was already disposed else disposes the
   /// [SWNotifier] and returns true.
   bool dispose() {
-    if(super.dispose()){
+    if (super.dispose()) {
       _start = null;
       return true;
     }
@@ -4464,16 +4966,16 @@ class SWNotifier extends TickerValNotifier<Duration>
     Iterable<Notifier> listenToNotifiers,
     Iterable<Notifier> mergeNotifiers,
     Iterable<Function> initialListeners,
-    bool Function(Function,dynamic) removeListenerOnError,
+    bool Function(Function, dynamic) removeListenerOnError,
   }) : super(
-      initialVal: initialVal ?? Duration.zero,
-      attachNotifiers: attachNotifiers,
-      listenToNotifiers: listenToNotifiers,
-      mergeNotifiers: mergeNotifiers,
-      initialListeners: initialListeners,
-      vsync: vsync,
-  ) {
-    if(startOnInit==true) start(play: pauseOnInit!=true);
+          initialVal: initialVal ?? Duration.zero,
+          attachNotifiers: attachNotifiers,
+          listenToNotifiers: listenToNotifiers,
+          mergeNotifiers: mergeNotifiers,
+          initialListeners: initialListeners,
+          vsync: vsync,
+        ) {
+    if (startOnInit == true) start(play: pauseOnInit != true);
   }
 }
 
@@ -4501,24 +5003,24 @@ extension Iterable_<T> on Iterable<T> {
 
   /// Checks whether the given element is present in the current [Iterable] by comparing it from the opposite
   /// class's operator== method.
-  bool containsRevComp(Object element){
-    for (T val in this) if (element==val) return true;
+  bool containsRevComp(Object element) {
+    for (T val in this) if (element == val) return true;
     return false;
   }
 
   /// Checks whether the given element is present in the current [Iterable] by comparing it with both classes'
   /// operator== method. For any given element present in the array, it returns true if either of the method(s)
   /// return true for any element else false is bluntly returned at the end.
-  bool containsEitherComp(Object element){
-    for (T val in this) if (element==val||val==element) return true;
+  bool containsEitherComp(Object element) {
+    for (T val in this) if (element == val || val == element) return true;
     return false;
   }
 
   /// Checks whether the given element is present in the current [Iterable] by comparing it with both classes'
   /// operator== method. For any given element present in the array, it returns true if both the method(s)
   /// return true, else false is bluntly returned at the end.
-  bool containsBothComp(Object element){
-    for (T val in this) if (element==val&&val==element) return true;
+  bool containsBothComp(Object element) {
+    for (T val in this) if (element == val && val == element) return true;
     return false;
   }
 }
@@ -4527,4 +5029,6 @@ extension Iterable_<T> on Iterable<T> {
 ///
 /// This error is generally thrown when an compound operation is tried to been performed on an [Iterable]<[Notifier]>,
 /// containing one or more disposed notifiers or null values.
-class AtomicError extends AssertionError{ AtomicError([String message]) : super(message);}
+class AtomicError extends AssertionError {
+  AtomicError([String message]) : super(message);
+}
